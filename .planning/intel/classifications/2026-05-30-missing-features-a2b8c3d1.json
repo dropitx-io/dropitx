@@ -1,0 +1,13 @@
+{
+  "source_path": "docs/plans/2026-05-30-missing-features.md",
+  "type": "DOC",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "DropItX — 8 Missing Features Implementation Plan",
+  "summary": "Implementation plan for 8 competitive features: E2E encryption, expiration, burn-after-reading, versioning, multi-file, comments, QR codes, and draft autosave.",
+  "scope": ["E2E encryption", "expiration", "burn-after-reading", "version history", "multi-file", "comments", "QR codes", "draft autosave", "Supabase", "Next.js", "FastAPI"],
+  "cross_refs": [],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}

@@ -1,0 +1,13 @@
+{
+  "source_path": "docs/design-guidelines.md",
+  "type": "SPEC",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "Design Guidelines",
+  "summary": "Clay design system specification covering color tokens, typography, spacing, component library, responsive breakpoints, interaction patterns, and UI security contracts.",
+  "scope": ["Clay design system", "color tokens", "typography", "component library", "spacing", "border radius", "responsive design", "interaction patterns", "WCAG accessibility", "UI security"],
+  "cross_refs": [],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}

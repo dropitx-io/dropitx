@@ -1,0 +1,13 @@
+{
+  "source_path": "docs/journals/2026-07-19-clay-developers-page-wcag-fixes.md",
+  "type": "DOC",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "Clay Design System — Developers Page & WCAG Contrast Fixes",
+  "summary": "Journal documenting WCAG AA contrast fixes in Clay design tokens, stale CLAUDE.md discovery, and developers page implementation.",
+  "scope": ["Clay design system", "WCAG AA contrast", "developers page", "landing page", "og-image", "embed pages", "CSS tokens", "OKLCH color tokens"],
+  "cross_refs": ["CLAUDE.md", "app/globals.css", "app/api/og-image/[slug]/route.tsx", "app/(public)/embed/[slug]/page.tsx", "docs/design-guidelines.md"],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}

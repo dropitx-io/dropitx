@@ -1,0 +1,34 @@
+{
+  "source_path": "docs/system-architecture.md",
+  "type": "SPEC",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "System Architecture",
+  "summary": "Full technical specification of DropItX: architecture diagram, component hierarchy, auth flows, data flows, database schema, storage, security layers, and API contracts.",
+  "scope": [
+    "DropItX",
+    "Next.js frontend",
+    "FastAPI backend",
+    "Supabase PostgreSQL",
+    "Supabase Storage",
+    "Upstash Redis",
+    "authentication",
+    "API keys",
+    "team workspaces",
+    "analytics",
+    "oEmbed",
+    "rate limiting",
+    "RLS policies",
+    "database schema",
+    "security layers"
+  ],
+  "cross_refs": [
+    "lib/api-client.ts",
+    "middleware.ts",
+    "lib/analytics-track.ts",
+    "lib/analytics.ts"
+  ],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}

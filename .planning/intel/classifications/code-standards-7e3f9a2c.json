@@ -1,0 +1,12 @@
+{
+  "source_path": "docs/code-standards.md",
+  "type": "SPEC",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "Code Standards",
+  "summary": "Technical standards and conventions for DropItX covering naming, TypeScript, React, styling, security, and database migrations.",
+  "scope": ["DropItX", "Next.js", "TypeScript", "Tailwind CSS", "CodeMirror", "Supabase", "FastAPI", "React", "database migrations", "monorepo", "API routes", "security", "lint", "git conventions"],
+  "cross_refs": [],
+  "locked": false,
+  "precedence": null
+}

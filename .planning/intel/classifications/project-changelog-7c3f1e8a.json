@@ -1,0 +1,13 @@
+{
+  "source_path": "docs/project-changelog.md",
+  "type": "DOC",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "Project Changelog",
+  "summary": "Chronological record of all notable changes to DropItX from v1.0.0 through v2.5.0.",
+  "scope": ["DropItX", "Clay Design System", "encryption", "burn-after-reading", "team workspaces", "analytics", "authentication", "markdown editor", "API", "design system", "RLS policies"],
+  "cross_refs": ["docs/design-guidelines.md"],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}

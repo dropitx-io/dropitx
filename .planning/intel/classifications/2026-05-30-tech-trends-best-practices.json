@@ -1,0 +1,12 @@
+{
+  "source_path": "docs/plans/2026-05-30-tech-trends-best-practices.md",
+  "type": "DOC",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "DropItX — Technology Trends & Best Practices Upgrade Plan",
+  "summary": "Implementation plan to upgrade DropItX frontend and backend with security headers, structured logging, error boundaries, caching, and observability.",
+  "scope": ["security headers", "structured logging", "error boundaries", "caching", "observability", "Next.js", "FastAPI", "DropItX"],
+  "cross_refs": [],
+  "locked": false,
+  "precedence": null
+}
