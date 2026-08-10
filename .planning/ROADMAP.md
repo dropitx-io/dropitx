@@ -30,7 +30,11 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. No file in the repository contains `@ts-nocheck` (all 5 files typed: team-invite-form, enhanced-invite-dialog, invite-accept-form, bulk-invite-dialog, team-rpc)
   4. Dashboard team pages compile without `any[]` casts or eslint-disable comments on Supabase queries
   5. A missing `NEXT_PUBLIC_API_URL` fails loudly at build or runtime — never silently routes to a dead tunnel URL
-**Plans**: TBD
+**Plans**: 4 plans
+- [ ] 01-01-PLAN.md — Remove @ts-nocheck from team-rpc.ts (shared dependency) + create errors helper + narrow token-security catches
+- [ ] 01-02-PLAN.md — Remove @ts-nocheck from 4 team component files + narrow all catch blocks
+- [ ] 01-03-PLAN.md — Generate Supabase Database types + thread generic through client factories + replace tunnel URL with fail-fast
+- [ ] 01-04-PLAN.md — Type dashboard queries (remove any-casts) + flip build config flags as final gate
 
 ### Phase 2: Testing Foundation
 **Goal**: Critical code paths are protected by automated tests, so changes can be made and shipped with confidence
@@ -87,7 +91,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Build Hygiene | 0/0 | Not started | - |
+| 1. Build Hygiene | 0/4 | Planned | - |
 | 2. Testing Foundation | 0/0 | Not started | - |
 | 3. Security Hardening | 0/0 | Not started | - |
 | 4. Feature Completion | 0/0 | Not started | - |
