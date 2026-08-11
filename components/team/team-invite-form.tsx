@@ -5,13 +5,13 @@
  * security validation, and user feedback. Uses RPC functions for secure operations.
  */
 
-// @ts-nocheck
 "use client";
 
 import { useState } from "react";
 import { useTeam } from "@/hooks/use-team";
 import { teamService, teamRPC } from "@/lib/team-rpc";
 import { TokenSecurity, generateSecureToken } from "@/lib/token-security";
+import { getErrorMessage } from "@/lib/errors";
 import type { TeamRole } from "@/types/team";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -123,8 +123,8 @@ export function TeamInviteForm() {
         variant: "default"
       });
 
-    } catch (err: any) {
-      setError(err.message || "Failed to create invite");
+    } catch (err) {
+      setError(getErrorMessage(err) || "Failed to create invite");
     } finally {
       setLoading(false);
     }
@@ -145,8 +145,8 @@ export function TeamInviteForm() {
           variant: "destructive"
         });
       }
-    } catch (err: any) {
-      setError(`Failed to check rate limit: ${err.message}`);
+    } catch (err) {
+      setError(`Failed to check rate limit: ${getErrorMessage(err)}`);
     } finally {
       setCheckingRateLimit(false);
     }
@@ -209,8 +209,8 @@ export function TeamInviteForm() {
       setBulkEmails("");
       setBulkMode(false);
 
-    } catch (err: any) {
-      setError(err.message || "Failed to create bulk invites");
+    } catch (err) {
+      setError(getErrorMessage(err) || "Failed to create bulk invites");
     } finally {
       setBulkLoading(false);
     }

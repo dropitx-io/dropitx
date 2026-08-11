@@ -108,6 +108,12 @@ export interface CleanupResult {
   ran_at?: string;
 }
 
+export interface BulkInviteResult {
+  success_count?: number;
+  error_count?: number;
+  duplicate_count?: number;
+}
+
 /**
  * Team RPC Client - Handles all team-related RPC operations
  */
@@ -250,7 +256,7 @@ export class TeamRPC {
   /**
    * Bulk invite operation
    */
-  async bulkInvite(params: BulkInviteParams) {
+  async bulkInvite(params: BulkInviteParams): Promise<BulkInviteResult> {
     const supabase = await this.getRPCClient();
 
     const { data, error } = await supabase.rpc('bulk_invite_transaction', {
@@ -263,7 +269,7 @@ export class TeamRPC {
       throw new Error(`Failed to bulk invite: ${error.message}`);
     }
 
-    return data;
+    return data as BulkInviteResult;
   }
 
   /**
@@ -543,7 +549,10 @@ export class TeamService {
   /**
    * Bulk invite with validation
    */
-  async bulkInviteWithValidation(params: BulkInviteParams & { userId: string }) {
+  async bulkInviteWithValidation(params: BulkInviteParams & { userId: string }): Promise<
+    | { success: true; data: BulkInviteResult }
+    | { success: false; message: string }
+  > {
     // Validate emails
     const emailRegex = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
     const invalidEmails = params.emails.filter(email => !emailRegex.test(email));
