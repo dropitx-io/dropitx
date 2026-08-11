@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Enhanced Invite Acceptance Form Component
  *
@@ -10,8 +9,10 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import type { User } from "@supabase/supabase-js";
 import { TokenSecurity, InviteValidationService } from "@/lib/token-security";
 import { teamRPC } from "@/lib/team-rpc";
+import { getErrorMessage } from "@/lib/errors";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -40,7 +41,7 @@ export function InviteAcceptForm() {
   const [validating, setValidating] = useState(false);
   const [accepting, setAccepting] = useState(false);
   const [validation, setValidation] = useState<InviteValidationResult | null>(null);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
     const checkTokenAndUser = async () => {
@@ -115,8 +116,8 @@ export function InviteAcceptForm() {
       } else {
         setError(result.error || 'Failed to accept invite');
       }
-    } catch (err: any) {
-      setError(err.message || 'Failed to accept invite');
+    } catch (err) {
+      setError(getErrorMessage(err) || 'Failed to accept invite');
     } finally {
       setAccepting(false);
     }
@@ -224,7 +225,7 @@ export function InviteAcceptForm() {
           </div>
           <CardTitle className="text-2xl">Join Team</CardTitle>
           <CardDescription>
-            You've been invited to join a team
+            You&apos;ve been invited to join a team
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
