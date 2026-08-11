@@ -5,8 +5,8 @@ milestone_name: milestone
 current_phase: 01
 current_phase_name: Build Hygiene
 status: executing
-stopped_at: Completed 01-03-PLAN.md
-last_updated: "2026-08-11T01:41:38.185Z"
+stopped_at: Completed 01-02-PLAN.md
+last_updated: "2026-08-11T01:44:04.647Z"
 last_activity: 2026-08-11
 last_activity_desc: Phase 01 execution started
 progress:
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-08-10)
 ## Current Position
 
 Phase: 01 (Build Hygiene) — EXECUTING
-Plan: 3 of 4
+Plan: 4 of 4
 Status: Ready to execute
 Last activity: 2026-08-11 — Phase 01 execution started
 
@@ -60,6 +60,7 @@ Progress: [████████░░] 75%
 |------|----------|-------|-------|
 | Phase 01 P01 | 11 min | 2 tasks | 4 files |
 | Phase 01 P03 | 9 min | 2 tasks | 6 files |
+| Phase 01 P02 | 8 min | 3 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -76,6 +77,8 @@ Recent decisions affecting current work:
 - [Phase ?]: RPC returns without generic type params typed via assumed interfaces + boundary as-cast; shapes tagged [ASSUMED], verifiable in Plan 03
 - [Phase ?]: Generated Database types via supabase CLI from live project; threaded <Database> through all 3 Supabase factories (server/client/middleware) + createAdminClient (HYG-04)
 - [Phase ?]: lib/api-client.ts fails fast at module load on missing NEXT_PUBLIC_API_URL; removed dead trycloudflare tunnel fallback (HYG-05); Vercel env var must be confirmed before merge
+- [Phase ?]: Typed bulkInvite RPC return as BulkInviteResult + widened bulkInviteWithValidation union so team-invite-form defensive checks compile without any (Plan 02)
+- [Phase ?]: Left pre-existing 13 team-rpc.ts tsc errors (RPC-name drift) untouched — present at HEAD, deferred-items.md, Plan 04 scope (Plan 02)
 
 ### Pending Todos
 
@@ -96,6 +99,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-08-11T01:41:38.174Z
-Stopped at: Completed 01-03-PLAN.md
+Last session: 2026-08-11T01:43:47.838Z
+Stopped at: Completed 01-02-PLAN.md
 Resume file: None
