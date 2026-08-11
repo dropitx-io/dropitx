@@ -6,6 +6,8 @@
  */
 
 import { createAdminClient } from "@/utils/supabase/server";
+import { getErrorMessage } from "@/lib/errors";
+import type { AcceptInviteResult } from "@/lib/team-rpc";
 import crypto from "crypto";
 
 /**
@@ -32,6 +34,24 @@ export interface TokenSecurityStatus {
   isLocked: boolean;
   lockedReason?: string;
   expiresAt?: string;
+}
+
+export interface TokenSecurityStats {
+  total_invites?: number;
+  active_invites?: number;
+  expired_invites?: number;
+  used_invites?: number;
+  locked_invites?: number;
+}
+
+export interface TokenCleanupResult {
+  deleted_rows?: number;
+  ran_at?: string;
+}
+
+export interface LockedTokenResetResult {
+  reset_count?: number;
+  ran_at?: string;
 }
 
 /**
@@ -141,7 +161,7 @@ export class TokenSecurity {
   /**
    * Get token security statistics
    */
-  static async getTokenSecurityStats(): Promise<any> {
+  static async getTokenSecurityStats(): Promise<TokenSecurityStats> {
     const supabase = await createAdminClient();
 
     const { data, error } = await supabase.rpc('get_token_security_stats');
@@ -150,13 +170,13 @@ export class TokenSecurity {
       throw new Error(`Failed to get token security stats: ${error.message}`);
     }
 
-    return data;
+    return data as TokenSecurityStats;
   }
 
   /**
    * Cleanup expired tokens
    */
-  static async cleanupExpiredTokens(): Promise<any> {
+  static async cleanupExpiredTokens(): Promise<TokenCleanupResult> {
     const supabase = await createAdminClient();
 
     const { data, error } = await supabase.rpc('cleanup_expired_tokens');
@@ -165,13 +185,13 @@ export class TokenSecurity {
       throw new Error(`Failed to cleanup expired tokens: ${error.message}`);
     }
 
-    return data;
+    return data as TokenCleanupResult;
   }
 
   /**
    * Reset locked tokens after timeout
    */
-  static async resetLockedTokens(): Promise<any> {
+  static async resetLockedTokens(): Promise<LockedTokenResetResult> {
     const supabase = await createAdminClient();
 
     const { data, error } = await supabase.rpc('reset_locked_tokens');
@@ -180,7 +200,7 @@ export class TokenSecurity {
       throw new Error(`Failed to reset locked tokens: ${error.message}`);
     }
 
-    return data;
+    return data as LockedTokenResetResult;
   }
 }
 
@@ -267,10 +287,10 @@ export class InviteValidationService {
         actionRequired: 'Accept the invitation to join the team'
       };
 
-    } catch (error: any) {
+    } catch (error) {
       return {
         valid: false,
-        error: error.message || 'Failed to validate invite',
+        error: getErrorMessage(error) || 'Failed to validate invite',
         actionRequired: 'Please try again or contact support'
       };
     }
@@ -281,7 +301,7 @@ export class InviteValidationService {
    */
   static async acceptInvite(token: string, userId: string): Promise<{
     success: boolean;
-    data?: any;
+    data?: AcceptInviteResult;
     error?: string;
     message?: string;
     already_member?: boolean;
@@ -322,10 +342,10 @@ export class InviteValidationService {
         already_member: data.already_member
       };
 
-    } catch (error: any) {
+    } catch (error) {
       return {
         success: false,
-        error: error.message,
+        error: getErrorMessage(error),
         message: 'Failed to accept invite'
       };
     }
