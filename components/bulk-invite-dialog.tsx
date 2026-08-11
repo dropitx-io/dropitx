@@ -1,4 +1,3 @@
-// @ts-nocheck
 "use client";
 
 import { useState } from "react";
@@ -76,7 +75,7 @@ export function BulkInviteDialog({
       }
 
       setResults({
-        success: data.invites.map((invite: any) => invite.email),
+        success: data.invites.map((invite: { email: string }) => invite.email),
         failed: data.errors || [],
         duplicates: data.duplicates || []
       });
