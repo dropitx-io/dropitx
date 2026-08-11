@@ -2,18 +2,18 @@
 gsd_state_version: 1.0
 milestone: v2.5.0
 milestone_name: milestone
-current_phase: 1
+current_phase: 01
 current_phase_name: Build Hygiene
 status: executing
-stopped_at: PROJECT.md, REQUIREMENTS.md, ROADMAP.md, STATE.md created from intel synthesis + codebase map
-last_updated: "2026-08-10T16:25:07.085Z"
-last_activity: 2026-08-10
-last_activity_desc: Project initialized via new-project-from-ingest (intel synthesis + codebase map)
+stopped_at: Completed 01-01-PLAN.md
+last_updated: "2026-08-11T01:29:16.979Z"
+last_activity: 2026-08-11
+last_activity_desc: Phase 01 execution started
 progress:
   total_phases: 1
   completed_phases: 0
   total_plans: 4
-  completed_plans: 0
+  completed_plans: 1
 ---
 
 # Project State
@@ -23,16 +23,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-10)
 
 **Core value:** Users can share content securely via a link in seconds, with full control over who sees it and for how long.
-**Current focus:** Phase 1 — Build Hygiene
+**Current focus:** Phase 01 — Build Hygiene
 
 ## Current Position
 
-Phase: 1 of 5 (Build Hygiene)
-Plan: 0 of 0 in current phase (not yet planned)
+Phase: 01 (Build Hygiene) — EXECUTING
+Plan: 2 of 4
 Status: Ready to execute
-Last activity: 2026-08-10 — Project initialized via new-project-from-ingest (intel synthesis + codebase map)
+Last activity: 2026-08-11 — Phase 01 execution started
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [███░░░░░░░] 25%
 
 ## Performance Metrics
 
@@ -54,6 +54,11 @@ Progress: [░░░░░░░░░░] 0%
 - Trend: — (no plans executed yet)
 
 *Updated after each plan completion*
+**Per-Plan Metrics:**
+
+| Plan | Duration | Tasks | Files |
+|------|----------|-------|-------|
+| Phase 01 P01 | 11 min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -66,6 +71,8 @@ Recent decisions affecting current work:
 - "Production ready" means feature-complete, not hardened — hardening is this milestone's purpose.
 - Comments, version-history, multi-file are UI-complete only; backend wiring is explicit Phase 4 scope (some work in sibling repo dropitx-api/).
 - Phase 1 (Build Hygiene) is the critical prerequisite — disabled typecheck/lint blocks confident work on every later phase.
+- [Phase ?]: getErrorMessage(e: unknown) is the canonical catch-narrowing helper for the phase; not applied to Supabase PostgrestError sites (not instanceof Error)
+- [Phase ?]: RPC returns without generic type params typed via assumed interfaces + boundary as-cast; shapes tagged [ASSUMED], verifiable in Plan 03
 
 ### Pending Todos
 
@@ -86,6 +93,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-08-10 (project initialization)
-Stopped at: PROJECT.md, REQUIREMENTS.md, ROADMAP.md, STATE.md created from intel synthesis + codebase map
+Last session: 2026-08-11T01:29:16.955Z
+Stopped at: Completed 01-01-PLAN.md
 Resume file: None

@@ -34,10 +34,10 @@ Decimal phases appear between their surrounding integers in numeric order.
   4. Dashboard team pages compile without `any[]` casts or eslint-disable comments on Supabase queries
   5. A missing `NEXT_PUBLIC_API_URL` fails loudly at build or runtime — never silently routes to a dead tunnel URL
 
-**Plans**: 4 plans
+**Plans**: 1/4 plans executed
 **Wave 1**
 
-- [ ] 01-01-PLAN.md — Remove @ts-nocheck from team-rpc.ts (shared dependency) + create errors helper + narrow token-security catches
+- [x] 01-01-PLAN.md — Remove @ts-nocheck from team-rpc.ts (shared dependency) + create errors helper + narrow token-security catches
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -115,7 +115,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Build Hygiene | 0/4 | Planned | - |
+| 1. Build Hygiene | 1/4 | In Progress|  |
 | 2. Testing Foundation | 0/0 | Not started | - |
 | 3. Security Hardening | 0/0 | Not started | - |
 | 4. Feature Completion | 0/0 | Not started | - |
