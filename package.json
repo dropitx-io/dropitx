@@ -9,6 +9,7 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "check:hygiene": "tsc --noEmit && next lint",
+    "generate-db-types": "supabase gen types typescript --project-id mywrpluomfpzguvkrvki > types/database.generated.ts",
     "generate-types": "bash scripts/generate-api-types.sh"
   },
   "dependencies": {

@@ -1,11 +1,12 @@
 import { createBrowserClient } from "@supabase/ssr";
+import type { Database } from "@/types/database.generated";
 
 // createBrowserClient stores the session in cookies (chunked + base64) that
 // are shared across tabs and readable by the server client / middleware.
 // Do not pass a custom `auth.storage` — @supabase/ssr ignores it and it
 // masks the real cookie handling.
 export const createClient = () =>
-  createBrowserClient(
+  createBrowserClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
     {
