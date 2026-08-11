@@ -1,6 +1,10 @@
 import { createClient } from "@/utils/supabase/client";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://overcome-sterling-senator-clinics.trycloudflare.com";
+const envApiUrl = process.env.NEXT_PUBLIC_API_URL;
+if (!envApiUrl) {
+  throw new Error("NEXT_PUBLIC_API_URL is required. Set it in Vercel Project Settings → Environment Variables and redeploy.");
+}
+const API_URL = envApiUrl;
 
 let _supabase: ReturnType<typeof createClient> | null = null;
 function getSupabase() {
