@@ -7,6 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "check:hygiene": "tsc --noEmit && next lint",
     "generate-types": "bash scripts/generate-api-types.sh"
   },
   "dependencies": {

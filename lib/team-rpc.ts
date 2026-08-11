@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Team RPC Utilities for Next.js Integration
  *
@@ -8,6 +7,7 @@
  */
 
 import { createAdminClient } from "@/utils/supabase/server";
+import { getErrorMessage } from "@/lib/errors";
 import type { TeamRole } from "@/types/team";
 
 export interface CreateTeamParams {
@@ -83,6 +83,29 @@ export interface AcceptInviteResult {
   team_id?: string;
   role?: string;
   already_member?: boolean;
+}
+
+export interface GlobalRateLimitResult {
+  is_limited: boolean;
+  teams_this_hour?: number;
+  invites_this_hour?: number;
+  total_invites_today?: number;
+  limit_type?: string;
+  next_available?: string;
+}
+
+export interface RateLimitingStats {
+  active_invites?: number;
+  expired_invites?: number;
+  used_invites?: number;
+  rate_limited_events?: number;
+  period?: string;
+}
+
+export interface CleanupResult {
+  deleted_rows?: number;
+  cleaned_tables?: string[];
+  ran_at?: string;
 }
 
 /**
@@ -284,7 +307,7 @@ export class TeamRPC {
   /**
    * Check global rate limit
    */
-  async checkGlobalRateLimit(): Promise<any> {
+  async checkGlobalRateLimit(): Promise<GlobalRateLimitResult> {
     const supabase = await this.getRPCClient();
 
     const { data, error } = await supabase.rpc('check_global_invite_rate_limit', {
@@ -297,13 +320,13 @@ export class TeamRPC {
       throw new Error(`Failed to check global rate limit: ${error.message}`);
     }
 
-    return data;
+    return data as GlobalRateLimitResult;
   }
 
   /**
    * Get rate limiting statistics
    */
-  async getRateLimitingStats(): Promise<any> {
+  async getRateLimitingStats(): Promise<RateLimitingStats> {
     const supabase = await this.getRPCClient();
 
     const { data, error } = await supabase.rpc('get_rate_limiting_stats');
@@ -312,13 +335,13 @@ export class TeamRPC {
       throw new Error(`Failed to get rate limiting stats: ${error.message}`);
     }
 
-    return data;
+    return data as RateLimitingStats;
   }
 
   /**
    * Cleanup old rate limiting data
    */
-  async cleanupRateLimitingData(): Promise<any> {
+  async cleanupRateLimitingData(): Promise<CleanupResult> {
     const supabase = await this.getRPCClient();
 
     const { data, error } = await supabase.rpc('cleanup_rate_limiting_data');
@@ -327,7 +350,7 @@ export class TeamRPC {
       throw new Error(`Failed to cleanup rate limiting data: ${error.message}`);
     }
 
-    return data;
+    return data as CleanupResult;
   }
 }
 
@@ -363,7 +386,8 @@ export class TeamService {
       const teamId = await this.rpc.createTeam(params);
       return { success: true, team_id: teamId };
     } catch (error) {
-      if (error.message.includes('Maximum number of teams')) {
+      const msg = getErrorMessage(error);
+      if (msg.includes('Maximum number of teams')) {
         throw new Error('You have reached the maximum number of teams (10)');
       }
       throw error;
@@ -408,13 +432,14 @@ export class TeamService {
 
       return { success: true, invite: result };
     } catch (error) {
-      if (error.message.includes('Rate limit exceeded')) {
+      const msg = getErrorMessage(error);
+      if (msg.includes('Rate limit exceeded')) {
         throw new Error('Rate limit exceeded. Please try again later.');
       }
-      if (error.message.includes('Pending invite already exists')) {
+      if (msg.includes('Pending invite already exists')) {
         throw new Error('A pending invite already exists for this email');
       }
-      if (error.message.includes('Free teams are limited')) {
+      if (msg.includes('Free teams are limited')) {
         throw new Error('Free teams are limited to 3 members. Upgrade to Pro to invite more.');
       }
       throw error;
@@ -441,13 +466,14 @@ export class TeamService {
           : 'Successfully joined the team'
       };
     } catch (error) {
-      if (error.message.includes('email mismatch')) {
+      const msg = getErrorMessage(error);
+      if (msg.includes('email mismatch')) {
         throw new Error('This invite was sent to a different email address. Please log in with the correct email.');
       }
-      if (error.message.includes('already used')) {
+      if (msg.includes('already used')) {
         throw new Error('This invite has already been used');
       }
-      if (error.message.includes('expired')) {
+      if (msg.includes('expired')) {
         throw new Error('This invite has expired');
       }
       throw error;
@@ -462,13 +488,14 @@ export class TeamService {
       const result = await this.rpc.transferOwnership(params);
       return { success: true, data: result };
     } catch (error) {
-      if (error.message.includes('Only team owners can transfer ownership')) {
+      const msg = getErrorMessage(error);
+      if (msg.includes('Only team owners can transfer ownership')) {
         throw new Error('Only team owners can transfer ownership');
       }
-      if (error.message.includes('New owner must be a team member first')) {
+      if (msg.includes('New owner must be a team member first')) {
         throw new Error('The new owner must be a team member first');
       }
-      if (error.message.includes('last owner')) {
+      if (msg.includes('last owner')) {
         throw new Error('Cannot transfer ownership: you are the last owner of the team');
       }
       throw error;
@@ -483,10 +510,11 @@ export class TeamService {
       const result = await this.rpc.updateMemberRole(params);
       return { success: true, data: result };
     } catch (error) {
-      if (error.message.includes('Only team owners can change member roles')) {
+      const msg = getErrorMessage(error);
+      if (msg.includes('Only team owners can change member roles')) {
         throw new Error('Only team owners can change member roles');
       }
-      if (error.message.includes('Cannot demote yourself')) {
+      if (msg.includes('Cannot demote yourself')) {
         throw new Error('Cannot demote yourself: you are the last owner of the team');
       }
       throw error;
@@ -501,10 +529,11 @@ export class TeamService {
       const result = await this.rpc.removeMember(params);
       return { success: true, data: result };
     } catch (error) {
-      if (error.message.includes('Only team owners can remove other members')) {
+      const msg = getErrorMessage(error);
+      if (msg.includes('Only team owners can remove other members')) {
         throw new Error('Only team owners can remove other members');
       }
-      if (error.message.includes('last owner')) {
+      if (msg.includes('last owner')) {
         throw new Error('Cannot remove the last owner of the team');
       }
       throw error;
@@ -532,7 +561,8 @@ export class TeamService {
       const result = await this.rpc.bulkInvite(params);
       return { success: true, data: result };
     } catch (error) {
-      if (error.message.includes('Only editors and owners can create invites')) {
+      const msg = getErrorMessage(error);
+      if (msg.includes('Only editors and owners can create invites')) {
         throw new Error('Only editors and owners can create invites');
       }
       throw error;
