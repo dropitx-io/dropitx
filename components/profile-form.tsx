@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/utils/supabase/client";
+import { useAuth } from "@/components/auth-provider";
+import { authFetch } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -19,13 +20,13 @@ interface ProfileFormProps {
 }
 
 export function ProfileForm({
-  userId,
   displayName,
   avatarUrl,
   email,
   providers,
 }: ProfileFormProps) {
   const router = useRouter();
+  const { signOut } = useAuth();
   const [name, setName] = useState(displayName);
   const [saving, setSaving] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
@@ -40,14 +41,11 @@ export function ProfileForm({
     }
     setSaving(true);
     try {
-      const supabase = createClient();
-      const { error } = await supabase
-        .from("user_profiles")
-        .upsert(
-          { id: userId, display_name: trimmed },
-          { onConflict: "id" },
-        );
-      if (error) throw error;
+      const res = await authFetch("/api/v1/profile", {
+        method: "PUT",
+        body: JSON.stringify({ display_name: trimmed }),
+      });
+      if (!res.ok) throw new Error("Failed to update profile");
       setName(trimmed);
       toast.success("Profile updated");
       router.refresh();
@@ -61,8 +59,7 @@ export function ProfileForm({
   async function handleSignOut() {
     setSigningOut(true);
     try {
-      const supabase = createClient();
-      await supabase.auth.signOut();
+      await signOut();
       router.push("/");
     } catch {
       toast.error("Failed to sign out");

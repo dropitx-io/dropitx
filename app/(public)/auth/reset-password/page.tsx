@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { createClient } from "@/utils/supabase/client";
+import { sendPasswordReset } from "@/lib/firebase/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -42,12 +42,14 @@ export default function ResetPasswordPage() {
     setLoading(true);
     setError(null);
 
-    const supabase = createClient();
-    await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/auth/confirm`,
-    });
-    setSent(true);
-    setLoading(false);
+    try {
+      await sendPasswordReset(email);
+      setSent(true);
+    } catch (err: unknown) {
+      setError((err as Error)?.message ?? "Could not send reset email.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

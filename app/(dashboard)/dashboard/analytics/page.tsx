@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { createClient, createAdminClient } from "@/utils/supabase/server";
+import { createAdminClient } from "@/utils/supabase/server";
+import { getSessionUser } from "@/lib/firebase/server";
 import { AnalyticsTopPerformers } from "@/components/analytics/analytics-top-performers";
 import { cn } from "@/lib/utils";
 import type { TopShare } from "@/types/analytics";
@@ -8,19 +9,18 @@ import type { Share } from "@/types/share";
 
 export default async function GlobalAnalyticsPage() {
   const cookieStore = await cookies();
-  const supabase = createClient(cookieStore);
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getSessionUser(cookieStore);
 
   if (!user) redirect("/auth/login");
 
-  const { data: shares } = await supabase
+  const admin = createAdminClient();
+  const { data: shares } = await admin
     .from("shares")
     .select("id, view_count")
-    .eq("user_id", user.id);
+    .eq("user_id", user.uid);
 
-  const adminClient = createAdminClient();
-  const { data: topShares } = await adminClient.rpc("get_user_top_shares", {
-    p_user_id: user.id,
+  const { data: topShares } = await admin.rpc("get_user_top_shares", {
+    p_user_id: user.uid,
     p_limit: 10,
   });
 

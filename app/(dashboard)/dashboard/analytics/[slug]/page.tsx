@@ -1,7 +1,8 @@
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
-import { createClient, createAdminClient } from "@/utils/supabase/server";
+import { createAdminClient } from "@/utils/supabase/server";
+import { getSessionUser } from "@/lib/firebase/server";
 import { AnalyticsStatsCards } from "@/components/analytics/analytics-stats-cards";
 import { AnalyticsViewChart } from "@/components/analytics/analytics-view-chart";
 import { AnalyticsReferrerChart } from "@/components/analytics/analytics-referrer-chart";
@@ -27,26 +28,24 @@ const EMPTY_ANALYTICS: ShareAnalytics = {
 export default async function PerShareAnalyticsPage({ params }: PerShareAnalyticsPageProps) {
   const { slug } = await params;
   const cookieStore = await cookies();
-  const supabase = createClient(cookieStore);
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getSessionUser(cookieStore);
 
   if (!user) redirect("/auth/login");
 
-  const { data: share } = await supabase
+  const admin = createAdminClient();
+  const { data: share } = await admin
     .from("shares")
     .select("id, user_id, slug, title, filename")
     .eq("slug", slug)
-    .eq("user_id", user.id)
+    .eq("user_id", user.uid)
     .single();
 
   if (!share) notFound();
-
-  const adminClient = createAdminClient();
   const [analyticsRes, timeseriesRes, referrersRes, geoRes] = await Promise.all([
-    adminClient.rpc("get_share_analytics", { p_share_id: share.id, p_days: 30 }),
-    adminClient.rpc("get_share_view_timeseries", { p_share_id: share.id, p_days: 30 }),
-    adminClient.rpc("get_share_referrers", { p_share_id: share.id, p_days: 30 }),
-    adminClient.rpc("get_share_geo", { p_share_id: share.id, p_days: 30 }),
+    admin.rpc("get_share_analytics", { p_share_id: share.id, p_days: 30 }),
+    admin.rpc("get_share_view_timeseries", { p_share_id: share.id, p_days: 30 }),
+    admin.rpc("get_share_referrers", { p_share_id: share.id, p_days: 30 }),
+    admin.rpc("get_share_geo", { p_share_id: share.id, p_days: 30 }),
   ]);
 
   const analytics: ShareAnalytics = (analyticsRes.data as ShareAnalytics[])?.[0] ?? EMPTY_ANALYTICS;

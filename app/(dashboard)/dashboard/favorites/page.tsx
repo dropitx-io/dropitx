@@ -1,7 +1,8 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { createClient } from "@/utils/supabase/server";
+import { createAdminClient } from "@/utils/supabase/server";
+import { getSessionUser } from "@/lib/firebase/server";
 import { Heart, Star, Copy } from "lucide-react";
 import type { Share } from "@/types/share";
 import type { ShareWithPasswordFlag } from "@/app/(dashboard)/dashboard/page";
@@ -22,15 +23,15 @@ function formatDate(iso: string): string {
 
 export default async function FavoritesPage() {
   const cookieStore = await cookies();
-  const supabase = createClient(cookieStore);
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getSessionUser(cookieStore);
 
   if (!user) redirect("/auth/login");
 
-  const { data: favorites } = await supabase
+  const admin = createAdminClient();
+  const { data: favorites } = await admin
     .from("favorites")
     .select("share_id, created_at, shares(*)")
-    .eq("user_id", user.id)
+    .eq("user_id", user.uid)
     .order("created_at", { ascending: false });
 
   const favList = (favorites ?? []) as unknown as FavoriteRow[];

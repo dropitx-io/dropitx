@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
-import { createAdminClient, createClient } from "@/utils/supabase/server";
+import { createAdminClient } from "@/utils/supabase/server";
+import { getSessionUser } from "@/lib/firebase/server";
 import { cookies } from "next/headers";
 import { EmbedViewedTracker } from "@/components/embed-viewed-tracker";
 import { MarkdownViewerWrapper } from "@/components/markdown-viewer-wrapper";
@@ -45,10 +46,9 @@ export default async function EmbedPage({ params }: EmbedPageProps) {
   const isOwnedShare = !!share.user_id;
 
   if (isOwnedShare) {
-    const serverClient = createClient(cookieStore);
-    const { data: { session } } = await serverClient.auth.getSession();
+    const sessionUser = await getSessionUser(cookieStore);
 
-    if (!session) {
+    if (!sessionUser) {
       return (
         <div style={{
           display: "flex",

@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { createClient } from "@/utils/supabase/server";
+import { createAdminClient } from "@/utils/supabase/server";
+import { getSessionUser } from "@/lib/firebase/server";
 import { DashboardShareList } from "@/components/dashboard-share-list";
 import { DashboardUpload } from "@/components/dashboard-upload";
 import { BarChart3, FileText, HardDrive, Clock } from "lucide-react";
@@ -17,15 +18,15 @@ function formatFileSize(bytes: number): string {
 
 export default async function DashboardPage() {
   const cookieStore = await cookies();
-  const supabase = createClient(cookieStore);
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getSessionUser(cookieStore);
 
   if (!user) redirect("/auth/login");
 
-  const { data: shares } = await supabase
+  const admin = createAdminClient();
+  const { data: shares } = await admin
     .from("shares")
     .select("*")
-    .eq("user_id", user.id)
+    .eq("user_id", user.uid)
     .order("created_at", { ascending: false });
 
   const shareList: ShareWithPasswordFlag[] = (shares ?? []).map((s: Share) => {
@@ -36,10 +37,10 @@ export default async function DashboardPage() {
   const totalViews = shareList.reduce((sum, s) => sum + s.view_count, 0);
   const totalSize = shareList.reduce((sum, s) => sum + (s.file_size ?? 0), 0);
 
-  const { data: memberships } = await supabase
+  const { data: memberships } = await admin
     .from("team_members")
     .select("team_id, teams(slug, name)")
-    .eq("user_id", user.id);
+    .eq("user_id", user.uid);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const teams = ((memberships ?? []) as any[]).map((m) => {
@@ -48,7 +49,7 @@ export default async function DashboardPage() {
   });
 
   const teamShareQueries = teams.map(async (team) => {
-    const { data: teamShares } = await supabase
+    const { data: teamShares } = await admin
       .from("team_shares")
       .select("created_at, shared_by, shares(id, slug, filename, title, mime_type, view_count, file_size, created_at)")
       .eq("team_id", team.id)

@@ -1,7 +1,8 @@
 import { notFound, redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { cookies, headers } from "next/headers";
-import { createClient, createAdminClient } from "@/utils/supabase/server";
+import { createAdminClient } from "@/utils/supabase/server";
+import { getSessionUser } from "@/lib/firebase/server";
 import { hasValidAccessCookie } from "@/lib/share-access-cookie";
 import { sha256, generateTrackingToken } from "@/lib/analytics-track";
 import { PasswordGate } from "@/components/password-gate";
@@ -136,9 +137,8 @@ export default async function SharePage({ params }: SharePageProps) {
   if (share.expires_at && new Date(share.expires_at) < new Date()) notFound();
 
   // --- ACCESS GATE ---
-  const authClient = createClient(cookieStore);
-  const { data: { user } } = await authClient.auth.getUser();
-  const isOwner = !!user && user.id === share.user_id;
+  const sessionUser = await getSessionUser(cookieStore);
+  const isOwner = !!sessionUser && sessionUser.uid === share.user_id;
 
   if (!isOwner) {
     // Private shares: owner-only (is_private and password_hash are mutually exclusive)
@@ -152,7 +152,7 @@ export default async function SharePage({ params }: SharePageProps) {
       }
 
       // No password, no session: redirect to login
-      if (!user) {
+      if (!sessionUser) {
         redirect(`/auth/login?next=/s/${slug}`);
       }
       // Non-owner authenticated user on unprotected share: allow
@@ -276,7 +276,7 @@ export default async function SharePage({ params }: SharePageProps) {
         <SharePageClient
           groupFiles={groupFiles}
           initialSlug={slug}
-          isAuthenticated={!!user}
+          isAuthenticated={!!sessionUser}
           shareId={share.id}
         />
       ) : (
@@ -292,7 +292,7 @@ export default async function SharePage({ params }: SharePageProps) {
           </Card>
 
           {/* Comments section */}
-          <CommentsSectionWrapper shareId={share.id} slug={slug} isAuthenticated={!!user} />
+          <CommentsSectionWrapper shareId={share.id} slug={slug} isAuthenticated={!!sessionUser} />
         </>
       )}
     </div>

@@ -1,30 +1,23 @@
 import { cookies } from "next/headers";
-import { createClient } from "@/utils/supabase/server";
+import { createAdminClient } from "@/utils/supabase/server";
+import { getSessionUser } from "@/lib/firebase/server";
 import { redirect } from "next/navigation";
 import { ProfileForm } from "@/components/profile-form";
 
-const PROVIDER_LABELS: Record<string, string> = {
-  google: "Google",
-  github: "GitHub",
-};
-
 export default async function ProfilePage() {
   const cookieStore = await cookies();
-  const supabase = createClient(cookieStore);
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getSessionUser(cookieStore);
 
   if (!user) redirect("/");
 
-  const { data: profile } = await supabase
+  const admin = createAdminClient();
+  const { data: profile } = await admin
     .from("user_profiles")
     .select("display_name, avatar_url")
-    .eq("id", user.id)
+    .eq("id", user.uid)
     .maybeSingle();
 
-  const providers = (user.app_metadata?.provider ?? "")
-    .split(",")
-    .filter(Boolean)
-    .map((p: string) => PROVIDER_LABELS[p] ?? p);
+  const providers: string[] = [];
 
   return (
     <div className="mx-auto max-w-[680px] space-y-5">
@@ -36,7 +29,7 @@ export default async function ProfilePage() {
       </div>
       <div className="rounded-lg border border-border bg-card p-6">
         <ProfileForm
-          userId={user.id}
+          userId={user.uid}
           displayName={profile?.display_name ?? ""}
           avatarUrl={profile?.avatar_url ?? ""}
           email={user.email ?? ""}

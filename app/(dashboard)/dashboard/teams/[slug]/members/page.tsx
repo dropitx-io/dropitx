@@ -5,7 +5,8 @@
 
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { createClient } from "@/utils/supabase/server";
+import { createAdminClient } from "@/utils/supabase/server";
+import { getSessionUser } from "@/lib/firebase/server";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Users } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
@@ -27,13 +28,11 @@ interface Props {
 
 async function getTeamData(slug: string) {
   const cookieStore = await cookies();
-  const supabase = createClient(cookieStore);
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getSessionUser(cookieStore);
   if (!user) redirect("/auth/login");
 
-  const { data: team, error: teamError } = await supabase
+  const admin = createAdminClient();
+  const { data: team, error: teamError } = await admin
     .from("teams")
     .select("id, name, slug, plan, created_by")
     .eq("slug", slug)
@@ -41,22 +40,22 @@ async function getTeamData(slug: string) {
 
   if (!team || teamError) redirect("/dashboard/teams");
 
-  const { data: membership } = await supabase
+  const { data: membership } = await admin
     .from("team_members")
     .select("role")
     .eq("team_id", team.id)
-    .eq("user_id", user.id)
+    .eq("user_id", user.uid)
     .single();
 
   if (!membership) redirect("/dashboard/teams");
 
   const [membersRes, invitesRes] = await Promise.all([
-    supabase
+    admin
       .from("team_members")
       .select("user_id, role, joined_at, user_profiles(display_name, avatar_url)")
       .eq("team_id", team.id)
       .order("joined_at", { ascending: true }),
-    supabase
+    admin
       .from("team_invites")
       .select("id, email, role, status, expires_at, created_at, invited_by")
       .eq("team_id", team.id)
@@ -126,7 +125,7 @@ export default async function TeamMembersPage({ params }: Props) {
                 avatarUrl={m.avatar_url ?? null}
                 role={m.role}
                 viewerRole={userRole}
-                isSelf={m.user_id === user.id}
+                isSelf={m.user_id === user.uid}
                 teamSlug={slug}
               />
             ))}

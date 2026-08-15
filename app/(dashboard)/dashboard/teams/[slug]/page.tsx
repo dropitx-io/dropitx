@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { createClient } from "@/utils/supabase/server";
+import { createAdminClient } from "@/utils/supabase/server";
+import { getSessionUser } from "@/lib/firebase/server";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -20,13 +21,14 @@ export default async function TeamOverviewPage({
 }) {
   const { slug } = await params;
   const cookieStore = await cookies();
-  const supabase = createClient(cookieStore);
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getSessionUser(cookieStore);
 
   if (!user) redirect("/auth/login");
 
+  const admin = createAdminClient();
+
   // Fetch team
-  const { data: team, error: teamError } = await supabase
+  const { data: team, error: teamError } = await admin
     .from("teams")
     .select("*")
     .eq("slug", slug)
@@ -35,11 +37,11 @@ export default async function TeamOverviewPage({
   if (!team) redirect("/dashboard/teams");
 
   // Verify membership
-  const { data: membership, error: memberError } = await supabase
+  const { data: membership, error: memberError } = await admin
     .from("team_members")
     .select("role")
     .eq("team_id", team.id)
-    .eq("user_id", user.id)
+    .eq("user_id", user.uid)
     .single();
 
   if (!membership) redirect("/dashboard/teams");
@@ -47,7 +49,7 @@ export default async function TeamOverviewPage({
   const userRole = String(membership.role);
 
   // Fetch team shares — Supabase returns shares as nested array from join
-  const { data: teamShareRows } = await supabase
+  const { data: teamShareRows } = await admin
     .from("team_shares")
     .select("created_at, shared_by, shares(id, slug, filename, title, mime_type, view_count, file_size, created_at)")
     .eq("team_id", team.id)
@@ -64,13 +66,13 @@ export default async function TeamOverviewPage({
     .filter(Boolean);
 
   // Count members
-  const { count: memberCount } = await supabase
+  const { count: memberCount } = await admin
     .from("team_members")
     .select("*", { count: "exact", head: true })
     .eq("team_id", team.id);
 
   // Fetch recent activity events
-  const { data: events } = await supabase
+  const { data: events } = await admin
     .from("team_events")
     .select("id, event_type, actor_id, target_user_id, metadata, created_at")
     .eq("team_id", team.id)

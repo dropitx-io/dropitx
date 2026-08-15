@@ -5,8 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { LogOut, User } from "lucide-react";
 import { NAV_LINKS } from "@/lib/nav-links";
-import { useAuthUser } from "@/lib/use-auth-user";
-import { createClient } from "@/utils/supabase/client";
+import { useAuth } from "@/components/auth-provider";
 
 interface HeaderMobileDrawerProps {
   open: boolean;
@@ -17,7 +16,7 @@ export function HeaderMobileDrawer({
   open,
   onClose,
 }: HeaderMobileDrawerProps) {
-  const user = useAuthUser();
+  const { user, signOut } = useAuth();
   const router = useRouter();
   const firstLinkRef = useRef<HTMLAnchorElement>(null);
 
@@ -46,14 +45,13 @@ export function HeaderMobileDrawer({
 
   const handleSignOut = useCallback(async () => {
     try {
-      const supabase = createClient();
-      await supabase.auth.signOut();
+      await signOut();
       onClose();
       router.push("/");
     } catch (err) {
       console.error("Sign out failed", err);
     }
-  }, [onClose, router]);
+  }, [onClose, router, signOut]);
 
   return (
     <>

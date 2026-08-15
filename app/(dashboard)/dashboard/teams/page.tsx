@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { createClient } from "@/utils/supabase/server";
+import { createAdminClient } from "@/utils/supabase/server";
+import { getSessionUser } from "@/lib/firebase/server";
 import Link from "next/link";
 import { Users, Plus, Clock } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
@@ -27,15 +28,15 @@ function formatDate(iso: string): string {
 
 export default async function TeamsPage() {
   const cookieStore = await cookies();
-  const supabase = createClient(cookieStore);
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getSessionUser(cookieStore);
 
   if (!user) redirect("/auth/login");
 
-  const { data: memberships } = await supabase
+  const admin = createAdminClient();
+  const { data: memberships } = await admin
     .from("team_members")
     .select("role, teams(id, name, slug, created_by, plan, created_at)")
-    .eq("user_id", user.id);
+    .eq("user_id", user.uid);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const teams: TeamWithRole[] = ((memberships ?? []) as any[]).map((m) => {

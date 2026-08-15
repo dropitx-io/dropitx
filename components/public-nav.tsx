@@ -6,8 +6,7 @@ import { cn } from "@/lib/utils";
 import { useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { LogOut, LayoutDashboard } from "lucide-react";
-import { useAuthUser } from "@/lib/use-auth-user";
-import { createClient } from "@/utils/supabase/client";
+import { useAuth } from "@/components/auth-provider";
 
 const NAV = [
   { label: "Product", href: "#features" },
@@ -17,18 +16,17 @@ const NAV = [
 ];
 
 function PublicNavAuth() {
-  const user = useAuthUser();
+  const { user, signOut } = useAuth();
   const router = useRouter();
 
   const handleSignOut = useCallback(async () => {
     try {
-      const supabase = createClient();
-      await supabase.auth.signOut();
+      await signOut();
       router.push("/");
     } catch (err) {
       console.error("Sign out failed", err);
     }
-  }, [router]);
+  }, [router, signOut]);
 
   if (user) {
     return (

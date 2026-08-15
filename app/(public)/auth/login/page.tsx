@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useState, Suspense, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
-import { createClient } from "@/utils/supabase/client";
+import { useAuth } from "@/components/auth-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -102,51 +102,64 @@ function LoginContent() {
   );
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  const redirectTo = (() => {
-    const callbackUrl = new URL("/auth/callback", window.location.origin);
-    if (isShareRedirect && nextPath) {
-      callbackUrl.searchParams.set("next", nextPath);
-    }
-    return callbackUrl.toString();
-  })();
+  const {
+    user: authUser,
+    loading: authChecking,
+    ensureSession,
+    signInWithGoogle,
+    signInWithGitHub,
+    signInWithEmail,
+    signUpWithEmail,
+  } = useAuth();
+
+  const targetPath = isShareRedirect && nextPath ? nextPath : "/dashboard";
+
+  // Already signed in via Firebase (e.g. session cookie expired but local auth persists):
+  // re-mint the cookie, then continue to the target.
+  useEffect(() => {
+    if (authChecking || !authUser) return;
+    ensureSession()
+      .then(() => {
+        window.location.href = targetPath;
+      })
+      .catch(() => {
+        /* stay on login if session restore fails */
+      });
+  }, [authChecking, authUser, ensureSession, targetPath]);
 
   const login = async (provider: "google" | "github") => {
-    const supabase = createClient();
-    await supabase.auth.signInWithOAuth({ provider, options: { redirectTo } });
+    setError(null);
+    try {
+      if (provider === "google") await signInWithGoogle();
+      else await signInWithGitHub();
+      window.location.href = targetPath;
+    } catch (err: unknown) {
+      setError((err as Error)?.message ?? "Sign-in failed.");
+    }
   };
 
   const handleEmailSignIn = async () => {
     setLoading(true);
     setError(null);
-    const supabase = createClient();
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
+    try {
+      await signInWithEmail(email, password);
+      window.location.href = targetPath;
+    } catch {
       setError("Invalid email or password.");
       setLoading(false);
-    } else {
-      window.location.href = isShareRedirect && nextPath ? nextPath : "/dashboard";
     }
   };
 
   const handleEmailSignUp = async () => {
     setLoading(true);
     setError(null);
-    const supabase = createClient();
-    const confirmUrl = new URL("/auth/confirm", window.location.origin);
-    if (isShareRedirect && nextPath) {
-      confirmUrl.searchParams.set("next", nextPath);
+    try {
+      await signUpWithEmail(email, password);
+      window.location.href = targetPath;
+    } catch (err: unknown) {
+      setError((err as Error)?.message ?? "Could not create account.");
+      setLoading(false);
     }
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { emailRedirectTo: confirmUrl.toString() },
-    });
-    if (error) {
-      setError(error.message);
-    } else {
-      setSuccessMessage("Check your email to confirm your account.");
-    }
-    setLoading(false);
   };
 
   const handleSubmit = (e: React.FormEvent) => {

@@ -1,5 +1,4 @@
-import type { NextRequest } from "next/server";
-import { updateSession } from "@/utils/supabase/middleware";
+import { NextResponse, type NextRequest } from "next/server";
 
 const securityHeaders: Record<string, string> = {
   "x-content-type-options": "nosniff",
@@ -9,24 +8,30 @@ const securityHeaders: Record<string, string> = {
   "permissions-policy": "camera=(), microphone=(), geolocation=()",
 };
 
-export async function middleware(request: NextRequest) {
-  // Refresh the Supabase session first — the returned response carries any
-  // rotated auth cookies and must be the one sent to the browser.
-  const response = await updateSession(request);
+const SESSION_COOKIE = "session";
 
-  // Apply security headers to every response
+export async function middleware(request: NextRequest) {
+  const { pathname, search } = request.nextUrl;
+
+  // Gate protected routes on session-cookie presence. This is a cheap check —
+  // full verification happens via verifySessionCookie in server components.
+  if (pathname.startsWith("/dashboard") && !request.cookies.get(SESSION_COOKIE)?.value) {
+    const loginUrl = request.nextUrl.clone();
+    loginUrl.pathname = "/auth/login";
+    loginUrl.search = `?next=${encodeURIComponent(pathname + search)}`;
+    return NextResponse.redirect(loginUrl);
+  }
+
+  const response = NextResponse.next();
   for (const [key, value] of Object.entries(securityHeaders)) {
     response.headers.set(key, value);
   }
-
-  // HSTS only in production (avoids issues on localhost)
   if (process.env.NODE_ENV === "production") {
     response.headers.set(
       "strict-transport-security",
-      "max-age=31536000; includeSubDomains"
+      "max-age=31536000; includeSubDomains",
     );
   }
-
   return response;
 }
 

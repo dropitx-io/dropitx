@@ -11,7 +11,8 @@
 
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { createClient, createAdminClient } from "@/utils/supabase/server";
+import { createAdminClient } from "@/utils/supabase/server";
+import { getSessionUser } from "@/lib/firebase/server";
 import { InviteStatusCard } from "@/components/invite-status-card";
 import { InviteAcceptForm } from "./invite-accept-form";
 
@@ -99,10 +100,7 @@ export default async function InviteAcceptPage({ searchParams }: Props) {
 
   // Invite is valid — check auth
   const cookieStore = await cookies();
-  const authClient = createClient(cookieStore);
-  const {
-    data: { user },
-  } = await authClient.auth.getUser();
+  const user = await getSessionUser(cookieStore);
 
   const teamData = teams as { name?: string; slug?: string } | null;
 
@@ -128,7 +126,7 @@ export default async function InviteAcceptPage({ searchParams }: Props) {
       <InviteStatusCard
         variant="email_mismatch"
         inviteEmail={invite.email}
-        currentUserEmail={user.email}
+        currentUserEmail={user.email ?? undefined}
         loginUrl={`/auth/login?next=${encodeURIComponent(`/invite/accept?token=${token}`)}`}
       />
     );

@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { createClient } from "@/utils/supabase/client";
+import { useAuth } from "@/components/auth-provider";
+import { updateUserPassword } from "@/lib/firebase/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -53,38 +54,33 @@ export default function UpdatePasswordPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [checking, setChecking] = useState(true);
+  const { user, loading: authChecking } = useAuth();
 
   useEffect(() => {
-    const checkSession = async () => {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        window.location.href = "/auth/login?error=session_expired";
-        return;
-      }
-      setChecking(false);
-    };
-    checkSession();
-  }, []);
+    if (authChecking) return;
+    if (!user) window.location.href = "/auth/login?error=session_expired";
+  }, [authChecking, user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
 
-    const supabase = createClient();
-    const { error } = await supabase.auth.updateUser({ password });
-
-    if (error) {
-      setError(error.message);
-      setLoading(false);
-    } else {
+    try {
+      await updateUserPassword(password);
       window.location.href = "/dashboard";
+    } catch (err: unknown) {
+      const code = (err as { code?: string })?.code;
+      if (code === "auth/requires-recent-login") {
+        setError("For security, please sign out and sign back in, then change your password.");
+      } else {
+        setError((err as Error)?.message ?? "Could not update password.");
+      }
+      setLoading(false);
     }
   };
 
-  if (checking) {
+  if (authChecking) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="flex items-center gap-2 text-muted-foreground">

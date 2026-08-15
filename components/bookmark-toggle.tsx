@@ -2,7 +2,8 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/utils/supabase/client";
+import { useAuth } from "@/components/auth-provider";
+import { authFetch } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
 import { Heart } from "lucide-react";
 
@@ -12,59 +13,57 @@ interface BookmarkToggleProps {
 }
 
 export function BookmarkToggle({ shareId, slug }: BookmarkToggleProps) {
+  const { user, loading: authLoading } = useAuth();
   const [isFavorited, setIsFavorited] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [userId, setUserId] = useState<string | null>(null);
   const toggling = useRef(false);
   const router = useRouter();
 
   useEffect(() => {
-    const supabase = createClient();
-    (async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { setLoading(false); return; }
-      setUserId(user.id);
-      const { data } = await supabase
-        .from("favorites")
-        .select("id")
-        .eq("user_id", user.id)
-        .eq("share_id", shareId)
-        .maybeSingle();
-      setIsFavorited(!!data);
+    if (authLoading) return;
+    if (!user) {
       setLoading(false);
-    })();
-  }, [shareId]);
+      return;
+    }
+    let cancelled = false;
+    authFetch(`/api/v1/favorites/${shareId}`)
+      .then(async (res) => {
+        if (res.ok) {
+          const data = (await res.json().catch(() => null)) as { favorited?: boolean } | null;
+          if (!cancelled) setIsFavorited(Boolean(data?.favorited));
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [authLoading, user, shareId]);
 
   const toggle = useCallback(async () => {
     if (toggling.current) return;
-    if (!userId) {
+    if (!user) {
       router.push(`/auth/login?next=/s/${slug}`);
       return;
     }
 
     toggling.current = true;
-    const supabase = createClient();
     const prev = isFavorited;
     setIsFavorited(!prev);
 
-    let error: string | null = null;
-    if (prev) {
-      const { error: delErr } = await supabase
-        .from("favorites")
-        .delete()
-        .eq("user_id", userId)
-        .eq("share_id", shareId);
-      error = delErr?.message ?? null;
-    } else {
-      const { error: insErr } = await supabase
-        .from("favorites")
-        .insert({ user_id: userId, share_id: shareId });
-      error = insErr?.message ?? null;
+    try {
+      const res = await authFetch(`/api/v1/favorites/${shareId}`, {
+        method: prev ? "DELETE" : "POST",
+      });
+      if (!res.ok) setIsFavorited(prev);
+    } catch {
+      setIsFavorited(prev);
+    } finally {
+      toggling.current = false;
     }
-
-    if (error) { setIsFavorited(prev); }
-    toggling.current = false;
-  }, [isFavorited, shareId, slug, userId, router]);
+  }, [isFavorited, shareId, slug, user, router]);
 
   return (
     <Button
