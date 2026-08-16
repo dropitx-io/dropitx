@@ -7,6 +7,7 @@
  */
 
 import { createAdminClient } from "@/utils/supabase/server";
+import { untypedRpc } from "@/lib/supabase-untyped";
 import { getErrorMessage } from "@/lib/errors";
 import type { TeamRole } from "@/types/team";
 
@@ -128,7 +129,8 @@ export class TeamRPC {
   async createTeam(params: CreateTeamParams) {
     const supabase = await this.getRPCClient();
 
-    const { data, error } = await supabase.rpc('create_team', {
+    // RPC name absent from generated types (drift) — see lib/supabase-untyped.ts
+    const { data, error } = await untypedRpc(supabase, 'create_team', {
       p_name: params.name,
       p_plan: params.plan || 'free'
     });
@@ -146,7 +148,8 @@ export class TeamRPC {
   async createInvite(params: CreateInviteParams): Promise<InviteResult> {
     const supabase = await this.getRPCClient();
 
-    const { data, error } = await supabase.rpc('create_team_invite_with_rate_check', {
+    // RPC name absent from generated types (drift) — see lib/supabase-untyped.ts
+    const { data, error } = await untypedRpc(supabase, 'create_team_invite_with_rate_check', {
       p_team_id: params.teamId,
       p_email: params.email,
       p_role: params.role || 'viewer',
@@ -168,7 +171,8 @@ export class TeamRPC {
   async acceptInvite(params: AcceptInviteParams): Promise<AcceptInviteResult> {
     const supabase = await this.getRPCClient();
 
-    const { data, error } = await supabase.rpc('accept_team_invite', {
+    // RPC exists but generated signature requires p_user_email (drift) — see lib/supabase-untyped.ts
+    const { data, error } = await untypedRpc(supabase, 'accept_team_invite', {
       p_token: params.token
     });
 
@@ -185,7 +189,8 @@ export class TeamRPC {
   async transferOwnership(params: TransferOwnershipParams) {
     const supabase = await this.getRPCClient();
 
-    const { data, error } = await supabase.rpc('transfer_team_ownership', {
+    // RPC name absent from generated types (drift) — see lib/supabase-untyped.ts
+    const { data, error } = await untypedRpc(supabase, 'transfer_team_ownership', {
       p_team_id: params.teamId,
       p_new_owner_id: params.newOwnerId
     });
@@ -203,7 +208,8 @@ export class TeamRPC {
   async updateMemberRole(params: UpdateMemberRoleParams) {
     const supabase = await this.getRPCClient();
 
-    const { data, error } = await supabase.rpc('update_member_role', {
+    // RPC name absent from generated types (drift) — see lib/supabase-untyped.ts
+    const { data, error } = await untypedRpc(supabase, 'update_member_role', {
       p_team_id: params.teamId,
       p_user_id: params.userId,
       p_new_role: params.role
@@ -240,7 +246,8 @@ export class TeamRPC {
   async addMember(teamId: string, userId: string, role: TeamRole = 'viewer') {
     const supabase = await this.getRPCClient();
 
-    const { data, error } = await supabase.rpc('add_team_member', {
+    // RPC name absent from generated types (drift) — see lib/supabase-untyped.ts
+    const { data, error } = await untypedRpc(supabase, 'add_team_member', {
       p_team_id: teamId,
       p_user_id: userId,
       p_role: role
@@ -259,7 +266,8 @@ export class TeamRPC {
   async bulkInvite(params: BulkInviteParams): Promise<BulkInviteResult> {
     const supabase = await this.getRPCClient();
 
-    const { data, error } = await supabase.rpc('bulk_invite_transaction', {
+    // RPC name absent from generated types (drift) — see lib/supabase-untyped.ts
+    const { data, error } = await untypedRpc(supabase, 'bulk_invite_transaction', {
       p_team_id: params.teamId,
       p_emails: params.emails,
       p_role: params.role
@@ -295,7 +303,8 @@ export class TeamRPC {
   async checkRateLimit(teamId: string, email: string): Promise<RateLimitInfo> {
     const supabase = await this.getRPCClient();
 
-    const { data, error } = await supabase.rpc('check_invite_rate_limit', {
+    // RPC name absent from generated types (drift) — see lib/supabase-untyped.ts
+    const { data, error } = await untypedRpc(supabase, 'check_invite_rate_limit', {
       p_team_id: teamId,
       p_email: email,
       p_max_per_hour: 10,
@@ -316,7 +325,8 @@ export class TeamRPC {
   async checkGlobalRateLimit(): Promise<GlobalRateLimitResult> {
     const supabase = await this.getRPCClient();
 
-    const { data, error } = await supabase.rpc('check_global_invite_rate_limit', {
+    // RPC name absent from generated types (drift) — see lib/supabase-untyped.ts
+    const { data, error } = await untypedRpc(supabase, 'check_global_invite_rate_limit', {
       p_max_teams_per_hour: 5,
       p_max_invites_per_hour: 20,
       p_max_total_invites_per_day: 100
@@ -335,7 +345,8 @@ export class TeamRPC {
   async getRateLimitingStats(): Promise<RateLimitingStats> {
     const supabase = await this.getRPCClient();
 
-    const { data, error } = await supabase.rpc('get_rate_limiting_stats');
+    // RPC name absent from generated types (drift) — see lib/supabase-untyped.ts
+    const { data, error } = await untypedRpc(supabase, 'get_rate_limiting_stats');
 
     if (error) {
       throw new Error(`Failed to get rate limiting stats: ${error.message}`);
@@ -350,7 +361,8 @@ export class TeamRPC {
   async cleanupRateLimitingData(): Promise<CleanupResult> {
     const supabase = await this.getRPCClient();
 
-    const { data, error } = await supabase.rpc('cleanup_rate_limiting_data');
+    // RPC name absent from generated types (drift) — see lib/supabase-untyped.ts
+    const { data, error } = await untypedRpc(supabase, 'cleanup_rate_limiting_data');
 
     if (error) {
       throw new Error(`Failed to cleanup rate limiting data: ${error.message}`);
