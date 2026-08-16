@@ -38,9 +38,10 @@ export default async function TeamsPage() {
     .select("role, teams(id, name, slug, created_by, plan, created_at)")
     .eq("user_id", user.uid);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const teams: TeamWithRole[] = ((memberships ?? []) as any[]).map((m) => {
-    const t = Array.isArray(m.teams) ? m.teams[0] : m.teams;
+  // Typed by the Database generic — the teams embed is a many-to-one join
+  // object; role is typed as text in the DB, hence the boundary TeamRole cast.
+  const teams: TeamWithRole[] = (memberships ?? []).map((m) => {
+    const t = m.teams;
     return {
       id: t?.id ?? "",
       name: t?.name ?? "",
