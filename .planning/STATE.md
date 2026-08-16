@@ -5,12 +5,12 @@ milestone_name: milestone
 current_phase: 01
 current_phase_name: Build Hygiene
 status: executing
-stopped_at: Completed 01-02-PLAN.md
-last_updated: "2026-08-11T01:44:04.647Z"
+stopped_at: Phase 01.1 UI-SPEC approved
+last_updated: "2026-08-16T03:01:49.423Z"
 last_activity: 2026-08-11
 last_activity_desc: Phase 01 execution started
 progress:
-  total_phases: 1
+  total_phases: 2
   completed_phases: 0
   total_plans: 4
   completed_plans: 3
@@ -89,6 +89,10 @@ None yet.
 - Phase 4 (Feature Completion) spans two repos: frontend wiring here, backend persistence in dropitx-api/. Plans must coordinate the cross-repo contract.
 - next.config.ts currently disables typecheck and lint — Phase 1 must resolve the underlying TS errors that prompted the workaround before re-enabling.
 
+### Roadmap Evolution
+
+- Phase 01.1 inserted after Phase 1: API Integration Migration - align frontend with live api.dropitx.site backend (fix broken profile/favorites calls, wire ~15 unintegrated endpoint groups) (URGENT)
+
 ## Deferred Items
 
 | Category | Item | Status | Deferred At |
@@ -99,6 +103,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-08-11T01:43:47.838Z
-Stopped at: Completed 01-02-PLAN.md
-Resume file: None
+Last session: 2026-08-16T03:01:49.414Z
+Stopped at: Phase 01.1 UI-SPEC approved
+Resume file: .planning/phases/01.1-api-integration-migration/01.1-UI-SPEC.md

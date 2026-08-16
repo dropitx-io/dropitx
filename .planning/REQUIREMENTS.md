@@ -32,6 +32,14 @@ Active milestone scope. Each maps to exactly one roadmap phase.
 - [ ] **HYG-04**: Dashboard queries use typed Supabase responses (no any casts with eslint-disable)
 - [ ] **HYG-05**: No ephemeral/hardcoded URLs in production code defaults (Cloudflare tunnel fallback removed)
 
+### API Integration Migration
+
+- [ ] **API-01**: `NEXT_PUBLIC_API_URL` points at the live `api.dropitx.site` backend in all environments
+- [ ] **API-02**: `/api/v1/profile` and `/api/v1/favorites` calls fixed to match the live API contract (currently 404 — routes don't exist in the live spec)
+- [ ] **API-03**: Explore (browse/tags/trending) and Stars endpoints wired into the UI
+- [ ] **API-04**: Public profiles (`/api/u/{username}`), Custom Domains, File Requests, and Encryption (password-protect/re-encrypt) endpoints wired into the UI
+- [ ] **API-05**: Publish, batch/multi/image upload, and CLI upload endpoints verified or wired against the live API
+
 ### Testing
 
 - [ ] **TEST-01**: Vitest configured for unit testing with runnable config and scripts
@@ -110,6 +118,11 @@ Deferred to future milestones (2027 enterprise/growth phase).
 | HYG-03 | Phase 1 | Complete |
 | HYG-04 | Phase 1 | Pending |
 | HYG-05 | Phase 1 | Pending |
+| API-01 | Phase 01.1 | Pending |
+| API-02 | Phase 01.1 | Pending |
+| API-03 | Phase 01.1 | Pending |
+| API-04 | Phase 01.1 | Pending |
+| API-05 | Phase 01.1 | Pending |
 | TEST-01 | Phase 2 | Pending |
 | TEST-02 | Phase 2 | Pending |
 | TEST-03 | Phase 2 | Pending |
@@ -133,8 +146,8 @@ Deferred to future milestones (2027 enterprise/growth phase).
 
 **Coverage:**
 
-- v1 requirements: 26 total
-- Mapped to phases: 26
+- v1 requirements: 31 total
+- Mapped to phases: 31
 - Unmapped: 0
 
 ---

@@ -48,6 +48,21 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [ ] 01-04-PLAN.md — Type dashboard queries (remove any-casts) + flip build config flags as final gate
 
+### Phase 01.1: API Integration Migration (INSERTED)
+
+**Goal**: The frontend's API integration matches the live `api.dropitx.site` backend exactly — no broken calls, and every backend capability is reachable from the UI
+**Depends on**: Phase 1 (relies on the fail-fast `NEXT_PUBLIC_API_URL` behavior HYG-05 establishes)
+**Requirements**: API-01, API-02, API-03, API-04, API-05
+**Success Criteria** (what must be TRUE):
+
+  1. `NEXT_PUBLIC_API_URL` resolves to the live `api.dropitx.site` backend across all environments
+  2. Profile editing and favorites/bookmarking work end-to-end against the live API (no 404s from `/api/v1/profile` or `/api/v1/favorites`, which don't exist in the live spec)
+  3. A user can browse/search public shares via Explore (browse, tags, trending) and star/unstar shares from the UI
+  4. A user can view a public profile page (`/api/u/{username}`), manage custom domains, create/manage file requests, and password-protect/re-encrypt a share — all wired to their live endpoints
+  5. Publish, batch/multi-file upload, and image upload flows use the live endpoints (existing flows confirmed compatible or rewired), with the CLI upload path confirmed compatible
+
+**Plans**: TBD
+
 ### Phase 2: Testing Foundation
 
 **Goal**: Critical code paths are protected by automated tests, so changes can be made and shipped with confidence
