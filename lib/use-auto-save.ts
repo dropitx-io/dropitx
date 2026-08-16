@@ -41,12 +41,11 @@ export function useAutoSave(
   const [savedAt, setSavedAt] = useState<Date | null>(null);
   const [draftExists, setDraftExists] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const contentRef = useRef(content);
-  contentRef.current = content;
 
   // Check for existing draft on mount
   useEffect(() => {
     if (!enabled) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time initialization from localStorage; must run post-hydration or SSR markup would mismatch
     setDraftExists(hasDraft(namespace));
   }, [namespace, enabled]);
 
