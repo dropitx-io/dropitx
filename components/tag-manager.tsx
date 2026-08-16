@@ -51,6 +51,7 @@ export function TagManager({ shareId, selectedTagIds, onTagsChange }: TagManager
     }
   }, []);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- canonical fetch-on-mount; setStates only run after await inside fetchTags
   useEffect(() => { fetchTags(); }, [fetchTags]);
 
   const handleCreate = async () => {

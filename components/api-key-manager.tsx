@@ -52,6 +52,7 @@ export function ApiKeyManager() {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- canonical fetch-on-mount; setStates only run after await inside fetchKeys
     fetchKeys();
   }, [fetchKeys]);
 

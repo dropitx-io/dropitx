@@ -70,6 +70,7 @@ export function VersionHistory({ slug }: VersionHistoryProps) {
   }, [slug]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- canonical fetch-on-mount; setStates only run after await inside fetchVersions
     fetchVersions();
   }, [fetchVersions]);
 

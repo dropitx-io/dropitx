@@ -319,6 +319,7 @@ export function CommentsSection({ shareId, slug, isAuthenticated }: CommentsSect
   );
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- canonical fetch-on-mount; setStates only run after await inside fetchComments
     fetchComments(1);
   }, [fetchComments]);
 

@@ -21,6 +21,7 @@ export function useEditorAutoSave(content: string): AutoSaveResult {
   useEffect(() => {
     try {
       const existing = localStorage.getItem(STORAGE_KEY);
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time initialization from localStorage; must run post-hydration or SSR markup would mismatch
       setHasDraft(existing !== null && existing.length > 0);
     } catch {
       // localStorage unavailable
