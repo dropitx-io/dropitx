@@ -5,7 +5,7 @@
  * Uses router.refresh() for data invalidation after invite creation/cancellation.
  */
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -46,13 +46,17 @@ export function InviteMemberDialog({
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [rateLimited, setRateLimited] = useState(false);
 
-  // Reset state when dialog opens
-  useEffect(() => {
+  // Reset transient state whenever the dialog transitions to open
+  // (adjust state during render — React's recommended pattern for reacting
+  // to a prop change without an effect).
+  const [prevOpen, setPrevOpen] = useState(open);
+  if (open !== prevOpen) {
+    setPrevOpen(open);
     if (open) {
       setRateLimited(false);
       setInviteUrl(null);
     }
-  }, [open]);
+  }
 
   if (!open) return null;
 

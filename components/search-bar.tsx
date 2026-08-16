@@ -15,9 +15,13 @@ export function SearchBar({ initialValue = "", compact = false }: SearchBarProps
   const [value, setValue] = useState(initialValue);
   const timerRef = useRef<ReturnType<typeof setTimeout>>(null);
 
-  useEffect(() => {
+  // Sync value when initialValue changes (adjust state during render —
+  // React's recommended pattern for mirroring a prop into state).
+  const [prevInitial, setPrevInitial] = useState(initialValue);
+  if (initialValue !== prevInitial) {
+    setPrevInitial(initialValue);
     setValue(initialValue);
-  }, [initialValue]);
+  }
 
   const navigateToSearch = useCallback(
     (term: string) => {
