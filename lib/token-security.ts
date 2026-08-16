@@ -6,6 +6,7 @@
  */
 
 import { createAdminClient } from "@/utils/supabase/server";
+import { untypedFrom, untypedRpc } from "@/lib/supabase-untyped";
 import { getErrorMessage } from "@/lib/errors";
 import type { AcceptInviteResult } from "@/lib/team-rpc";
 import crypto from "crypto";
@@ -64,11 +65,11 @@ export class TokenSecurity {
   static async validateAndLockInvite(token: string, userId: string): Promise<TokenValidationResult> {
     const supabase = await createAdminClient();
 
-    const { data, error } = await supabase
-      .rpc('validate_and_lock_invite_token', {
-        p_token: token,
-        p_user_id: userId
-      });
+    // RPC name absent from generated types (drift) — see lib/supabase-untyped.ts
+    const { data, error } = await untypedRpc(supabase, 'validate_and_lock_invite_token', {
+      p_token: token,
+      p_user_id: userId
+    });
 
     if (error) {
       throw new Error(`Token validation failed: ${error.message}`);
@@ -83,8 +84,8 @@ export class TokenSecurity {
   static async checkTokenUsage(token: string): Promise<TokenSecurityStatus> {
     const supabase = await createAdminClient();
 
-    const { data, error } = await supabase
-      .from('team_invites')
+    // locked_at / locked_reason absent from generated types (drift) — see lib/supabase-untyped.ts
+    const { data, error } = await untypedFrom(supabase, 'team_invites')
       .select('id, accepted_at, expires_at, locked_at, locked_reason')
       .eq('token', token)
       .single();
@@ -93,15 +94,21 @@ export class TokenSecurity {
       throw new Error(`Failed to check token usage: ${error.message}`);
     }
 
+    const row = data as {
+      accepted_at: string | null;
+      expires_at: string;
+      locked_at: string | null;
+      locked_reason: string | null;
+    };
     const now = new Date();
-    const expiresAt = new Date(data.expires_at);
+    const expiresAt = new Date(row.expires_at);
 
     return {
-      isUsed: data.accepted_at !== null,
+      isUsed: row.accepted_at !== null,
       isExpired: expiresAt < now,
-      isLocked: data.locked_at !== null,
-      lockedReason: data.locked_reason,
-      expiresAt: data.expires_at
+      isLocked: row.locked_at !== null,
+      lockedReason: row.locked_reason ?? undefined,
+      expiresAt: row.expires_at
     };
   }
 
@@ -111,9 +118,9 @@ export class TokenSecurity {
   static async reportSuspiciousActivity(teamId: string, email: string, ipAddress: string): Promise<void> {
     const supabase = await createAdminClient();
 
-    // Log the suspicious activity
-    await supabase
-      .from('team_events')
+    // Log the suspicious activity — event_data/actor_role absent from
+    // generated types (drift) — see lib/supabase-untyped.ts
+    await untypedFrom(supabase, 'team_events')
       .insert({
         team_id: teamId,
         event_type: 'security_alert',
@@ -164,7 +171,8 @@ export class TokenSecurity {
   static async getTokenSecurityStats(): Promise<TokenSecurityStats> {
     const supabase = await createAdminClient();
 
-    const { data, error } = await supabase.rpc('get_token_security_stats');
+    // RPC name absent from generated types (drift) — see lib/supabase-untyped.ts
+    const { data, error } = await untypedRpc(supabase, 'get_token_security_stats');
 
     if (error) {
       throw new Error(`Failed to get token security stats: ${error.message}`);
@@ -179,7 +187,8 @@ export class TokenSecurity {
   static async cleanupExpiredTokens(): Promise<TokenCleanupResult> {
     const supabase = await createAdminClient();
 
-    const { data, error } = await supabase.rpc('cleanup_expired_tokens');
+    // RPC name absent from generated types (drift) — see lib/supabase-untyped.ts
+    const { data, error } = await untypedRpc(supabase, 'cleanup_expired_tokens');
 
     if (error) {
       throw new Error(`Failed to cleanup expired tokens: ${error.message}`);
@@ -194,7 +203,8 @@ export class TokenSecurity {
   static async resetLockedTokens(): Promise<LockedTokenResetResult> {
     const supabase = await createAdminClient();
 
-    const { data, error } = await supabase.rpc('reset_locked_tokens');
+    // RPC name absent from generated types (drift) — see lib/supabase-untyped.ts
+    const { data, error } = await untypedRpc(supabase, 'reset_locked_tokens');
 
     if (error) {
       throw new Error(`Failed to reset locked tokens: ${error.message}`);
@@ -320,11 +330,11 @@ export class InviteValidationService {
 
       const supabase = await createAdminClient();
 
-      // Accept the invite using RPC
-      const { data, error } = await supabase
-        .rpc('accept_team_invite', {
-          p_token: token
-        });
+      // Accept the invite using RPC — generated signature requires
+      // p_user_email (drift) — see lib/supabase-untyped.ts
+      const { data, error } = await untypedRpc(supabase, 'accept_team_invite', {
+        p_token: token
+      });
 
       if (error) {
         throw new Error(error.message);
@@ -333,13 +343,14 @@ export class InviteValidationService {
       // Log audit trail
       await this.logAcceptanceAudit(token, userId);
 
+      const result = data as AcceptInviteResult;
       return {
         success: true,
-        data: data,
-        message: data.already_member
+        data: result,
+        message: result.already_member
           ? 'You are already a member of this team'
           : 'Successfully joined the team',
-        already_member: data.already_member
+        already_member: result.already_member
       };
 
     } catch (error) {
@@ -364,8 +375,8 @@ export class InviteValidationService {
       .single();
 
     if (invite) {
-      await supabase
-        .from('audit_logs')
+      // audit_logs table absent from generated types (drift) — see lib/supabase-untyped.ts
+      await untypedFrom(supabase, 'audit_logs')
         .insert({
           table_name: 'team_members',
           operation: 'INSERT',
