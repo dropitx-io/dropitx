@@ -61,7 +61,27 @@ Decimal phases appear between their surrounding integers in numeric order.
   4. A user can view a public profile page (`/api/u/{username}`), manage custom domains, create/manage file requests, and password-protect/re-encrypt a share — all wired to their live endpoints
   5. Publish, batch/multi-file upload, and image upload flows use the live endpoints (existing flows confirmed compatible or rewired), with the CLI upload path confirmed compatible
 
-**Plans**: TBD
+**Plans**: 11 plans
+
+**Wave 1**
+
+- [ ] 01.1-01-PLAN.md — Tracer: live-API smoke + Stars toggle swap (D-01 toggle half) + Vercel env checkpoint [API-01, API-03]
+- [ ] 01.1-02-PLAN.md — Profile read column fix (D-03) + PUT /api/profile Route Handler (D-02) + call-site repoint [API-02]
+- [ ] 01.1-03-PLAN.md — Interface-first: shadcn primitives (tabs/avatar/separator/label) + 4 typed API contract modules [API-03, API-04]
+- [ ] 01.1-04-PLAN.md — Batch upload + multi-file listing (D-04) + confirm-only pass on publish/upload/images [API-05]
+- [ ] 01.1-05-PLAN.md — Encryption UI wired to lib/crypto.ts, gated on the reencrypt authorization checkpoint [API-04]
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 01.1-06-PLAN.md — Explore page: Browse/Tags/Trending switcher + share card [API-03]
+- [ ] 01.1-07-PLAN.md — Public profile page /u/[username] + header [API-04]
+- [ ] 01.1-08-PLAN.md — Custom Domains: team-scoped list, add form, verify/remove rows [API-04]
+- [ ] 01.1-09-PLAN.md — File Requests: dashboard management + anonymous public upload page [API-04]
+- [ ] 01.1-10-PLAN.md — Favorites list cutover to Stars (D-01 list half) — GATED on cross-repo endpoint D-01a [API-02]
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
+- [ ] 01.1-11-PLAN.md — Navigation wiring for all new routes + phase-final COVERAGE.md verification gate [API-03, API-04]
 
 ### Phase 2: Testing Foundation
 
