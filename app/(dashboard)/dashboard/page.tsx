@@ -7,6 +7,7 @@ import { DashboardUpload } from "@/components/dashboard-upload";
 import { BarChart3, FileText, HardDrive, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Share } from "@/types/share";
+import type { TeamShareRow } from "@/types/team";
 
 export type ShareWithPasswordFlag = Omit<Share, "password_hash"> & { has_password: boolean };
 
@@ -29,9 +30,11 @@ export default async function DashboardPage() {
     .eq("user_id", user.uid)
     .order("created_at", { ascending: false });
 
-  const shareList: ShareWithPasswordFlag[] = (shares ?? []).map((s: Share) => {
+  const shareList: ShareWithPasswordFlag[] = (shares ?? []).map((s) => {
     const { password_hash, ...rest } = s;
-    return { ...rest, has_password: !!password_hash };
+    // Boundary widening: generated row shape (nullable fields, encryption
+    // column names) differs from the Share view interface.
+    return { ...rest, has_password: !!password_hash } as unknown as ShareWithPasswordFlag;
   });
   const totalShares = shareList.length;
   const totalViews = shareList.reduce((sum, s) => sum + s.view_count, 0);
@@ -42,10 +45,10 @@ export default async function DashboardPage() {
     .select("team_id, teams(slug, name)")
     .eq("user_id", user.uid);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const teams = ((memberships ?? []) as any[]).map((m) => {
-    const t = Array.isArray(m.teams) ? m.teams[0] : m.teams;
-    return { id: m.team_id as string, slug: t?.slug ?? "", name: t?.name ?? "" };
+  // Typed by the Database generic — the teams embed is a many-to-one join object.
+  const teams = (memberships ?? []).map((m) => {
+    const t = m.teams;
+    return { id: m.team_id, slug: t?.slug ?? "", name: t?.name ?? "" };
   });
 
   const teamShareQueries = teams.map(async (team) => {
@@ -58,10 +61,9 @@ export default async function DashboardPage() {
   });
   const teamShareResults = await Promise.all(teamShareQueries);
 
-  const teamShareMap: Record<string, unknown[]> = {};
+  const teamShareMap: Record<string, TeamShareRow[]> = {};
   for (const { slug, shares } of teamShareResults) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    teamShareMap[slug] = shares as any[];
+    teamShareMap[slug] = shares;
   }
 
   return (
