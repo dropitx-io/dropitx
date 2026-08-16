@@ -26,10 +26,10 @@ Active milestone scope. Each maps to exactly one roadmap phase.
 
 ### Build Hygiene
 
-- [ ] **HYG-01**: TypeScript type checking enforced in production builds (ignoreBuildErrors disabled, all errors resolved)
-- [ ] **HYG-02**: ESLint enforced in production builds (ignoreDuringBuilds disabled)
+- [x] **HYG-01**: TypeScript type checking enforced in production builds (ignoreBuildErrors disabled, all errors resolved)
+- [x] **HYG-02**: ESLint enforced in production builds (ignoreDuringBuilds disabled)
 - [x] **HYG-03**: Zero @ts-nocheck directives in codebase (5 files currently: team-invite-form, enhanced-invite-dialog, invite-accept-form, bulk-invite-dialog, team-rpc)
-- [ ] **HYG-04**: Dashboard queries use typed Supabase responses (no any casts with eslint-disable)
+- [x] **HYG-04**: Dashboard queries use typed Supabase responses (no any casts with eslint-disable)
 - [ ] **HYG-05**: No ephemeral/hardcoded URLs in production code defaults (Cloudflare tunnel fallback removed)
 
 ### API Integration Migration
@@ -113,10 +113,10 @@ Deferred to future milestones (2027 enterprise/growth phase).
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| HYG-01 | Phase 1 | Pending |
-| HYG-02 | Phase 1 | Pending |
+| HYG-01 | Phase 1 | Complete |
+| HYG-02 | Phase 1 | Complete |
 | HYG-03 | Phase 1 | Complete |
-| HYG-04 | Phase 1 | Pending |
+| HYG-04 | Phase 1 | Complete |
 | HYG-05 | Phase 1 | Pending |
 | API-01 | Phase 01.1 | Pending |
 | API-02 | Phase 01.1 | Pending |

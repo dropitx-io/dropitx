@@ -34,7 +34,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   4. Dashboard team pages compile without `any[]` casts or eslint-disable comments on Supabase queries
   5. A missing `NEXT_PUBLIC_API_URL` fails loudly at build or runtime — never silently routes to a dead tunnel URL
 
-**Plans**: 3/4 plans executed
+**Plans**: 4/4 plans executed
 **Wave 1**
 
 - [x] 01-01-PLAN.md — Remove @ts-nocheck from team-rpc.ts (shared dependency) + create errors helper + narrow token-security catches
@@ -46,12 +46,12 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 01-04-PLAN.md — Type dashboard queries (remove any-casts) + flip build config flags as final gate
+- [x] 01-04-PLAN.md — Type dashboard queries (remove any-casts) + flip build config flags as final gate
 
 ### Phase 01.1: API Integration Migration (INSERTED)
 
 **Goal**: The frontend's API integration matches the live `api.dropitx.site` backend exactly — no broken calls, and every backend capability is reachable from the UI
-**Depends on**: Phase 1 (relies on the fail-fast `NEXT_PUBLIC_API_URL` behavior HYG-05 establishes)
+**Depends on**: Phase 1 (relies on the fail-fast `NEXT_PUBLIC_API_URL` behavior its client-factories plan establishes)
 **Requirements**: API-01, API-02, API-03, API-04, API-05
 **Success Criteria** (what must be TRUE):
 
@@ -150,7 +150,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Build Hygiene | 3/4 | In Progress|  |
+| 1. Build Hygiene | 4/4 | In Progress|  |
 | 2. Testing Foundation | 0/0 | Not started | - |
 | 3. Security Hardening | 0/0 | Not started | - |
 | 4. Feature Completion | 0/0 | Not started | - |
