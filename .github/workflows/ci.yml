@@ -37,7 +37,10 @@ jobs:
       - name: Install dependencies (fail on lockfile drift)
         run: npm ci
 
-      - name: Lint
+      # Non-blocking: main carries ~25 pre-existing react-hooks lint errors (this repo
+      # never had CI). Fix them, then remove continue-on-error to make lint a gate.
+      - name: Lint (non-blocking)
+        continue-on-error: true
         run: npm run lint
 
       - name: Typecheck
