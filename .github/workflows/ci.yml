@@ -1,0 +1,58 @@
+name: CI # deploy.yml's workflow_run trigger matches this exact name
+
+on:
+  push:
+    branches: [main]
+    # Docs-only pushes to main skip CI, and therefore skip the deploy it triggers.
+    # Never path-filter pull_request: the `ci-passed` check must always report.
+    paths-ignore:
+      - "**/*.md"
+      - "docs/**"
+  pull_request:
+    branches: [main]
+
+env:
+  # Placeholder public values so `next build` succeeds in CI; the production
+  # image is built by deploy.yml from real repository variables.
+  NEXT_PUBLIC_API_URL: http://localhost:8000
+  NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+  NEXT_PUBLIC_FIREBASE_API_KEY: ci-placeholder
+  NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ci-placeholder.firebaseapp.com
+  NEXT_PUBLIC_FIREBASE_PROJECT_ID: ci-placeholder
+  NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: ci-placeholder.appspot.com
+  NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: "000000000000"
+  NEXT_PUBLIC_FIREBASE_APP_ID: "ci-placeholder"
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies (fail on lockfile drift)
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build
+        run: npm run build
+
+  # Single aggregate status check; add every future CI job to `needs`.
+  ci-passed:
+    if: always()
+    needs: [ci]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fail unless every CI job succeeded
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || contains(needs.*.result, 'skipped')
+        run: exit 1
+      - run: echo "All CI jobs passed"
