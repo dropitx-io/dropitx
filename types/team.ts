@@ -48,6 +48,23 @@ export interface TeamShare {
   created_at: string;
 }
 
+/** Row from the team_shares query with the nested shares embed (many-to-one
+ *  join object). View-side type mirroring the generated Database row shape. */
+export interface TeamShareRow {
+  created_at: string | null;
+  shared_by: string;
+  shares: {
+    id: string;
+    slug: string;
+    filename: string;
+    title: string | null;
+    mime_type: string | null;
+    view_count: number | null;
+    file_size: number | null;
+    created_at: string | null;
+  } | null;
+}
+
 /** For the "create team" form payload */
 export interface CreateTeamInput {
   name: string;

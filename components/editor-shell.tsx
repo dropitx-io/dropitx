@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback, useMemo, type RefObject } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo, useSyncExternalStore, type RefObject } from "react";
 import { useSearchParams } from "next/navigation";
 import type { EditorView } from "@codemirror/view";
 import dynamic from "next/dynamic";
@@ -30,19 +30,28 @@ const EditorPane = dynamic(
 
 type TabMode = "write" | "preview";
 
+/** No-op subscription for useSyncExternalStore hydration detection. */
+const emptySubscribe = () => () => {};
+
 export function EditorShell() {
   const searchParams = useSearchParams();
   const editSlug = searchParams.get("slug");
 
   const [content, setContent] = useState("");
   const [tab, setTab] = useState<TabMode>("write");
-  const [mounted, setMounted] = useState(false);
+  // False during SSR/hydration, true on the client after mount — gates the
+  // loading skeleton and client-only initialization below.
+  const mounted = useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false
+  );
   const [editTitle, setEditTitle] = useState<string | undefined>();
   const [showVersionHistory, setShowVersionHistory] = useState(false);
   const editorPaneRef = useRef<EditorPaneRef>(null);
   const previewContainerRef = useRef<HTMLDivElement>(null);
-  const initialDraftRef = useRef<string | null>(null);
-  const isDirty = content.length > 0 && content !== (initialDraftRef.current ?? "");
+  const [initialContent, setInitialContent] = useState<string | null>(null);
+  const isDirty = content.length > 0 && content !== (initialContent ?? "");
 
   const { hasDraft, restoreDraft, clearDraft } = useEditorAutoSave(content);
   const autoSave = useAutoSave(content, {
@@ -52,12 +61,8 @@ export function EditorShell() {
   });
 
   useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  useEffect(() => {
     if (!mounted) return;
-    if (initialDraftRef.current !== null) return;
+    if (initialContent !== null) return;
 
     if (editSlug) {
       authFetch(`/api/shares/${editSlug}`)
@@ -68,10 +73,10 @@ export function EditorShell() {
         .then((data) => {
           setContent(data.content || "");
           setEditTitle(data.title || data.filename);
-          initialDraftRef.current = data.content || "";
+          setInitialContent(data.content || "");
         })
         .catch(() => {
-          initialDraftRef.current = "";
+          setInitialContent("");
         });
       return;
     }
@@ -79,13 +84,14 @@ export function EditorShell() {
     if (hasDraft) {
       const draft = restoreDraft();
       if (draft && draft.length > 0) {
-        initialDraftRef.current = draft;
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time initialization from localStorage; must run post-hydration (gated on mounted/hasDraft), lazy init would SSR/hydration-mismatch
+        setInitialContent(draft);
         setContent(draft);
       }
     } else {
-      initialDraftRef.current = "";
+      setInitialContent("");
     }
-  }, [mounted, hasDraft, restoreDraft, editSlug]);
+  }, [mounted, initialContent, hasDraft, restoreDraft, editSlug]);
 
   useEffect(() => {
     if (!isDirty) return;

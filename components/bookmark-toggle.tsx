@@ -15,16 +15,17 @@ interface BookmarkToggleProps {
 export function BookmarkToggle({ shareId, slug }: BookmarkToggleProps) {
   const { user, loading: authLoading } = useAuth();
   const [isFavorited, setIsFavorited] = useState(false);
-  const [loading, setLoading] = useState(true);
+  // Fetch-pending state; true until the initial favorites check settles.
+  const [fetchLoading, setFetchLoading] = useState(true);
+  // Derived: loading while auth resolves, or while a signed-in user's
+  // favorites check is in flight. No user after auth → interactive.
+  const loading = authLoading || (user ? fetchLoading : false);
   const toggling = useRef(false);
   const router = useRouter();
 
   useEffect(() => {
     if (authLoading) return;
-    if (!user) {
-      setLoading(false);
-      return;
-    }
+    if (!user) return;
     let cancelled = false;
     authFetch(`/api/v1/favorites/${shareId}`)
       .then(async (res) => {
@@ -35,7 +36,7 @@ export function BookmarkToggle({ shareId, slug }: BookmarkToggleProps) {
       })
       .catch(() => {})
       .finally(() => {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) setFetchLoading(false);
       });
     return () => {
       cancelled = true;

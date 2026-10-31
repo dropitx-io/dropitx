@@ -34,7 +34,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   4. Dashboard team pages compile without `any[]` casts or eslint-disable comments on Supabase queries
   5. A missing `NEXT_PUBLIC_API_URL` fails loudly at build or runtime — never silently routes to a dead tunnel URL
 
-**Plans**: 3/4 plans executed
+**Plans**: 4/4 plans executed
 **Wave 1**
 
 - [x] 01-01-PLAN.md — Remove @ts-nocheck from team-rpc.ts (shared dependency) + create errors helper + narrow token-security catches
@@ -46,7 +46,42 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 01-04-PLAN.md — Type dashboard queries (remove any-casts) + flip build config flags as final gate
+- [x] 01-04-PLAN.md — Type dashboard queries (remove any-casts) + flip build config flags as final gate
+
+### Phase 01.1: API Integration Migration (INSERTED)
+
+**Goal**: The frontend's API integration matches the live `api.dropitx.site` backend exactly — no broken calls, and every backend capability is reachable from the UI
+**Depends on**: Phase 1 (relies on the fail-fast `NEXT_PUBLIC_API_URL` behavior its client-factories plan establishes)
+**Requirements**: API-01, API-02, API-03, API-04, API-05
+**Success Criteria** (what must be TRUE):
+
+  1. `NEXT_PUBLIC_API_URL` resolves to the live `api.dropitx.site` backend across all environments
+  2. Profile editing and favorites/bookmarking work end-to-end against the live API (no 404s from `/api/v1/profile` or `/api/v1/favorites`, which don't exist in the live spec)
+  3. A user can browse/search public shares via Explore (browse, tags, trending) and star/unstar shares from the UI
+  4. A user can view a public profile page (`/api/u/{username}`), manage custom domains, create/manage file requests, and password-protect/re-encrypt a share — all wired to their live endpoints
+  5. Publish, batch/multi-file upload, and image upload flows use the live endpoints (existing flows confirmed compatible or rewired), with the CLI upload path confirmed compatible
+
+**Plans**: 11 plans
+
+**Wave 1**
+
+- [ ] 01.1-01-PLAN.md — Tracer: live-API smoke + Stars toggle swap (D-01 toggle half) + Vercel env checkpoint [API-01, API-03]
+- [ ] 01.1-02-PLAN.md — Profile read column fix (D-03) + PUT /api/profile Route Handler (D-02) + call-site repoint [API-02]
+- [ ] 01.1-03-PLAN.md — Interface-first: shadcn primitives (tabs/avatar/separator/label) + 4 typed API contract modules [API-03, API-04]
+- [ ] 01.1-04-PLAN.md — Batch upload + multi-file listing (D-04) + confirm-only pass on publish/upload/images [API-05]
+- [ ] 01.1-05-PLAN.md — Encryption UI wired to lib/crypto.ts, gated on the reencrypt authorization checkpoint [API-04]
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 01.1-06-PLAN.md — Explore page: Browse/Tags/Trending switcher + share card [API-03]
+- [ ] 01.1-07-PLAN.md — Public profile page /u/[username] + header [API-04]
+- [ ] 01.1-08-PLAN.md — Custom Domains: team-scoped list, add form, verify/remove rows [API-04]
+- [ ] 01.1-09-PLAN.md — File Requests: dashboard management + anonymous public upload page [API-04]
+- [ ] 01.1-10-PLAN.md — Favorites list cutover to Stars (D-01 list half) — GATED on cross-repo endpoint D-01a [API-02]
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
+- [ ] 01.1-11-PLAN.md — Navigation wiring for all new routes + phase-final COVERAGE.md verification gate [API-03, API-04]
 
 ### Phase 2: Testing Foundation
 
@@ -115,7 +150,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Build Hygiene | 3/4 | In Progress|  |
+| 1. Build Hygiene | 4/4 | In Progress|  |
 | 2. Testing Foundation | 0/0 | Not started | - |
 | 3. Security Hardening | 0/0 | Not started | - |
 | 4. Feature Completion | 0/0 | Not started | - |

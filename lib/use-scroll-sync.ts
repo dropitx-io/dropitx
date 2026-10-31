@@ -37,7 +37,12 @@ export function useScrollSync({
 }: ScrollSyncOptions) {
   const sourceRef = useRef<"editor" | "preview" | null>(null);
   const headingsRef = useRef(headings);
-  headingsRef.current = headings;
+
+  // Keep the ref in sync after commit so scroll handlers below always see the
+  // latest headings without re-attaching listeners on every change.
+  useEffect(() => {
+    headingsRef.current = headings;
+  }, [headings]);
 
   // Editor → Preview sync
   useEffect(() => {

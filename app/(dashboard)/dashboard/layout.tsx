@@ -29,9 +29,9 @@ export default async function DashboardLayout({
     .select("teams(slug, name)")
     .eq("user_id", user.uid);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const teams = ((memberships ?? []) as any[]).map((m) => {
-    const t = Array.isArray(m.teams) ? m.teams[0] : m.teams;
+  // Typed by the Database generic — the teams embed is a many-to-one join object.
+  const teams = (memberships ?? []).map((m) => {
+    const t = m.teams;
     return { slug: t?.slug ?? "", name: t?.name ?? "" };
   });
 

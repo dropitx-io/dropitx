@@ -13,6 +13,7 @@ import { EmptyStateCard } from "@/components/empty-state-card";
 import { TeamShareCard } from "@/components/team-share-card";
 import { TeamActivityFeed } from "@/components/team-activity-feed";
 import type { TeamEvent } from "@/types/team-event";
+import type { Share } from "@/types/share";
 
 export default async function TeamOverviewPage({
   params,
@@ -48,22 +49,21 @@ export default async function TeamOverviewPage({
 
   const userRole = String(membership.role);
 
-  // Fetch team shares — Supabase returns shares as nested array from join
+  // Fetch team shares — typed by the Database generic
   const { data: teamShareRows } = await admin
     .from("team_shares")
     .select("created_at, shared_by, shares(id, slug, filename, title, mime_type, view_count, file_size, created_at)")
     .eq("team_id", team.id)
     .order("created_at", { ascending: false });
 
-  // Flatten Supabase join rows: `shares` is an array from the join
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const validShares = ((teamShareRows ?? []) as any[])
+  // The shares embed is a many-to-one join object (or null when the share row
+  // is gone) — keep only rows with an attached share.
+  const validShares = (teamShareRows ?? [])
     .map((row) => {
-      const sharesArr = Array.isArray(row.shares) ? row.shares : row.shares ? [row.shares] : [];
-      if (sharesArr.length === 0) return null;
-      return { created_at: row.created_at, shared_by: row.shared_by, share: sharesArr[0] };
+      if (!row.shares) return null;
+      return { created_at: row.created_at, shared_by: row.shared_by, share: row.shares };
     })
-    .filter(Boolean);
+    .filter((row): row is NonNullable<typeof row> => row !== null);
 
   // Count members
   const { count: memberCount } = await admin
@@ -79,8 +79,7 @@ export default async function TeamOverviewPage({
     .order("created_at", { ascending: false })
     .limit(10);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const totalViews = validShares.reduce((sum: number, r: any) => sum + (r.share?.view_count ?? 0), 0);
+  const totalViews = validShares.reduce((sum, r) => sum + (r.share.view_count ?? 0), 0);
 
   const isOwnerOrEditor = userRole === "owner" || userRole === "editor";
 
@@ -132,7 +131,9 @@ export default async function TeamOverviewPage({
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <TeamActivityFeed events={events as TeamEvent[]} />
+            {/* Boundary widening: the query selects a column subset and
+                metadata arrives as Json, while TeamEvent is the view union. */}
+            <TeamActivityFeed events={events as unknown as TeamEvent[]} />
           </CardContent>
         </Card>
       )}
@@ -146,11 +147,10 @@ export default async function TeamOverviewPage({
         />
       ) : (
         <div className="space-y-3">
-          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-          {validShares.map((row: any) => (
+          {validShares.map((row) => (
             <TeamShareCard
               key={row.share.id}
-              share={row.share as never}
+              share={row.share as unknown as Share}
               teamName={team.name}
             />
           ))}

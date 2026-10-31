@@ -16,7 +16,7 @@ import {
   Check,
   File,
 } from "lucide-react";
-import { authFetch } from "@/lib/api-client";
+import { authFetch, getAuthHeaders } from "@/lib/api-client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { getFileIcon, formatFileSize } from "@/lib/file-utils";
@@ -115,7 +115,6 @@ export function MultiFileUpload() {
 
         xhr.open("POST", "/api/upload/multi");
         // Add auth header
-        const { getAuthHeaders } = require("@/lib/api-client");
         getAuthHeaders().then((h: Record<string, string>) => {
           Object.entries(h).forEach(([k, v]) => xhr.setRequestHeader(k, v));
           xhr.send(formData);

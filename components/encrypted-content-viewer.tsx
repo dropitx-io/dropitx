@@ -62,6 +62,7 @@ export function EncryptedContentViewer({
   }, [encryptedContent]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time mount initialization from the URL fragment (client-only); cannot run during render without SSR mismatch
     tryDecrypt();
   }, [tryDecrypt]);
 

@@ -180,9 +180,11 @@ export default async function SharePage({ params }: SharePageProps) {
     const { data: viewResult } = await adminClient.rpc("record_and_increment_share_view", {
       p_share_slug: slug,
       p_visitor_hash: visitorHash,
-      p_referrer: null,
+      // Generated RPC signature types these as optional strings (server-side
+      // defaults), not nullable — normalize null to undefined to match.
+      p_referrer: undefined,
       p_referrer_source: "direct",
-      p_country_code: country,
+      p_country_code: country ?? undefined,
     });
     const row = (viewResult as Array<{ tracking_token: string; is_unique: boolean }>)?.[0];
     if (row?.tracking_token) {
