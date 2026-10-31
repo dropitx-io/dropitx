@@ -50,6 +50,8 @@ The compile fetches Google Fonts (`next/font/google`), so the image build needs 
 
 Server components call the API directly, from inside the container. `NEXT_PUBLIC_API_URL` is also what the container uses unless `API_INTERNAL_URL` is set, and `localhost` inside a container means the container itself. When the public URL is not reachable from the container, pass an internal address at run time, for example `-e API_INTERNAL_URL=http://host.docker.internal:8000` (add `--add-host=host.docker.internal:host-gateway` on Linux). Browsers keep using the public URL.
 
+In production, set `API_INTERNAL_URL` to an address that does not traverse Cloudflare, such as the in-cluster service name. Cloudflare overwrites `CF-Connecting-IP`, and the API keys its rate limits on that header, so server-side calls routed through Cloudflare would all appear to come from Cloudflare's addresses and share one rate-limit bucket instead of the visitor's.
+
 ## Other Hosts
 
 Any host that runs a Next.js 16 server works if it provides the same variables: the `NEXT_PUBLIC_*` ones at build time and the `FIREBASE_ADMIN_*` ones at run time. Run `npm run build` then `npm start`.
