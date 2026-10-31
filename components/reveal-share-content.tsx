@@ -17,6 +17,8 @@ interface RevealShareContentProps {
   onRevealed?: (content: string) => void;
   /** Password of a protected file the visitor already unlocked: the reveal goes through the unlock endpoint with it. */
   password?: string;
+  /** Called when the unlock refuses `password`, so the caller can remember it and show its own notice. */
+  onWrongPassword?: () => void;
 }
 
 /** The warning shown before anything that deletes itself on its first read is opened. */
@@ -35,6 +37,7 @@ type RevealState =
   | { status: "idle" }
   | { status: "loading" }
   | { status: "unavailable" }
+  | { status: "wrong-password" }
   | { status: "failed" }
   | { status: "revealed"; content: string };
 
@@ -43,7 +46,7 @@ type RevealState =
  * (burn after reading, one-time download). The content is fetched only when the
  * visitor asks for it, so a link preview or prefetch never consumes the share.
  */
-export function RevealShareContent({ slug, isMarkdown, variant = "page", onRevealed, password }: RevealShareContentProps) {
+export function RevealShareContent({ slug, isMarkdown, variant = "page", onRevealed, password, onWrongPassword }: RevealShareContentProps) {
   const [state, setState] = useState<RevealState>({ status: "idle" });
   // A ref, not state: two clicks in one frame both see the same stale state.
   const inFlight = useRef(false);
@@ -58,6 +61,9 @@ export function RevealShareContent({ slug, isMarkdown, variant = "page", onRevea
         if (result.status === "ok" && result.content) {
           setState({ status: "revealed", content: result.content });
           onRevealed?.(result.content);
+        } else if (result.status === "wrong") {
+          setState({ status: "wrong-password" });
+          onWrongPassword?.();
         } else {
           setState({ status: result.status === "ok" || result.status === "gone" ? "unavailable" : "failed" });
         }
@@ -105,6 +111,8 @@ export function RevealShareContent({ slug, isMarkdown, variant = "page", onRevea
     <div className="flex flex-col items-center justify-center gap-3 px-4 py-16 text-center">
       {state.status === "unavailable" ? (
         <p className="text-sm text-muted-foreground">This content is no longer available.</p>
+      ) : state.status === "wrong-password" ? (
+        <p className="text-sm text-muted-foreground">This file has a different password.</p>
       ) : (
         <>
           <OnceOnlyNotice />

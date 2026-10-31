@@ -33,9 +33,10 @@ function isProtected(files: GroupShare[], slug: string): boolean {
   return !!files.find((f) => f.slug === slug)?.has_password;
 }
 
-function protectedNotice(result: Awaited<ReturnType<typeof unlockShare>> | null): string {
-  if (!result) return "This file is password protected.";
-  if (result.status === "wrong") return "This file has a different password.";
+const DIFFERENT_PASSWORD = "This file has a different password.";
+
+function protectedNotice(result: Awaited<ReturnType<typeof unlockShare>>): string {
+  if (result.status === "wrong") return DIFFERENT_PASSWORD;
   if (result.status === "limited") return result.message;
   if (result.status === "ok" || result.status === "gone") return "This file is no longer available.";
   return "Could not load this file.";
@@ -55,6 +56,8 @@ export function SharePageClient({
   const inFlight = useRef(new Set<string>());
   const [notices, setNotices] = useState<Record<string, string>>({});
   const [loadingFiles, setLoadingFiles] = useState<Set<string>>(new Set());
+  // Files the unlock password was refused for: not retried, so a re-click sends nothing.
+  const [wrongPassword, setWrongPassword] = useState<Set<string>>(new Set());
 
   const activeFile = groupFiles.find((f) => f.slug === activeSlug);
   const isMarkdown = activeFile?.mime_type === "text/markdown";
@@ -66,6 +69,7 @@ export function SharePageClient({
 
       // Already have content cached
       if (fileContents[slug] !== undefined) return;
+      if (wrongPassword.has(slug)) return;
       if (isSelfDeleting(groupFiles, slug)) return;
       if (inFlight.current.has(slug)) return;
       inFlight.current.add(slug);
@@ -78,12 +82,15 @@ export function SharePageClient({
         return next;
       });
       try {
-        if (isProtected(groupFiles, slug)) {
-          // The content endpoint never returns a protected file: it goes through unlock.
-          const result = password === undefined ? null : await unlockShare(slug, password);
-          if (result?.status === "ok" && result.content) {
+        // With the password the visitor unlocked the group with, a protected file goes through
+        // unlock. Without one (the share's owner, whom the API serves directly) it is read from
+        // /content like any other file; a non-owner gets an empty body there and a notice below.
+        if (password !== undefined && isProtected(groupFiles, slug)) {
+          const result = await unlockShare(slug, password);
+          if (result.status === "ok" && result.content) {
             setFileContents((prev) => ({ ...prev, [slug]: result.content }));
           } else {
+            if (result.status === "wrong") setWrongPassword((prev) => new Set(prev).add(slug));
             setNotices((prev) => ({ ...prev, [slug]: protectedNotice(result) }));
           }
           return;
@@ -114,11 +121,12 @@ export function SharePageClient({
         });
       }
     },
-    [fileContents, groupFiles, password]
+    [fileContents, groupFiles, password, wrongPassword]
   );
 
   const activeContent = fileContents[activeSlug];
-  const activeNeedsReveal = activeContent === undefined && isSelfDeleting(groupFiles, activeSlug);
+  const activeNeedsReveal =
+    activeContent === undefined && isSelfDeleting(groupFiles, activeSlug) && !wrongPassword.has(activeSlug);
   const isLoadingContent = loadingFiles.has(activeSlug);
 
   // Build file tabs data
@@ -170,6 +178,11 @@ export function SharePageClient({
               slug={activeSlug}
               isMarkdown={isMarkdown}
               password={isProtected(groupFiles, activeSlug) ? password : undefined}
+              onWrongPassword={() => {
+                const slug = activeSlug;
+                setWrongPassword((prev) => new Set(prev).add(slug));
+                setNotices((prev) => ({ ...prev, [slug]: DIFFERENT_PASSWORD }));
+              }}
               onRevealed={(content) => {
                 const slug = activeSlug;
                 setFileContents((prev) => ({ ...prev, [slug]: content }));

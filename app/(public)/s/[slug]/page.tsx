@@ -191,6 +191,7 @@ export default async function SharePage({ params }: SharePageProps) {
 
       {gated ? (
         <PasswordGate
+          key={slug}
           slug={slug}
           isMarkdown={isMarkdown}
           groupFiles={groupFiles}
