@@ -9,6 +9,7 @@ import {
   useRef,
   type ReactNode,
 } from "react";
+import { toast } from "sonner";
 import type { User } from "firebase/auth";
 import {
   onAuthStateChanged,
@@ -83,9 +84,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const res = await authFetch("/api/auth/session");
       if (res.ok) {
         setProfile((await res.json()) as UserProfile);
+      } else {
+        const detail = await res.text().catch(() => "");
+        console.error(`Account provisioning failed: GET /api/auth/session returned ${res.status}`, detail);
+        toast.error("We could not finish setting up your account. Dashboard pages may not load. Try signing in again.");
       }
-    } catch {
-      /* provisioning best-effort; cookie may still be valid */
+    } catch (error) {
+      console.error("Account provisioning failed: GET /api/auth/session did not complete", error);
+      toast.error("We could not reach the server to finish setting up your account. Try again in a moment.");
     }
   }, [profile]);
 
