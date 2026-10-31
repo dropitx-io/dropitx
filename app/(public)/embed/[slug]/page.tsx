@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 import { EmbedViewedTracker } from "@/components/embed-viewed-tracker";
 import { MarkdownViewerWrapper } from "@/components/markdown-viewer-wrapper";
 import { RevealShareContent } from "@/components/reveal-share-content";
-import { getShareContent, getShareMeta, isOneTimeDownload } from "@/app/(public)/s/[slug]/share-data";
+import { getShareContent, getShareMeta } from "@/lib/share-data";
 
 interface EmbedPageProps {
   params: Promise<{ slug: string }>;
@@ -70,7 +70,7 @@ export default async function EmbedPage({ params }: EmbedPageProps) {
   const isMarkdown = share.mime_type === "text/markdown";
 
   // A share that deletes itself on its first content read is revealed by a click, never read here.
-  if (share.burn_after_reading || (await isOneTimeDownload(slug))) {
+  if (share.burn_after_reading || share.one_time_download) {
     return (
       <div style={{ background: "#fff8f1" }}>
         <EmbedViewedTracker slug={slug} />

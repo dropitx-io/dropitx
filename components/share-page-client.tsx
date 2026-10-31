@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { FileTabs } from "@/components/file-tabs";
 import { FileListSidebar } from "@/components/file-list-sidebar";
 import { CommentsSection } from "@/components/comments-section";
 import { HtmlViewer } from "@/components/html-viewer";
 import { MarkdownViewerWrapper } from "@/components/markdown-viewer-wrapper";
+import { RevealShareContent } from "@/components/reveal-share-content";
 import { Loader2 } from "lucide-react";
 import { authFetch } from "@/lib/api-client";
 import type { GroupShare } from "@/types/share";
@@ -20,6 +21,12 @@ interface SharePageClientProps {
   shareId: string;
 }
 
+/** A file that deletes itself on its first read is revealed by a click, never fetched by a tab switch. */
+function isSelfDeleting(files: GroupShare[], slug: string): boolean {
+  const file = files.find((f) => f.slug === slug);
+  return !!file && (file.burn_after_reading || file.one_time_download);
+}
+
 export function SharePageClient({
   groupFiles,
   initialSlug,
@@ -31,6 +38,7 @@ export function SharePageClient({
   const [fileContents, setFileContents] = useState<Record<string, string>>({
     [initialSlug]: initialContent,
   });
+  const inFlight = useRef(new Set<string>());
   const [notices, setNotices] = useState<Record<string, string>>({});
   const [loadingFiles, setLoadingFiles] = useState<Set<string>>(new Set());
 
@@ -44,6 +52,9 @@ export function SharePageClient({
 
       // Already have content cached
       if (fileContents[slug] !== undefined) return;
+      if (isSelfDeleting(groupFiles, slug)) return;
+      if (inFlight.current.has(slug)) return;
+      inFlight.current.add(slug);
 
       // Fetch file content
       setLoadingFiles((prev) => new Set(prev).add(slug));
@@ -71,6 +82,7 @@ export function SharePageClient({
       } catch {
         setNotices((prev) => ({ ...prev, [slug]: "Could not load this file." }));
       } finally {
+        inFlight.current.delete(slug);
         setLoadingFiles((prev) => {
           const next = new Set(prev);
           next.delete(slug);
@@ -78,10 +90,11 @@ export function SharePageClient({
         });
       }
     },
-    [fileContents]
+    [fileContents, groupFiles]
   );
 
   const activeContent = fileContents[activeSlug];
+  const activeNeedsReveal = activeContent === undefined && isSelfDeleting(groupFiles, activeSlug);
   const isLoadingContent = loadingFiles.has(activeSlug);
 
   // Build file tabs data
@@ -127,6 +140,16 @@ export function SharePageClient({
             <div className="flex items-center justify-center py-20">
               <Loader2 className="size-6 animate-spin text-muted-foreground" />
             </div>
+          ) : activeNeedsReveal ? (
+            <RevealShareContent
+              key={activeSlug}
+              slug={activeSlug}
+              isMarkdown={isMarkdown}
+              onRevealed={(content) => {
+                const slug = activeSlug;
+                setFileContents((prev) => ({ ...prev, [slug]: content }));
+              }}
+            />
           ) : (
             <div className={isMarkdown ? "p-4 md:p-6" : "p-2"}>
               {activeContent !== undefined ? (

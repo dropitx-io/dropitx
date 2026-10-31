@@ -2,6 +2,7 @@ import "server-only";
 import { cookies, headers } from "next/headers";
 import { SESSION_COOKIE } from "@/lib/firebase/server";
 import { forwardHeaders } from "@/lib/api-forward-headers";
+import { redactApiPath } from "@/lib/redact-api-path";
 
 export { forwardHeaders };
 
@@ -10,7 +11,7 @@ export class ApiError extends Error {
   detail: unknown;
 
   constructor(status: number, detail: unknown, path?: string) {
-    super(`API request failed with status ${status}${path ? ` for ${path}` : ""}`);
+    super(`API request failed with status ${status}${path ? ` for ${redactApiPath(path)}` : ""}`);
     this.name = "ApiError";
     this.status = status;
     this.detail = detail;
@@ -50,7 +51,7 @@ export async function serverApiFetch<T>(
   init: ServerApiInit = {},
 ): Promise<T> {
   if (!path.startsWith("/")) {
-    throw new Error(`serverApiFetch path must start with "/", got "${path}"`);
+    throw new Error(`serverApiFetch path must start with "/", got "${redactApiPath(path)}"`);
   }
   const { auth = "session", headers: initHeaders, cache, ...rest } = init;
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { HtmlViewer } from "@/components/html-viewer";
@@ -12,6 +12,8 @@ interface RevealShareContentProps {
   isMarkdown: boolean;
   /** "embed" fills the frame and renders HTML without the page chrome. */
   variant?: "page" | "embed";
+  /** Called once with the content after a successful reveal. */
+  onRevealed?: (content: string) => void;
 }
 
 type RevealState =
@@ -26,17 +28,22 @@ type RevealState =
  * (burn after reading, one-time download). The content is fetched only when the
  * visitor asks for it, so a link preview or prefetch never consumes the share.
  */
-export function RevealShareContent({ slug, isMarkdown, variant = "page" }: RevealShareContentProps) {
+export function RevealShareContent({ slug, isMarkdown, variant = "page", onRevealed }: RevealShareContentProps) {
   const [state, setState] = useState<RevealState>({ status: "idle" });
+  // A ref, not state: two clicks in one frame both see the same stale state.
+  const inFlight = useRef(false);
 
   const reveal = async () => {
-    if (state.status === "loading" || state.status === "revealed") return;
+    if (inFlight.current || state.status === "revealed") return;
+    inFlight.current = true;
     setState({ status: "loading" });
     try {
       const res = await authFetch(`/api/shares/${encodeURIComponent(slug)}/content`);
       if (res.ok) {
         const data = (await res.json()) as { content?: string };
-        setState({ status: "revealed", content: data.content ?? "" });
+        const content = data.content ?? "";
+        setState({ status: "revealed", content });
+        onRevealed?.(content);
       } else if (res.status === 404 || res.status === 410) {
         setState({ status: "unavailable" });
       } else {
@@ -44,6 +51,8 @@ export function RevealShareContent({ slug, isMarkdown, variant = "page" }: Revea
       }
     } catch {
       setState({ status: "failed" });
+    } finally {
+      inFlight.current = false;
     }
   };
 

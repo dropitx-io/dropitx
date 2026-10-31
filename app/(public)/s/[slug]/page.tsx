@@ -22,7 +22,7 @@ import { SharePageClient } from "@/components/share-page-client";
 import { CommentsSection } from "@/components/comments-section";
 import { FileCode, FileText, Eye, Clock, Calendar } from "lucide-react";
 import { RevealShareContent } from "@/components/reveal-share-content";
-import { getShareContent, getShareMeta, isOneTimeDownload } from "./share-data";
+import { getShareContent, getShareMeta } from "@/lib/share-data";
 
 const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://dropitx.com";
 
@@ -139,7 +139,7 @@ export default async function SharePage({ params }: SharePageProps) {
 
   // A share that deletes itself on its first content read is never read here:
   // the visitor reveals it with an explicit click.
-  const needsReveal = share.burn_after_reading || (await isOneTimeDownload(slug));
+  const needsReveal = share.burn_after_reading || share.one_time_download;
 
   let fileContent: string | null = null;
   if (!needsReveal) {

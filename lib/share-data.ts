@@ -11,10 +11,6 @@ export interface ShareContent {
   password_protected: boolean;
 }
 
-interface DownloadStatus {
-  one_time_download: boolean;
-}
-
 /**
  * Metadata and access state for a share, deduplicated per request so
  * `generateMetadata` and the page share one call. Missing, private-to-others
@@ -29,18 +25,6 @@ export const getShareMeta = cache(async (slug: string): Promise<ShareMeta | null
     throw err;
   }
 });
-
-/**
- * Whether the share deletes itself on its first content read. The metadata
- * response carries burn-after-reading but not one-time downloads, so this asks
- * the side-effect-free download-status route.
- */
-export async function isOneTimeDownload(slug: string): Promise<boolean> {
-  const status = await serverApiFetchOrNull<DownloadStatus>(
-    `/api/shares/${encodeURIComponent(slug)}/download-status`,
-  );
-  return status?.one_time_download === true;
-}
 
 /**
  * Reads a share's content. Counts a view, so call it only on a path that is
