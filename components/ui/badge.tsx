@@ -33,6 +33,8 @@ const badgeVariants = cva(
         owner: "bg-primary text-primary-foreground",
         editor: "border-primary/15 text-foreground",
         viewer: "bg-secondary text-secondary-foreground",
+        admin: "border-primary/15 bg-primary/12 text-primary",
+        member: "bg-secondary text-secondary-foreground",
       },
     },
     defaultVariants: {

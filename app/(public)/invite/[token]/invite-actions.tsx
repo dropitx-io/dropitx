@@ -40,6 +40,7 @@ export function InviteActions({ teamSlug }: InviteActionsProps) {
       } else {
         // The lookup now reports the invite as declined, so the page re-renders its status card.
         router.refresh();
+        setPending(null);
       }
     } catch {
       setError("Something went wrong. Please try again.");

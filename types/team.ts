@@ -1,6 +1,12 @@
 import type { TeamInviteStatus } from "@/types/team-event";
 
+/** Roles an owner can assign and an invite can carry. */
 export type TeamRole = "owner" | "editor" | "viewer";
+/**
+ * Every value `team_members.role` allows (its CHECK constraint in `infra/init/02_rpc_functions.sql`).
+ * `admin` and `member` are legacy values the app never assigns but must still render.
+ */
+export type TeamMemberRole = TeamRole | "admin" | "member";
 export type TeamPlan = "free" | "pro";
 
 /*
@@ -23,7 +29,7 @@ export interface Team {
 
 /** `GET /api/dashboard/teams/{slug}`: the team plus the caller's role in it. */
 export interface TeamDetail extends Team {
-  role: TeamRole;
+  role: TeamMemberRole;
 }
 
 /** One row of `GET /api/dashboard/teams/{slug}/members`. */
@@ -32,7 +38,7 @@ export interface TeamMember {
   team_id: string | null;
   /** Nullable in the schema, but every member the API creates has one. */
   user_id: string;
-  role: TeamRole;
+  role: TeamMemberRole;
   created_at: string;
   joined_at: string | null;
   /** To-one embed; null when the member has no profile row. */
@@ -80,7 +86,7 @@ export interface TeamShareRow {
 /** One row of `GET /api/dashboard/teams`: the caller's membership with the team embedded. */
 export interface TeamMembership {
   team_id: string;
-  role: "owner" | "editor" | "viewer" | "member" | "admin";
+  role: TeamMemberRole;
   joined_at: string | null;
   teams: Team | null;
 }

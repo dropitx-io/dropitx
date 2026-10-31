@@ -978,7 +978,7 @@ export interface paths {
         };
         /**
          * Search Shares
-         * @description Full-text search across public shares using Supabase RPC.
+         * @description Full-text search across public shares.
          */
         get: operations["search_shares_api_search_get"];
         put?: never;
