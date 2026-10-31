@@ -20,7 +20,7 @@ export function ShareLink({ result }: ShareLinkProps) {
   const [hasPassword, setHasPassword] = useState(false);
 
   const shareUrl = result.url;
-  const deleteUrl = getApiUrl(`/api/shares/${result.slug}`);
+  const deleteUrl = getApiUrl(`/api/shares/${encodeURIComponent(result.slug)}`);
 
   const handleCopy = async () => {
     try {

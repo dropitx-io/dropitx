@@ -88,6 +88,12 @@ function buildCommentTree(comments: Comment[]): Comment[] {
   return roots;
 }
 
+/** The API's `detail` message when it is a string (validation errors send a list), else the fallback. */
+async function errorDetail(res: Response, fallback: string): Promise<string> {
+  const body = (await res.json().catch(() => null)) as { detail?: unknown } | null;
+  return typeof body?.detail === "string" ? body.detail : fallback;
+}
+
 /** Count all comments including nested replies */
 function countAllComments(comments: Comment[]): number {
   let count = 0;
@@ -141,8 +147,7 @@ function CommentItem({
       });
 
       if (!res.ok) {
-        const err = await res.json().catch(() => ({ error: "Failed to post reply" }));
-        throw new Error(err.error || "Failed to post reply");
+        throw new Error(await errorDetail(res, "Failed to post reply"));
       }
 
       const newComment: Comment = await res.json();
@@ -315,7 +320,8 @@ export function CommentsSection({ slug, isAuthenticated }: CommentsSectionProps)
   );
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- canonical fetch-on-mount; setStates only run after await inside fetchComments
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- a new slug (group tab switch) must not show the previous file's comments while this one loads
+    setLoading(true);
     fetchComments(1);
   }, [fetchComments]);
 
@@ -336,8 +342,7 @@ export function CommentsSection({ slug, isAuthenticated }: CommentsSectionProps)
       });
 
       if (!res.ok) {
-        const err = await res.json().catch(() => ({ error: "Failed to post comment" }));
-        throw new Error(err.error || "Failed to post comment");
+        throw new Error(await errorDetail(res, "Failed to post comment"));
       }
 
       const newComment: Comment = await res.json();
@@ -428,7 +433,7 @@ export function CommentsSection({ slug, isAuthenticated }: CommentsSectionProps)
                 comment={comment}
                 depth={0}
                 isAuthenticated={isAuthenticated}
-                  slug={slug}
+                slug={slug}
                 onReplyPosted={handleReplyPosted}
               />
             ))}
