@@ -126,7 +126,11 @@ export default async function SharePage({ params }: SharePageProps) {
     // Private shares never reach here: the API answers 404 for everyone but the owner.
     // Password-protected: gate both anonymous and non-owner authenticated users
     if (share.has_password) {
-      return <PasswordGate slug={slug} title={share.title ?? share.filename ?? slug} />;
+      return <PasswordGate
+          slug={slug}
+          title={share.title ?? share.filename ?? slug}
+          isMarkdown={share.mime_type === "text/markdown"}
+        />;
     }
 
     // No password, no session: redirect to login

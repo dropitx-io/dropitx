@@ -4,18 +4,38 @@ import { useEffect, useRef, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Card, CardContent } from "@/components/ui/card";
+import { HtmlViewer } from "@/components/html-viewer";
+import { MarkdownViewerWrapper } from "@/components/markdown-viewer-wrapper";
 import { getApiUrl } from "@/lib/api-client";
 
 interface PasswordGateProps {
   slug: string;
   title: string;
+  isMarkdown: boolean;
 }
 
-export function PasswordGate({ slug, title }: PasswordGateProps) {
+/**
+ * "Try again in 3 minutes" from a Retry-After header. The API sends the value as
+ * either a number of seconds or an absolute Unix timestamp, so both are accepted.
+ */
+function describeWait(retryAfter: string | null): string {
+  const value = Number(retryAfter);
+  if (!retryAfter || !Number.isFinite(value) || value <= 0) return "Too many attempts. Try again later.";
+  const seconds = value > 1e9 ? value - Date.now() / 1000 : value;
+  if (seconds <= 0) return "Too many attempts. Try again later.";
+  if (seconds < 60) return `Too many attempts. Try again in ${Math.ceil(seconds)} seconds.`;
+  const minutes = Math.ceil(seconds / 60);
+  return `Too many attempts. Try again in ${minutes} minute${minutes !== 1 ? "s" : ""}.`;
+}
+
+export function PasswordGate({ slug, title, isMarkdown }: PasswordGateProps) {
+  // The unlocked content lives only in this component's state: nothing is written
+  // to storage, cookies or the URL, so a refresh asks for the password again.
+  const [content, setContent] = useState<string | null>(null);
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [remaining, setRemaining] = useState<number | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -37,25 +57,20 @@ export function PasswordGate({ slug, title }: PasswordGateProps) {
       });
 
       if (res.ok) {
-        // Set access cookie so the server-side page gate passes on reload
-        try {
-          await fetch(`/api/shares/${slug}/access-cookie`, { method: "POST" });
-        } catch {
-          // Cookie-set failed is non-fatal; page will still show the gate
-        }
-        window.location.reload();
+        const data = (await res.json()) as { content?: string };
+        setPassword("");
+        setContent(data.content ?? "");
         return;
       }
 
-      const data = await res.json().catch(() => ({}));
-
       if (res.status === 429) {
-        setError("Too many attempts. Try again later.");
+        setError(describeWait(res.headers.get("Retry-After")));
       } else if (res.status === 401) {
-        setRemaining(typeof data.remaining === "number" ? data.remaining : null);
-        setError("Wrong password.");
+        setError("Incorrect password");
+      } else if (res.status === 404 || res.status === 410) {
+        setError("This share is no longer available.");
       } else {
-        setError(data.error || "Something went wrong.");
+        setError("Something went wrong.");
       }
     } catch {
       setError("Network error. Please try again.");
@@ -63,6 +78,22 @@ export function PasswordGate({ slug, title }: PasswordGateProps) {
       setLoading(false);
     }
   };
+
+  if (content !== null) {
+    return (
+      <div className="flex flex-1 flex-col gap-4 p-4 md:p-6 max-w-[1200px] mx-auto w-full animate-fade-in">
+        <Card>
+          <CardContent className={isMarkdown ? "p-4 md:p-6" : "p-2"}>
+            {isMarkdown ? (
+              <MarkdownViewerWrapper content={content} />
+            ) : (
+              <HtmlViewer htmlContent={content} />
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
@@ -102,9 +133,6 @@ export function PasswordGate({ slug, title }: PasswordGateProps) {
           {error && (
             <p className="text-sm text-destructive text-center">
               {error}
-              {remaining !== null && remaining > 0 && (
-                <span className="text-muted-foreground"> ({remaining} attempt{remaining !== 1 ? "s" : ""} left)</span>
-              )}
             </p>
           )}
 
