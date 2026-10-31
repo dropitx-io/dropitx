@@ -11,9 +11,7 @@ import { apiErrorDetail, authFetch } from "@/lib/api-client";
 import type { components } from "@/lib/api-types";
 import { Input } from "@/components/ui/input";
 import { ExpirationSelect } from "@/components/expiration-select";
-import { EncryptionToggle, type EncryptionState } from "@/components/encryption-toggle";
 import { BurnAfterReadingToggle } from "@/components/burn-after-reading-toggle";
-import { encrypt } from "@/lib/crypto";
 
 interface EditorPublishBarProps {
   content: string;
@@ -56,12 +54,6 @@ export function EditorPublishBar({
   const [expiresIn, setExpiresIn] = useState(mode === "edit" ? "" : "30d");
   const [showOptions, setShowOptions] = useState(false);
   const [burnAfterReading, setBurnAfterReading] = useState(false);
-  const [encryptionState, setEncryptionState] = useState<EncryptionState>({
-    enabled: false,
-    key: null,
-    keyString: "",
-    isPasswordMode: false,
-  });
 
   const handlePublish = useCallback(async () => {
     if (!content.trim()) {
@@ -71,22 +63,14 @@ export function EditorPublishBar({
 
     setPublishing(true);
     try {
-      let publishContent = content;
-      let isEncrypted = false;
-
-      // Encrypt content if encryption is enabled
-      if (encryptionState.enabled && encryptionState.key) {
-        publishContent = await encrypt(content, encryptionState.key);
-        isEncrypted = true;
-      }
-
       const body: PublishBody = {
-        content: publishContent,
+        content,
         is_private: isPrivate,
         expires_in: expiresIn,
         burn_after_reading: burnAfterReading,
         one_time_download: false,
-        encrypted: isEncrypted,
+        // Nothing on the share page decrypts yet, so the editor never publishes an encrypted share.
+        encrypted: false,
       };
       if (maxDownloads) body.max_downloads = parseInt(maxDownloads, 10);
 
@@ -101,17 +85,11 @@ export function EditorPublishBar({
 
       const data = await res.json();
 
-      // Append key fragment to URL if encrypted
-      let url = data.url;
-      if (isEncrypted && encryptionState.keyString) {
-        const separator = url.includes("#") ? "&" : "#";
-        const prefix = encryptionState.isPasswordMode ? "pkey=" : "key=";
-        url = url + separator + prefix + encryptionState.keyString;
-      }
+      const url: string = data.url;
 
       setPublishedUrl(url);
       toast.success("Published successfully!");
-      trackEvent(AnalyticsEvent.CONTENT_PUBLISHED, { is_private: isPrivate, encrypted: isEncrypted, burn: burnAfterReading });
+      trackEvent(AnalyticsEvent.CONTENT_PUBLISHED, { is_private: isPrivate, encrypted: false, burn: burnAfterReading });
       onPublished?.(data.slug, url);
       onClearDraft?.();
     } catch (err) {
@@ -119,7 +97,7 @@ export function EditorPublishBar({
     } finally {
       setPublishing(false);
     }
-  }, [content, isPrivate, expiresIn, maxDownloads, burnAfterReading, encryptionState, onPublished, onClearDraft]);
+  }, [content, isPrivate, expiresIn, maxDownloads, burnAfterReading, onPublished, onClearDraft]);
 
   const handleUpdate = useCallback(async () => {
     if (!editSlug || !content.trim()) return;
@@ -197,15 +175,7 @@ export function EditorPublishBar({
             </div>
           </div>
 
-          {/* Row 2: Encryption — chosen when a document is created; an update cannot carry the key in a share link */}
-          {mode === "create" && (
-            <EncryptionToggle
-              onStateChange={setEncryptionState}
-              disabled={publishing}
-            />
-          )}
-
-          {/* Row 3: Burn after reading — a new document only; the update API cannot change it */}
+          {/* Row 2: Burn after reading — a new document only; the update API cannot change it */}
           {mode === "create" && (
             <BurnAfterReadingToggle
               enabled={burnAfterReading}
@@ -253,12 +223,6 @@ export function EditorPublishBar({
             </Badge>
           )}
           {/* Status indicators */}
-          {encryptionState.enabled && (
-            <Badge variant="outline" className="text-xs gap-1 text-success border-success/30">
-              <Lock className="size-3" />
-              E2E
-            </Badge>
-          )}
           {burnAfterReading && (
             <Badge variant="outline" className="text-xs gap-1 text-orange-600 border-orange-500/30">
               🔥

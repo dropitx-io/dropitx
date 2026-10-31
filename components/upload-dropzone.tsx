@@ -2,10 +2,10 @@
 
 import { useCallback, useState } from "react";
 import { useDropzone } from "react-dropzone";
-import { Upload, Loader2, CheckCircle2, XCircle, X } from "lucide-react";
+import { Upload, Loader2, CheckCircle2, XCircle } from "lucide-react";
 import { trackEvent, AnalyticsEvent } from "@/lib/analytics";
 import { authFetch } from "@/lib/api-client";
-import { getFileIcon, formatFileSize, canPreview } from "@/lib/file-utils";
+import { formatFileSize, canPreview } from "@/lib/file-utils";
 import { cn } from "@/lib/utils";
 
 export interface UploadResult {
@@ -15,46 +15,20 @@ export interface UploadResult {
   deleteToken: string;
 }
 
-export interface MultiUploadResult {
-  group_slug: string;
-  group_url: string;
-  files: Array<{ slug: string; url: string; filename: string }>;
-}
-
-interface QueuedFile {
-  file: File;
-  id: string;
-  status: "pending" | "uploading" | "done" | "error";
-  error?: string;
-}
-
 interface UploadDropzoneProps {
   onUploadSuccess: (result: UploadResult) => void;
-  onMultiUploadSuccess?: (result: MultiUploadResult) => void;
-  multiple?: boolean;
 }
 
 type UploadState = "idle" | "dragging" | "uploading" | "success" | "error";
 
 const MAX_SIZE = 500 * 1024 * 1024; // 500MB
 
-function generateId() {
-  return Math.random().toString(36).slice(2, 10);
-}
-
-export function UploadDropzone({
-  onUploadSuccess,
-  onMultiUploadSuccess,
-  multiple = false,
-}: UploadDropzoneProps) {
+export function UploadDropzone({ onUploadSuccess }: UploadDropzoneProps) {
   const [state, setState] = useState<UploadState>("idle");
   const [errorMessage, setErrorMessage] = useState("");
   const [dragActive, setDragActive] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-
-  // Multi-file state
-  const [queuedFiles, setQueuedFiles] = useState<QueuedFile[]>([]);
 
   const uploadSingleFile = useCallback(
     async (file: File) => {
@@ -92,80 +66,22 @@ export function UploadDropzone({
     [onUploadSuccess],
   );
 
-  const uploadMultipleFiles = useCallback(
-    async (files: File[]) => {
-      setState("uploading");
-      setErrorMessage("");
-      setQueuedFiles((prev) => prev.map((f) => ({ ...f, status: "uploading" as const })));
-
-      try {
-        const formData = new FormData();
-        files.forEach((f) => formData.append("files", f));
-
-        const response = await authFetch("/api/upload/multi", {
-          method: "POST",
-          body: formData,
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          setState("error");
-          setErrorMessage(data.error || "Upload failed.");
-          setQueuedFiles((prev) =>
-            prev.map((f) => (f.status === "uploading" ? { ...f, status: "error" as const } : f))
-          );
-          return;
-        }
-
-        setState("success");
-        setQueuedFiles((prev) => prev.map((f) => ({ ...f, status: "done" as const })));
-        trackEvent(AnalyticsEvent.DOCUMENT_UPLOADED, {
-          type: "multi",
-          count: files.length,
-          total_size_kb: Math.round(files.reduce((sum, f) => sum + f.size, 0) / 1024),
-        });
-        onMultiUploadSuccess?.(data as MultiUploadResult);
-      } catch {
-        setState("error");
-        setErrorMessage("Network error. Please try again.");
-        setQueuedFiles((prev) =>
-          prev.map((f) => (f.status === "uploading" ? { ...f, status: "error" as const, error: "Upload failed" } : f))
-        );
-      }
-    },
-    [onMultiUploadSuccess],
-  );
-
   const onDrop = useCallback(
     (acceptedFiles: File[]) => {
       if (acceptedFiles.length === 0) return;
 
-      if (multiple && acceptedFiles.length > 1) {
-        // Multi-file mode
-        const queued: QueuedFile[] = acceptedFiles.map((file) => ({
-          file,
-          id: generateId(),
-          status: "pending",
-        }));
-        setQueuedFiles(queued);
-        setPreviewUrl(null);
-        void uploadMultipleFiles(acceptedFiles);
-      } else {
-        // Single-file mode
-        const file = acceptedFiles[0];
-        setSelectedFile(file);
-        setPreviewUrl(null);
+      const file = acceptedFiles[0];
+      setSelectedFile(file);
+      setPreviewUrl(null);
 
-        if (canPreview(file.name, file.type)) {
-          const url = URL.createObjectURL(file);
-          setPreviewUrl(url);
-        }
-
-        void uploadSingleFile(file);
+      if (canPreview(file.name, file.type)) {
+        const url = URL.createObjectURL(file);
+        setPreviewUrl(url);
       }
+
+      void uploadSingleFile(file);
     },
-    [uploadSingleFile, uploadMultipleFiles, multiple],
+    [uploadSingleFile],
   );
 
   const { getRootProps, getInputProps, open } = useDropzone({
@@ -179,7 +95,7 @@ export function UploadDropzone({
       setErrorMessage("File too large. Maximum size is 500MB.");
     },
     maxSize: MAX_SIZE,
-    multiple,
+    multiple: false,
     disabled: state === "uploading",
     noClick: state === "uploading",
   });
@@ -187,40 +103,20 @@ export function UploadDropzone({
   const resetState = () => {
     setState("idle");
     setSelectedFile(null);
-    setQueuedFiles([]);
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     setPreviewUrl(null);
   };
 
-  const removeQueuedFile = (id: string) => {
-    setQueuedFiles((prev) => prev.filter((f) => f.id !== id));
-  };
-
   const stateText = () => {
-    if (multiple && queuedFiles.length > 0 && state === "idle") {
-      return `${queuedFiles.length} file${queuedFiles.length !== 1 ? "s" : ""} selected`;
-    }
     switch (state) {
       case "uploading":
-        if (multiple && queuedFiles.length > 0) {
-          return `Uploading ${queuedFiles.length} file${queuedFiles.length !== 1 ? "s" : ""}...`;
-        }
         return `Uploading ${selectedFile?.name ?? ""}...`;
       case "success":
-        if (multiple && queuedFiles.length > 0) {
-          return `Uploaded ${queuedFiles.length} file${queuedFiles.length !== 1 ? "s" : ""} successfully!`;
-        }
         return `Uploaded: ${selectedFile?.name ?? "complete!"}`;
       case "error":
         return errorMessage;
       default:
-        return dragActive
-          ? multiple
-            ? "Drop your files here"
-            : "Drop your file here"
-          : multiple
-            ? "Drag & drop files here, or click to browse"
-            : "Drag & drop any file, or click to browse";
+        return dragActive ? "Drop your file here" : "Drag & drop any file, or click to browse";
     }
   };
 
@@ -264,7 +160,7 @@ export function UploadDropzone({
 
           {/* Text */}
           <div className="min-w-0 flex-1">
-            {selectedFile && state === "idle" && !multiple ? (
+            {selectedFile && state === "idle" ? (
               <>
                 <p className="font-display text-[17px] font-bold tracking-[-0.01em]">{selectedFile.name}</p>
                 <p className="mt-0.5 text-sm text-muted-foreground">
@@ -293,7 +189,7 @@ export function UploadDropzone({
               onClick={(e) => { e.stopPropagation(); open(); }}
               className="inline-flex h-9 items-center gap-2 rounded-full bg-background px-4 text-sm font-semibold clay-raised transition-transform hover:-translate-y-px max-[640px]:w-full max-[640px]:justify-center"
             >
-              {multiple ? "Choose files" : "Choose file"}
+              Choose file
             </button>
           )}
           {(state === "success" || state === "error") && (
@@ -307,8 +203,8 @@ export function UploadDropzone({
           )}
         </div>
 
-        {/* Image preview (single mode) */}
-        {previewUrl && state !== "uploading" && !multiple && (
+        {/* Image preview */}
+        {previewUrl && state !== "uploading" && (
           <div className="px-6 pb-4">
             <div className="relative size-20 overflow-hidden rounded-[14px] border border-border">
               <img src={previewUrl} alt="Preview" className="size-full object-cover" />
@@ -316,30 +212,6 @@ export function UploadDropzone({
           </div>
         )}
 
-        {/* Multi-file list when idle */}
-        {multiple && queuedFiles.length > 0 && state === "idle" && (
-          <div className="space-y-1.5 px-6 pb-4">
-            {queuedFiles.map((qf) => {
-              const Icon = getFileIcon(qf.file.name, qf.file.type);
-              return (
-                <div key={qf.id} className="flex items-center gap-2.5 rounded-[14px] border border-border bg-background px-3 py-2 clay-raised">
-                  <Icon className="size-4 shrink-0 text-muted-foreground" />
-                  <span className="flex-1 truncate text-sm">{qf.file.name}</span>
-                  <span className="shrink-0 font-mono text-xs text-muted-foreground">
-                    {formatFileSize(qf.file.size)}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={(e) => { e.stopPropagation(); removeQueuedFile(qf.id); }}
-                    className="shrink-0 rounded-sm p-0.5 transition-colors hover:bg-muted"
-                  >
-                    <X className="size-3.5 text-muted-foreground" />
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-        )}
         <input {...getInputProps()} />
       </div>
     </div>

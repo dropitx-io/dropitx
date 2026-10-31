@@ -5,7 +5,7 @@
  * The token comes from the route params, so it is not passed down as a prop.
  */
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
@@ -21,6 +21,7 @@ export function InviteActions({ teamSlug }: InviteActionsProps) {
   const { token } = useParams<{ token: string }>();
   const [pending, setPending] = useState<"accept" | "decline" | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [refreshing, startRefresh] = useTransition();
 
   async function respond(action: "accept" | "decline") {
     setPending(action);
@@ -39,8 +40,11 @@ export function InviteActions({ teamSlug }: InviteActionsProps) {
         router.push(teamSlug ? `/dashboard/teams/${teamSlug}` : "/dashboard/teams");
       } else {
         // The lookup now reports the invite as declined, so the page re-renders its status card.
-        router.refresh();
-        setPending(null);
+        // Keep the buttons disabled until the refreshed status has rendered, then release them.
+        startRefresh(() => {
+          router.refresh();
+          setPending(null);
+        });
       }
     } catch {
       setError("Something went wrong. Please try again.");
@@ -55,14 +59,14 @@ export function InviteActions({ teamSlug }: InviteActionsProps) {
           {error}
         </p>
       )}
-      <Button onClick={() => respond("accept")} disabled={pending !== null} className="w-full">
+      <Button onClick={() => respond("accept")} disabled={pending !== null || refreshing} className="w-full">
         {pending === "accept" && <Loader2 className="mr-2 size-4 animate-spin" />}
         {pending === "accept" ? "Accepting..." : "Accept Invite"}
       </Button>
       <Button
         variant="outline"
         onClick={() => respond("decline")}
-        disabled={pending !== null}
+        disabled={pending !== null || refreshing}
         className="w-full"
       >
         {pending === "decline" && <Loader2 className="mr-2 size-4 animate-spin" />}

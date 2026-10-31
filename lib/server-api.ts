@@ -23,10 +23,15 @@ export type ServerApiInit = RequestInit & {
   auth?: "session" | "none";
 };
 
-function apiBaseUrl(): string {
-  const url = process.env.NEXT_PUBLIC_API_URL?.trim();
+/**
+ * Base URL for server-side calls. `API_INTERNAL_URL` (server-only, read at call time) lets a
+ * container or cluster reach the API by an internal address while browsers keep the public
+ * `NEXT_PUBLIC_API_URL`.
+ */
+function serverApiBaseUrl(): string {
+  const url = (process.env.API_INTERNAL_URL || process.env.NEXT_PUBLIC_API_URL)?.trim();
   if (!url) {
-    throw new Error("NEXT_PUBLIC_API_URL is required for server-side API calls.");
+    throw new Error("API_INTERNAL_URL or NEXT_PUBLIC_API_URL is required for server-side API calls.");
   }
   return url.replace(/\/+$/, "");
 }
@@ -64,7 +69,7 @@ export async function serverApiFetch<T>(
     merged.set(name, value);
   }
 
-  const res = await fetch(`${apiBaseUrl()}${path}`, {
+  const res = await fetch(`${serverApiBaseUrl()}${path}`, {
     ...rest,
     headers: merged,
     cache: cache ?? "no-store",

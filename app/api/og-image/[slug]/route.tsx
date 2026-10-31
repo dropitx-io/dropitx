@@ -12,7 +12,8 @@ export async function GET(
   { params }: { params: Promise<{ slug: string }> },
 ) {
   const { slug } = await params;
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL?.trim().replace(/\/+$/, "");
+  // Same rule as serverApiBaseUrl (lib/server-api.ts, which cannot be imported on the edge runtime).
+  const apiUrl = (process.env.API_INTERNAL_URL || process.env.NEXT_PUBLIC_API_URL)?.trim().replace(/\/+$/, "");
   if (!apiUrl) {
     return new NextResponse("API URL is not configured", { status: 500 });
   }
