@@ -8,7 +8,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Settings, Loader2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { authFetch } from "@/lib/api-client";
+import { apiErrorDetail, authFetch } from "@/lib/api-client";
 import { isValidTeamName, isValidTeamSlug } from "@/lib/team-utils";
 import { PageHeader } from "@/components/page-header";
 
@@ -97,8 +97,7 @@ export default function TeamSettingsPage({
         method: "PATCH",
         body: JSON.stringify(updates),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to update team");
+      if (!res.ok) throw new Error(await apiErrorDetail(res, "Failed to update team"));
 
       toast.success("Team settings updated");
       if (updates.slug) {
@@ -129,10 +128,7 @@ export default function TeamSettingsPage({
       const res = await authFetch(`/api/dashboard/teams/${team.slug}`, {
         method: "DELETE",
       });
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "Failed to delete team");
-      }
+      if (!res.ok) throw new Error(await apiErrorDetail(res, "Failed to delete team"));
       toast.success("Team deleted");
       router.push("/dashboard/teams");
       router.refresh();
