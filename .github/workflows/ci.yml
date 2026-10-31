@@ -15,13 +15,14 @@ env:
   # Placeholder public values so `next build` succeeds in CI; the production
   # image is built by deploy.yml from real repository variables.
   NEXT_PUBLIC_API_URL: http://localhost:8000
-  NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
   NEXT_PUBLIC_FIREBASE_API_KEY: ci-placeholder
   NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ci-placeholder.firebaseapp.com
   NEXT_PUBLIC_FIREBASE_PROJECT_ID: ci-placeholder
   NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: ci-placeholder.appspot.com
   NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: "000000000000"
   NEXT_PUBLIC_FIREBASE_APP_ID: "ci-placeholder"
+  NEXT_PUBLIC_APP_URL: http://localhost:3000
+  NEXT_PUBLIC_APP_HOST: localhost:3000
 
 jobs:
   ci:
@@ -37,18 +38,10 @@ jobs:
       - name: Install dependencies (fail on lockfile drift)
         run: npm ci
 
-      # Non-blocking: main carries ~25 pre-existing react-hooks lint errors (this repo
-      # never had CI). Fix them, then remove continue-on-error to make lint a gate.
-      - name: Lint (non-blocking)
-        continue-on-error: true
+      - name: Lint
         run: npm run lint
 
-      # Non-blocking: bare tsc fails on main (~30 errors in files outside the route
-      # module graph, e.g. lib/token-security.ts vs stale types/database.generated.ts).
-      # next build (what the deploy image runs) type-checks the route graph only and
-      # passes. Fix the debt, then remove continue-on-error.
-      - name: Typecheck (non-blocking)
-        continue-on-error: true
+      - name: Typecheck
         run: npm run typecheck
 
       - name: Build

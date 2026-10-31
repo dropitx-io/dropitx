@@ -8,9 +8,7 @@ name: Deploy to vps192 production
 #
 # NEXT_PUBLIC_* values are baked into the image at build time and come from
 # repository VARIABLES (vars.*), so switching the frontend's API URL or Firebase
-# project is a variable change + re-run, not a workflow edit. The initial onboarding
-# build points NEXT_PUBLIC_API_URL at the staging API hostname; it is switched to
-# https://api.dropitx.com for the production cutover image.
+# project is a variable change + re-run, not a workflow edit.
 on:
   workflow_run:
     workflows: [CI]
@@ -65,13 +63,14 @@ jobs:
           tags: ${{ env.IMAGE_REPO }}:${{ env.SOURCE_SHA }}
           build-args: |
             NEXT_PUBLIC_API_URL=${{ vars.NEXT_PUBLIC_API_URL }}
-            NEXT_PUBLIC_SUPABASE_URL=${{ vars.NEXT_PUBLIC_SUPABASE_URL }}
             NEXT_PUBLIC_FIREBASE_API_KEY=${{ vars.NEXT_PUBLIC_FIREBASE_API_KEY }}
             NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=${{ vars.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN }}
             NEXT_PUBLIC_FIREBASE_PROJECT_ID=${{ vars.NEXT_PUBLIC_FIREBASE_PROJECT_ID }}
             NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=${{ vars.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET }}
             NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=${{ vars.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID }}
             NEXT_PUBLIC_FIREBASE_APP_ID=${{ vars.NEXT_PUBLIC_FIREBASE_APP_ID }}
+            NEXT_PUBLIC_APP_URL=${{ vars.NEXT_PUBLIC_APP_URL }}
+            NEXT_PUBLIC_APP_HOST=${{ vars.NEXT_PUBLIC_APP_HOST }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
