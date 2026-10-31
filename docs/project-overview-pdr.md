@@ -6,7 +6,7 @@
 
 **Status**: v1.4.1 (2026-04-26) — Production ready. Core features complete; hardening phase planned.
 
-**Tech**: Next.js 16 frontend (Vercel) + FastAPI backend (Render), Supabase (auth + storage), Upstash Redis (rate limiting).
+**Tech**: Next.js 16 frontend (Docker image) + FastAPI backend (Postgres and object storage behind it), Firebase Auth for sign-in. The frontend reads and writes only through the API.
 
 ## Project Vision
 
@@ -53,7 +53,7 @@ Existing file sharing platforms excel in one dimension (simplicity, privacy, or 
 - **CLI Tool**: `dropitx` binary for publish/update/delete/list from the terminal
 
 ### Advanced Privacy & Security
-- **Password Protection**: Bcryptjs hash with HMAC-SHA256 signed access cookies (24h TTL)
+- **Password Protection**: verified by the API per unlock; the frontend renders the unlocked content in place and keeps no access cookie
 - **End-to-End Encryption**: AES-256-GCM client-side encryption with key in URL fragment
 - **Burn-After-Reading**: Share self-destructs on first view
 - **Configurable Expiration**: Custom expiry times (5 min to indefinite) beyond default 30 days
@@ -65,7 +65,7 @@ Existing file sharing platforms excel in one dimension (simplicity, privacy, or 
 - **QR Code Generation**: Auto-generate and download QR codes for share URLs
 
 ### Platform
-- **User Auth**: Google, GitHub OAuth, and email/password via Supabase (PKCE flow)
+- **User Auth**: Google, GitHub, and email/password via Firebase Auth; an httpOnly session cookie for server components
 - **Dashboard**: Share history, stats (count, total views, storage used)
 - **Analytics Dashboard**: Real-time analytics with charts and metrics
 - **Team Workspaces**: Collaborative content sharing and management
@@ -87,13 +87,13 @@ Existing file sharing platforms excel in one dimension (simplicity, privacy, or 
 7. **Search**: Full-text search with pagination (10 results per page)
 8. **Metadata**: Track filename, file size, MIME type, view count, source
 9. **Expiration**: Automatic deletion after 30 days
-10. **Security**: Token-based deletion, RLS, API key auth (SHA-256 hash stored)
+10. **Security**: Token-based deletion, API-enforced authorization, API key auth (SHA-256 hash stored)
 11. **Privacy**: `is_private` shares hidden from search and public listing for non-owners
 12. **API Keys**: Generate, list, revoke API keys; only SHA-256 hash persisted
 
 ### Non-Functional Requirements
 - **Performance**: Fast load times, editor renders without SSR
-- **Security**: Input validation, RLS policies, CSP headers, API key hashing, token security for invites
+- **Security**: Input validation, API-enforced authorization, CSP headers, API key hashing, invite tokens never rendered or logged
 - **Reliability**: High availability, compensating transactions on upload failure
 - **Scalability**: Handle thousands of concurrent uploads
 - **Maintainability**: Clean code structure, monorepo with shared types, modular UI primitives
@@ -136,30 +136,29 @@ Existing file sharing platforms excel in one dimension (simplicity, privacy, or 
 
 ### Security & Reliability
 - [ ] All write endpoints protected by rate limiting
-- [ ] RLS on all database tables
+- [ ] Authorization enforced by the API for every read and write
 - [ ] Compensating transaction: delete storage if DB insert fails
-- [ ] API key hashing with Node `crypto` (no external service)
+- [ ] API key hashing in the API (SHA-256; plaintext never stored)
 
 ## Technical Constraints
 
 ### Technology Stack
-- **Frontend**: Next.js 16 (App Router), React 19, TypeScript strict — pure frontend on Vercel
-- **Backend**: FastAPI (Python) on Render — all API logic
+- **Frontend**: Next.js 16 (App Router), React 19, TypeScript strict — pure frontend, shipped as a Docker image
+- **Backend**: FastAPI (Python) — all data and API logic
 - **Editor**: CodeMirror 6, loaded via `next/dynamic` (ssr: false)
-- **Database**: Supabase (PostgreSQL + Storage)
+- **Database**: PostgreSQL and object storage, owned by the API (the frontend has no access)
+- **Auth**: Firebase Auth
 - **Styling**: Tailwind CSS 4, shadcn/ui, OKLCH color tokens
-- **Cache/Rate-limit**: Upstash Redis
-- **CLI**: `packages/cli/` — TypeScript ESM, binary `dropitx`
-- **Analytics**: Vercel Analytics + custom `analytics_events` table
+- **Rate limiting**: enforced by the API
+- **CLI**: `dropitx-cli` — Python, published to PyPI as `dropitx`
+- **Analytics**: recorded by the API; no third-party analytics in the frontend
 
 ### Infrastructure Constraints
-- Deploy on Vercel platform
-- Use Supabase for backend services
-- Rate limiting via Upstash Redis
-- API key hashing via Node.js built-in `crypto` (no new env vars)
+- The frontend deploys as a Docker image (or any Next.js 16 host) and needs only `NEXT_PUBLIC_API_URL`, Firebase config and Firebase Admin credentials
+- All data access goes through the API; the frontend holds no database or storage keys
 
 ### Security Constraints
-- Row Level Security (RLS) on all database tables
+- Authorization enforced by the API on every request
 - Content Security Policy for HTML rendering
 - API key: only SHA-256 hash stored, prefix stored for display
 - Input validation on all user inputs
@@ -232,7 +231,7 @@ Existing file sharing platforms excel in one dimension (simplicity, privacy, or 
 
 | Risk | Mitigation |
 |------|-----------|
-| Upstash availability | Monitor service health; graceful degradation allows requests through |
+| API availability | The frontend has no fallback data path; monitor the API and show clear error states |
 | Storage cost growth | Storage usage monitoring; expiration cleanup |
 | XSS in HTML rendering | Rigorous CSP policy; sandboxed iframe |
 | API key compromise | Hashes only stored; instant revocation via `revoked_at` |

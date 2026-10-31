@@ -2,7 +2,7 @@ import { auth } from "@/lib/firebase/client";
 
 const envApiUrl = process.env.NEXT_PUBLIC_API_URL;
 if (!envApiUrl) {
-  throw new Error("NEXT_PUBLIC_API_URL is required. Set it in Vercel Project Settings → Environment Variables and redeploy.");
+  throw new Error("NEXT_PUBLIC_API_URL is required. Set it as a build arg (or in .env.local for development) and rebuild.");
 }
 const API_URL = envApiUrl;
 

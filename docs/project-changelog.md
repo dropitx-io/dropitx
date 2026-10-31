@@ -2,6 +2,23 @@
 
 All notable changes to DropItX.
 
+## [Unreleased]
+
+### Changed
+- **API-only data path**: every dashboard, share, team, invite, analytics and profile read now goes through the FastAPI backend (`serverApiFetch` on the server, `authFetch` in the browser). The frontend no longer talks to a database or storage service.
+- **Password-protected shares** are unlocked by the API (`POST /api/shares/{slug}/unlock`) and rendered in place; there is no frontend access cookie and no `SHARE_ACCESS_SECRET`.
+- **Burn-after-reading and one-time shares** show a reveal state; the content is read only on an explicit click.
+- **Team invites** use `/invite/[token]` (the API's `invite_url`); `/invite/accept?token=` redirects to it.
+- **Analytics**: page views are recorded by the API; `trackEvent` in `lib/analytics.ts` is a no-op with its original signature.
+- **Env and scripts**: `NEXT_PUBLIC_SUPABASE_URL` is no longer a Docker build arg; `check:hygiene` is `tsc --noEmit && eslint`.
+
+### Removed
+- `@supabase/ssr`, `@supabase/supabase-js` and `@vercel/analytics`, the `generate-db-types` script, `utils/supabase/`, `supabase/` (schema and migrations), `types/database.generated.ts`.
+- `lib/team-rpc.ts`, `lib/token-security.ts`, `lib/supabase-untyped.ts`, `lib/analytics-track.ts` (and with it `ANALYTICS_TOKEN_SECRET`), `lib/share-access-cookie.ts`, `lib/referrer-parser.ts`.
+- Unused components: multi-file upload, dashboard share card, encrypted content viewer, tag manager, the Supabase invite forms, the Vercel analytics mount.
+
+Earlier entries below are historical and describe the stack as it was at the time.
+
 ## [v2.5.0] — 2026-07-18
 
 ### Added

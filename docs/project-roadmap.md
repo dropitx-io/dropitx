@@ -5,6 +5,8 @@
 **Version**: 1.4.1 (released 2026-04-26)  
 **Phase**: Production Ready — Core features complete, hardening phase in progress
 
+**Platform note**: the frontend now reads and writes only through the FastAPI backend and signs in with Firebase. Supabase, Upstash and Vercel Analytics references in the phase history below describe the stack at the time each phase shipped.
+
 ---
 
 ## Shipped Features
@@ -217,7 +219,7 @@ The following features are **UI-ready** in the codebase (components exist) but w
 |--------|--------|-----------------|
 | Uptime | > 99.9% | Not yet measured |
 | Page Load (FCP) | < 1.5 sec | ~1.2 sec ✅ |
-| API Response | < 500 ms | ✅ (FastAPI + Supabase) |
+| API Response | < 500 ms | ✅ (FastAPI) |
 | Error Rate | < 0.5% | Unknown (need monitoring) |
 | Code Coverage | > 80% | 0% ❌ (critical gap) |
 
@@ -236,7 +238,7 @@ The following features are **UI-ready** in the codebase (components exist) but w
 
 | Risk | Impact | Likelihood | Mitigation |
 |------|--------|-----------|-----------|
-| Supabase outage | Complete downtime | Low (99.9% SLA) | Fallback RLS→app-layer, regular DR tests |
+| API or database outage | Complete downtime (the frontend has no fallback data path) | Low | Monitor the API; clear error states in the UI; regular DR tests |
 | Security breach (API key leak) | User data compromise | Low | Soft revocation, hash-only storage, audit logs |
 | Performance degradation at scale | User churn | Medium | Need DB profiling, Lighthouse CI, load tests |
 | Lack of tests → regression bugs | User trust ↓ | **High** | **P0: build test suite** |

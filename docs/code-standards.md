@@ -11,11 +11,10 @@ Standards for the DropItX codebase. Next.js 16 + TypeScript strict + Tailwind CS
 | React Components | PascalCase | `UploadDropzone.tsx`, `EditorShell.tsx`, `ShareCard.tsx` |
 | Utilities / Hooks | kebab-case | `api-client.ts`, `crypto.ts`, `use-auth-user.ts` |
 | UI Primitives (shadcn) | kebab-case | `button.tsx`, `card.tsx`, `dialog.tsx` |
-| Supabase Utils | kebab-case | `client.ts`, `server.ts`, `middleware.ts` |
+| Firebase Utils | kebab-case | `lib/firebase/client.ts`, `lib/firebase/server.ts` |
 | Pages (Next.js App Router) | `page.tsx`, `layout.tsx`, `route.ts` | No rename |
 | Type Files | kebab-case | `share.ts`, `team.ts`, `analytics.ts` |
 | Config Files | natural | `eslint.config.mjs`, `tsconfig.json`, `next.config.ts` |
-| Migrations | timestamp + kebab-case | `20260424000001_add_editor_columns.sql` |
 
 ## Project Structure
 
@@ -23,15 +22,13 @@ Standards for the DropItX codebase. Next.js 16 + TypeScript strict + Tailwind CS
 app/                      # Next.js App Router (pages, layouts, API routes)
 app/(public)/             # Public route group (landing, auth, editor, shares, search)
 app/(dashboard)/          # Dashboard route group (sidebar layout, teams, analytics)
-app/api/og-image/         # Only remaining Next.js API route
+app/api/                  # og-image, auth/session-login, auth/session-logout (everything else is in the API)
 components/ui/            # Reusable UI primitives (shadcn/ui)
 components/               # Feature components (landing, editor, dashboard, team, analytics)
 lib/                      # Utility functions
 lib/editor-extensions/    # CodeMirror extensions
-utils/supabase/           # Supabase client factories
+lib/firebase/             # Firebase client, auth helpers, server session verification
 types/                    # TypeScript interfaces
-supabase/                 # Schema and config
-supabase/migrations/      # Incremental schema migrations
 packages/cli/             # CLI tool (dropitx binary)
 public/                   # Static assets
 docs/                     # Documentation
@@ -49,7 +46,7 @@ docs/                     # Documentation
 
 - Strict mode enabled (`tsconfig.json`)
 - Interfaces over types for object shapes
-- DB column names use snake_case in types (matches Supabase): `storage_path`, `content_text`, `is_private`
+- API field names use snake_case in types (matches the API's JSON): `storage_path`, `content_text`, `is_private`
 - Prefer `async/await` over `.then()`
 - Explicit return types on exported functions
 - No `any` — use `unknown` and narrow
@@ -73,31 +70,34 @@ docs/                     # Documentation
 
 ## API Routes
 
-**Note**: All API logic runs on a FastAPI backend (`dropitx-api.onrender.com`). The Next.js app is a pure frontend with only one remaining API route (`/api/og-image/[slug]`).
+**Note**: All data logic runs on the FastAPI backend (`dropitx-api`, at `NEXT_PUBLIC_API_URL`). The Next.js app is a pure frontend; its own routes are `/api/og-image/[slug]` and the session cookie routes `/api/auth/session-login` and `/api/auth/session-logout`.
 
 ### Client-Side API Calls
 - Use `authFetch()` from `lib/api-client.ts` for all authenticated requests
-- `authFetch()` injects JWT Bearer token from Supabase session
-- 401 responses trigger automatic session refresh + retry
+- `authFetch()` injects the Firebase ID token as Bearer
+- 401 responses trigger one forced token refresh + retry
 - `getApiUrl()` returns `NEXT_PUBLIC_API_URL` for constructing API endpoints
+
+### Server-Side API Calls
+- Use `serverApiFetch()` from `lib/server-api.ts` in server components; never import `lib/api-client.ts` on the server
+- It forwards `cf-connecting-ip` and sends the session cookie as Bearer only when one exists
+- Metadata paths (`generateMetadata`, OG image) call only `GET /api/shares/{slug}`, never `/content`
 
 ### FastAPI Backend API Conventions
 - All routes under `/api/v1/` use API key auth (Bearer token)
-- Browser routes use JWT Bearer auth from Supabase session
-- Team workspace routes: `/api/dashboard/teams/` with RLS policies
+- Browser routes use the Firebase ID token as Bearer; server components forward the session cookie
+- Team workspace routes: `/api/dashboard/teams/` (authorization is enforced by the API)
 - Analytics tracking: `/api/analytics/track` for event metrics
 
 ### Team Workspace API Pattern
 ```typescript
 // POST /api/dashboard/teams/[slug]/members
-// RLS policies ensure only owners can add/remove members
-// workspace_id extracted from route slug, user_id from auth
+// The API enforces that only owners can change members
+// The team is resolved from the route slug, the user from the Bearer token
 
 // Team Invite System Pattern
-// Enhanced invite form with role selection and email validation
-// Bulk invite with multiple email support
-// Invite resend functionality with team RPC client
-// Token security for invite token management
+// Invite form with role selection and email validation; bulk invite with multiple emails
+// Invite links are /invite/[token]; never render or log an invite token
 ```
 
 ### Analytics Tracking Pattern
@@ -108,33 +108,24 @@ docs/                     # Documentation
 // both anonymous and authenticated user tracking
 ```
 
-## Database Migrations
+## Database
 
-All schema changes live in `supabase/migrations/` as timestamped SQL files:
-- **Naming**: `YYYYMMDDNNNNNN_description.sql` (e.g., `20260424000001_add_editor_columns.sql`)
-- **Apply locally**: `supabase db reset` or `supabase db push`
-- **Apply to hosted**: `supabase db push --linked`
-- Never modify `schema.sql` for incremental changes — always add a migration file
-- Each migration must be idempotent where possible (`IF NOT EXISTS`, `DO $$ ... $$`)
+The frontend has no database access and no migrations. The schema lives in `dropitx-api/infra/init`; change it there and regenerate API types with `npm run generate-types`.
 
-## Supabase Clients
+## Authentication Helpers
 
-Three client factories in `utils/supabase/`:
-
-| Client | Export | Use Case |
+| Helper | Export | Use Case |
 |--------|--------|----------|
-| Browser | `client.ts → createClient()` | Client components, user interaction |
-| Server (anon) | `server.ts → createClient()` | Server components, reads (respects RLS) |
-| Admin | `server.ts → createAdminClient()` | Writes, storage ops (bypasses RLS) |
+| Firebase client | `lib/firebase/client.ts → auth` | Client components, `authFetch` |
+| Session verification | `lib/firebase/server.ts → getSessionUser()` | Server components; verifies the `session` cookie with `firebase-admin` |
 
-Never use the admin client in client components — server-only.
+Never import `lib/firebase/server.ts` in a client component — server-only.
 
 ## Error Handling
 
 - API routes: try/catch → `{ error: message }` with appropriate HTTP status
 - Components: Sonner toast for user-facing errors
-- Rate limit: graceful degradation — if Redis unavailable, allow request but log warning
-- Compensating transactions: if DB insert fails after storage upload, delete the stored file
+- Rate limit: a 429 from the API surfaces as a toast via `lib/rate-limit.ts`
 - API key auth failures: return `401` with `{ error: "Unauthorized" }`
 
 ## Styling
@@ -161,20 +152,19 @@ Never use the admin client in client components — server-only.
 - **HtmlViewer**: sandboxed iframe (`sandbox="allow-scripts"`) + CSP meta tag injection
 - **Delete token**: random 32-char string, required for file-upload share deletion
 - **Slug validation**: regex pattern check on API routes
-- **Service role key**: server-only — never expose to client bundle
+- **Firebase Admin credentials**: server-only — never expose to client bundle
 - **API key**: only SHA-256 hash + prefix stored; full key shown once at creation
-- **`is_private`**: enforced at RLS level and in `search_shares` RPC — not just application logic
-- **Password protection**: bcryptjs hash in `shares.password_hash`; HMAC-SHA256 signed HttpOnly access cookie
-- **Team workspaces**: RLS policies with owner/member role-based access control on workspace tables
-- **JWT auth**: Supabase JWT sent as Bearer token to FastAPI; validated via JWKS
-- **Team RPC client**: Type-safe server communication pattern using lib/team-rpc.ts
-- **Token security**: Secure invite token management with lib/token-security.ts
+- **`is_private`**: enforced by the API (a private share answers 404 to everyone but its owner)
+- **Password protection**: verified by the API's `/unlock` endpoint; the page renders the returned content in place and keeps no access cookie
+- **Team workspaces**: role-based access is enforced by the API; the frontend only reflects the caller's role
+- **Auth**: Firebase ID token (browser) or session cookie (server) sent as Bearer to FastAPI; verified by the API
+- **Invite tokens and delete tokens**: never rendered or logged except where the UI already shows a delete token to its owner
 
 ## Lint & Build
 
 ```bash
-npm run lint    # ESLint (next config)
-npm run build   # TypeScript check + Next.js build
+npm run check:hygiene   # tsc --noEmit && eslint
+npm run build           # TypeScript check + Next.js build
 # CLI:
 cd packages/cli && npm run build
 ```

@@ -14,13 +14,13 @@
 | **Editor** | CodeMirror 6 + markdown extensions (loaded via `next/dynamic` with SSR disabled) |
 | **Viewer** | `react-markdown` + `remark-gfm` + Shiki syntax highlighting |
 | **Styling** | Tailwind CSS 4 + shadcn/ui + Clay design system (light-first, warm cream, terracotta accent) |
-| **Database** | Supabase PostgreSQL with Row-Level Security (RLS), S3-compatible Storage |
-| **Auth** | Supabase Auth (Google OAuth, GitHub OAuth, email/password with PKCE) |
-| **Backend API** | FastAPI (Python) on Render — all business logic except OG image generation |
+| **Data** | None in the frontend: every read and write goes through the FastAPI backend (Postgres and S3-compatible storage live behind it) |
+| **Auth** | Firebase Auth (Google, GitHub, email/password); the server holds an httpOnly Firebase session cookie |
+| **Backend API** | FastAPI (Python) at `NEXT_PUBLIC_API_URL` — all business logic except OG image rendering and the session cookie routes |
 | **File Upload** | `react-dropzone` (≤ 50 MB files) |
 | **Theme** | `next-themes` (light/dark mode) |
-| **Analytics** | Vercel Analytics + custom `analytics_events` table |
-| **Rate Limiting** | Upstash Redis (10 req/min IP-based) |
+| **Analytics** | Recorded by the API (`POST /api/analytics/track`); no third-party analytics in the frontend |
+| **Rate Limiting** | Enforced by the API; the frontend shows a toast on 429 |
 | **CLI** | `packages/cli/` — TypeScript ESM, binary `dropitx` |
 | **Encryption** | Web Crypto API (AES-256-GCM, client-side) |
 
@@ -52,49 +52,52 @@ app/                           # Next.js App Router (routes + layouts)
 │   ├── dashboard/teams/[slug]/members/page.tsx
 │   └── dashboard/teams/[slug]/settings/page.tsx
 ├── api/
-│   └── og-image/[slug]/route.tsx   # OG image generation (only Next.js API route)
+│   ├── og-image/[slug]/route.tsx   # OG image generation (metadata only)
+│   └── auth/session-login, session-logout  # Firebase session cookie
 ├── layout.tsx, error.tsx, not-found.tsx, loading.tsx
 ├── globals.css, markdown-viewer.css, favicon.ico
-└── [root middleware in middleware.ts for auth redirect]
+└── [root middleware.ts: /dashboard session-cookie gate + security headers]
 
 components/                    # React components (composable, feature-organized)
 ├── ui/                        # Primitives: button, card, input, dialog, select, etc.
 ├── [Feature areas]/
 │   ├── editor-*.tsx          # Editor components (pane, preview, toolbar, publish-bar)
 │   ├── share-*.tsx           # Share components (password-gate, link, analytics-tracker)
-│   ├── encryption-*.tsx      # Encryption UI (toggle, viewer)
+│   ├── encryption-toggle.tsx # Encryption UI
 │   ├── burn-*.tsx            # Burn-after-reading (toggle, tracker, warning, state)
 │   ├── expiration-*.tsx      # Expiration select + badge + state
 │   ├── comments-section.tsx  # Comments/discussion
 │   ├── version-history.tsx   # Version history viewer
-│   ├── file-*.tsx            # Multi-file support (tabs, list-sidebar, multi-file-upload)
+│   ├── file-*.tsx            # Multi-file support (tabs, list-sidebar)
 │   ├── qr-code-button.tsx    # QR code modal
 │   ├── upload-*.tsx          # Upload (dropzone, progress)
 │   ├── markdown-viewer.tsx, html-viewer.tsx
 │   ├── search-*.tsx          # Search (bar, results)
-│   ├── dashboard-*.tsx       # Dashboard (sidebar-nav, mobile-nav, toolbar, share-card, share-list)
+│   ├── dashboard-*.tsx       # Dashboard (sidebar-nav, mobile-nav, toolbar, share-list)
 │   ├── analytics/*.tsx       # Analytics (stats-cards, view-chart, geo-chart, top-performers)
 │   ├── auth-*.tsx, password-*.tsx # Auth + password
-│   ├── team-*.tsx            # Team features (nav, member-row, invite-form, activity-feed)
-│   ├── invite-*.tsx          # Invite system (dialog, bulk, accept-form, notification-bell)
+│   ├── team-*.tsx            # Team features (nav, member-row, activity-feed)
+│   ├── invite-*.tsx          # Invite system (dialog, status card, notification bell)
 │   ├── header-*.tsx          # Header (bar, nav, mobile-drawer)
 │   ├── landing-*.tsx, hero-*.tsx, proof-cards.tsx, workflow-steps.tsx, cta-section.tsx
-│   └── theme-provider.tsx, vercel-analytics.tsx
+│   └── theme-provider.tsx
 
 lib/                           # Utilities and helpers
-├── api-client.ts            # authFetch() + JWT Bearer + 401 retry for FastAPI
+├── api-client.ts            # authFetch() + Firebase ID token Bearer + 401 retry (browser)
+├── server-api.ts            # serverApiFetch() — server components to FastAPI
+├── api-types.ts             # Generated from the API's OpenAPI spec
+├── firebase/                # client.ts, auth.ts, server.ts (session cookie verification)
 ├── crypto.ts                # Web Crypto API (AES-256-GCM encrypt/decrypt, key generation)
 ├── draft-storage.ts         # localStorage draft persistence (autosave)
 ├── file-utils.ts            # File handling (multi-file logic)
-├── share-access-cookie.ts   # Password access cookie (HMAC-SHA256)
-├── analytics-track.ts, analytics.ts
-├── team-rpc.ts, team-utils.ts, team-event-utils.ts
-├── token-security.ts        # Invite token generation/validation
+├── share-data.ts, share-unlock.ts, dashboard-data.ts  # Typed API readers
+├── analytics.ts             # Event names + no-op trackEvent
+├── team-utils.ts, team-event-utils.ts
 ├── use-auth-user.ts         # Custom hook for current user
 ├── use-auto-save.ts, use-editor-auto-save.ts
 ├── editor-extensions/       # CodeMirror extensions (slash-commands, image-drop, image-preview)
 ├── api-utils.ts, api-key.ts
-├── oembed-utils.ts, referrer-parser.ts
+├── oembed-utils.ts
 ├── password.ts, nanoid.ts, slugify-handle.ts, validation.ts
 ├── nav-links.ts, shiki-highlighter.ts
 └── use-scroll-sync.ts, invite-utils.ts
@@ -104,11 +107,6 @@ hooks/                        # Custom React hooks
 ├── use-email-validation.ts
 ├── use-team.ts
 └── use-toast.ts
-
-utils/supabase/              # Supabase client factories
-├── client.ts               # Browser client (with middleware auth)
-├── server.ts               # Server client (SSR-disabled, uses createClient)
-└── middleware.ts           # Auth middleware (refresh & session management)
 
 types/                        # TypeScript interfaces
 ├── share.ts, team.ts, team-event.ts, analytics.ts
@@ -122,23 +120,6 @@ packages/cli/                # Standalone CLI tool
 │   ├── delete.ts
 │   ├── list.ts
 │   └── whoami.ts
-
-supabase/                     # Database schema + migrations
-├── schema.sql               # Base schema (shares, user_profiles, favorites)
-├── migrations/
-│   ├── 20260423000001_add_auth_tables.sql
-│   ├── 20260424000001_add_editor_columns.sql
-│   ├── 20260424000002_add_api_keys.sql
-│   ├── 20260424000003_private_search_filter.sql
-│   ├── 20260425000001_add_share_password.sql
-│   ├── 20260425045621_rate-limits-supabase.sql
-│   ├── 20260426000001_share_views.sql
-│   ├── 20260426000002_teams.sql
-│   ├── 20260428000001-000005_fix_team_rls_issues.sql
-│   ├── 20260429_team_lifecycle_redesign.sql
-│   ├── 20260429180000_decline_team_invite.sql
-│   └── 20260430121500_fix_ambiguous_team_id_in_invite_policies.sql
-└── config.toml
 
 docs/                         # Documentation
 ├── project-overview-pdr.md
@@ -167,22 +148,21 @@ public/                       # Static assets (favicon, icons, images)
 - **In-Browser Editor**: CodeMirror 6 with Markdown support
 - **Live Preview**: React-markdown + Shiki syntax highlighting
 - **Slash Commands**: `/image`, `/heading`, `/code`, `/link`, `/list` etc.
-- **Image Drag-Drop**: Inline preview + upload to Storage
+- **Image Drag-Drop**: Inline preview + upload through the API
 - **Auto-Draft**: localStorage persistence with dirty-state warning
 - **Editor Publish**: Title, custom slug, privacy toggle
 
 ### Privacy & Security
-- **Password Protection**: bcryptjs hash (never sent to client)
-- **Share Access Cookie**: HMAC-SHA256 signed HttpOnly (24 h TTL)
+- **Password Protection**: verified by the API (`POST /api/shares/{slug}/unlock`); the unlocked content renders in place, with no frontend access cookie (a refresh asks again); owners skip the password
 - **End-to-End Encryption**: AES-256-GCM client-side (Web Crypto API), key in URL fragment
   - **Crypto utilities**: `lib/crypto.ts` provides symmetric encryption/decryption with Uint8Array support
-  - **Encryption UI**: Toggle in editor/share flow; encrypted shares use `EncryptedContentViewer`
+  - **Encryption UI**: Toggle in editor/share flow; decryption happens client-side
   - **Secure key exchange**: Encryption key never touches server, shared via URL fragment only
-- **Burn-After-Reading**: Share self-destructs atomically on first view
-  - **UI components**: `burn-after-reading-toggle.tsx`, `burn-after-reading-tracker.tsx`, `burned-state.tsx`
+- **Burn-After-Reading**: Share self-destructs on its first content read; the page shows a reveal state and the client reads `/content` only on an explicit click
+  - **UI components**: `burn-after-reading-toggle.tsx`, `reveal-share-content.tsx`, `burned-state.tsx`
   - **Immutable once viewed**: View flag prevents re-access, secure + user-friendly
-- **Private Shares**: Hidden from search, owner-only access (RLS enforced)
-- **Rate Limiting**: 10 req/min per IP (upload/API); 5 attempts/10 min per IP (password)
+- **Private Shares**: Hidden from search, owner-only access (the API answers 404 to everyone else)
+- **Rate Limiting**: enforced by the API
 
 ### Advanced Features
 - **Burn-After-Reading**: Share self-destructs on first view
@@ -193,17 +173,16 @@ public/                       # Static assets (favicon, icons, images)
 - **Expiration Select**: Configurable expiry (5min to forever)
 
 ### Analytics
-- **Page Views**: Automatic tracking on share view
+- **Page Views**: `ShareAnalyticsTracker` posts slug, referrer and embed flag to the API, which derives visitor, country and referrer source
 - **Custom Events**: document_uploaded, content_published, share_viewed
 - **Geographic**: IP-based location tracking
 - **Referrer Tracking**: Where traffic originates
-- **Vercel Analytics**: Web Vitals, page views, device breakdowns
 - **Per-Share Dashboard**: Individual share metrics
 
 ### Team Collaboration
 - **Workspaces**: Owner creates, invites members
 - **Shared Content**: Assign shares to workspace
-- **Role-Based Access**: owner vs. member roles
+- **Role-Based Access**: owner / editor / viewer (legacy `admin` and `member` values still render)
 - **Invite System**: Single + bulk invite, token-based accept/decline
 - **Activity Feed**: Team events tracking
 
@@ -216,10 +195,9 @@ public/                       # Static assets (favicon, icons, images)
 ## Authentication & Authorization
 
 ### Session Auth (Browser)
-- **OAuth**: Google + GitHub via Supabase Auth
-- **Email/Password**: Signup + confirmation + password reset (PKCE flow)
-- **Session**: Supabase SSR cookies (HttpOnly, SameSite=Lax)
-- **JWT**: Sent to FastAPI backend as Bearer token
+- **Sign-in**: Google + GitHub + email/password via Firebase Auth
+- **Session**: `POST /api/auth/session-login` mints an httpOnly `session` cookie (14 days, SameSite=Lax) from the ID token; `middleware.ts` gates `/dashboard/*` on its presence and server components verify it with `firebase-admin`
+- **Bearer**: browser calls send the Firebase ID token; server components send the session cookie
 
 ### API Key Auth (Programmatic)
 - **Key Format**: `shk_` prefix + 48 hex chars
@@ -228,49 +206,28 @@ public/                       # Static assets (favicon, icons, images)
 - **Rate Limit**: Same as session auth (10 req/min)
 
 ### Share Access (Password-Protected)
-- **Unlock Flow**: POST `/shares/[slug]/unlock` with password
-- **Cookie**: HMAC-SHA256 signed, HttpOnly, 24h TTL
-- **Gate Order**: Owner bypass → private check → access cookie → password → login redirect
+- **Unlock Flow**: `PasswordGate` posts the password to the API's `/api/shares/{slug}/unlock` and renders the returned content in place
+- **Gate Order**: private (API 404 unless owner) → owner sees content → password gate for non-owners → login redirect for anonymous visitors of plain shares
 
 ## Database
 
-### Core Tables
-| Table | Purpose | Key Columns |
-|-------|---------|------------|
-| `shares` | Content storage | slug, filename, content_text, mime_type, user_id, password_hash, is_private, expires_at, view_count, encrypted, encryption_iv |
-| `user_profiles` | User metadata | display_name, avatar_url |
-| `favorites` | Bookmarked shares | user_id, share_id |
-| `api_keys` | Programmatic auth | user_id, key_hash, key_prefix, revoked_at |
-| `team_workspaces` | Team organization | name, owner_id |
-| `workspace_members` | Team members | workspace_id, user_id, role (owner/member) |
-| `workspace_shares` | Workspace content | workspace_id, share_id |
-| `analytics_events` | Usage metrics | event_type, user_id, session_id, metadata, ip_address |
-
-### RLS Policies
-- All tables enforce user-based or role-based access control
-- `is_private` shares filterable for non-owners
-- Team tables require workspace membership
-- Admin-only writes via service_role client
-
-## Migrations (16 total)
-- Auth tables + editor columns + API keys
-- Password protection + rate limiting + view tracking
-- Team workspaces + RLS fixes + team lifecycle redesign
-- Invite accept/decline + ambiguous team_id fixes
+The frontend has no database access. The schema, RLS and migrations belong to `dropitx-api` (`infra/init`); the frontend sees rows only as JSON the API returns, typed in `lib/api-types.ts` and `types/`.
 
 ## Environment Variables
 
 | Variable | Purpose | Example |
 |----------|---------|---------|
-| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project endpoint | `https://xxx.supabase.co` |
-| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Anon/public key | `eyJhbG...` |
-| `SUPABASE_SERVICE_ROLE_KEY` | Admin key (server-only) | `eyJhbG...` |
-| `UPSTASH_REDIS_REST_URL` | Redis endpoint | `https://...upstash.io` |
-| `UPSTASH_REDIS_REST_TOKEN` | Redis auth token | `xxx` |
-| `SHARE_ACCESS_SECRET` | 32+ char secret for HMAC signing | (random string) |
-| `NEXT_PUBLIC_API_URL` | FastAPI backend | `https://dropitx-api.onrender.com` |
+| `NEXT_PUBLIC_API_URL` | FastAPI backend (required) | `https://api.example.com` |
+| `NEXT_PUBLIC_FIREBASE_*` (6 variables) | Firebase web SDK config | see `.env.example` |
+| `FIREBASE_ADMIN_PROJECT_ID`, `FIREBASE_ADMIN_CLIENT_EMAIL`, `FIREBASE_ADMIN_PRIVATE_KEY` | Firebase Admin credentials (server-only) | (service account) |
+| `NEXT_PUBLIC_APP_URL` | Canonical origin for absolute links | `https://dropitx.com` |
+| `NEXT_PUBLIC_APP_HOST` | App host without scheme; Docker build arg, not read by code today | `dropitx.com` |
 
-## Recent Changes (v1.4.1 — 2026-04-26)
+## Release History
+
+Entries below are historical: they describe what each release shipped, not the current stack (Supabase and Vercel Analytics have since been removed).
+
+### v1.4.1 (2026-04-26)
 
 ### Bug Fixes
 - Fixed search page blank/stuck when navigating from dashboard while logged in
@@ -324,8 +281,8 @@ npm run dev        # http://localhost:3000
 # Build for production
 npm run build
 
-# Lint
-npm lint
+# Type-check and lint
+npm run check:hygiene
 
 # CLI development
 cd packages/cli && npm run build && npm link
@@ -334,13 +291,13 @@ cd packages/cli && npm run build && npm link
 ## Key Architectural Decisions
 
 1. **Frontend-Only Next.js**: Pure client-side app; all API logic in FastAPI backend for scalability
-2. **Supabase for Auth + Storage**: Manages user sessions, OAuth, and file storage with RLS
+2. **Firebase for identity, FastAPI for data**: Firebase Auth owns sign-in and the session cookie; the API owns every row and file
 3. **CodeMirror 6 SSR Disabled**: Loaded via `next/dynamic` to avoid build-time errors
 4. **Web Crypto API**: Client-side encryption for E2E feature without server key storage
 5. **localStorage Drafts**: Offline-first editor with auto-recovery on page reload
 6. **Token-Based Invites**: Secure, shareable invite links with email validation
-7. **RLS as Primary Auth**: Database-level security enforced at Postgres layer
-8. **Vercel Analytics**: Automatic Web Vitals + custom event tracking (PII-safe)
+7. **API-enforced authorization**: Access rules live in the API; the frontend carries no database keys
+8. **API-side analytics**: Page views are recorded by the API; no third-party analytics sink
 
 ## Known Gaps
 
@@ -355,6 +312,6 @@ cd packages/cli && npm run build && npm link
 1. **`app/layout.tsx`** - Root layout and global setup
 2. **`components/home-page.tsx`** - Landing page orchestrator
 3. **`app/(dashboard)/dashboard/page.tsx`** - Dashboard entry
-4. **`lib/api-client.ts`** - Backend communication (JWT Bearer auth)
+4. **`lib/api-client.ts`** - Backend communication (Firebase Bearer auth)
 5. **`components/editor-shell.tsx`** - Editor entry point (CodeMirror 6)
 6. **`components/share-page-client.tsx`** - Share viewer logic
