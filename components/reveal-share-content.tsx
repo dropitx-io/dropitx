@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { HtmlViewer } from "@/components/html-viewer";
 import { MarkdownViewerWrapper } from "@/components/markdown-viewer-wrapper";
 import { authFetch } from "@/lib/api-client";
+import { unlockShare } from "@/lib/share-unlock";
 
 interface RevealShareContentProps {
   slug: string;
@@ -14,6 +15,20 @@ interface RevealShareContentProps {
   variant?: "page" | "embed";
   /** Called once with the content after a successful reveal. */
   onRevealed?: (content: string) => void;
+  /** Password of a protected file the visitor already unlocked: the reveal goes through the unlock endpoint with it. */
+  password?: string;
+}
+
+/** The warning shown before anything that deletes itself on its first read is opened. */
+export function OnceOnlyNotice() {
+  return (
+    <>
+      <p className="font-medium">This content can be opened only once.</p>
+      <p className="max-w-sm text-sm text-muted-foreground">
+        Once you reveal it, it is deleted and cannot be viewed again. Copy anything you need to keep.
+      </p>
+    </>
+  );
 }
 
 type RevealState =
@@ -28,7 +43,7 @@ type RevealState =
  * (burn after reading, one-time download). The content is fetched only when the
  * visitor asks for it, so a link preview or prefetch never consumes the share.
  */
-export function RevealShareContent({ slug, isMarkdown, variant = "page", onRevealed }: RevealShareContentProps) {
+export function RevealShareContent({ slug, isMarkdown, variant = "page", onRevealed, password }: RevealShareContentProps) {
   const [state, setState] = useState<RevealState>({ status: "idle" });
   // A ref, not state: two clicks in one frame both see the same stale state.
   const inFlight = useRef(false);
@@ -38,6 +53,16 @@ export function RevealShareContent({ slug, isMarkdown, variant = "page", onRevea
     inFlight.current = true;
     setState({ status: "loading" });
     try {
+      if (password !== undefined) {
+        const result = await unlockShare(slug, password);
+        if (result.status === "ok" && result.content) {
+          setState({ status: "revealed", content: result.content });
+          onRevealed?.(result.content);
+        } else {
+          setState({ status: result.status === "ok" || result.status === "gone" ? "unavailable" : "failed" });
+        }
+        return;
+      }
       const res = await authFetch(`/api/shares/${encodeURIComponent(slug)}/content`);
       if (res.ok) {
         const data = (await res.json()) as { content?: string };
@@ -82,10 +107,7 @@ export function RevealShareContent({ slug, isMarkdown, variant = "page", onRevea
         <p className="text-sm text-muted-foreground">This content is no longer available.</p>
       ) : (
         <>
-          <p className="font-medium">This content can be opened only once.</p>
-          <p className="max-w-sm text-sm text-muted-foreground">
-            Once you reveal it, it is deleted and cannot be viewed again. Copy anything you need to keep.
-          </p>
+          <OnceOnlyNotice />
           <Button onClick={reveal} disabled={state.status === "loading"}>
             {state.status === "loading" ? (
               <>

@@ -10,6 +10,7 @@ import { MarkdownViewerWrapper } from "@/components/markdown-viewer-wrapper";
 import { RevealShareContent } from "@/components/reveal-share-content";
 import { Loader2 } from "lucide-react";
 import { authFetch } from "@/lib/api-client";
+import { unlockShare } from "@/lib/share-unlock";
 import type { GroupShare } from "@/types/share";
 
 interface SharePageClientProps {
@@ -18,6 +19,8 @@ interface SharePageClientProps {
   /** Content of the initial file, already read by the server. */
   initialContent: string;
   isAuthenticated: boolean;
+  /** Password the visitor unlocked this group with, held in memory only; used to open protected siblings. */
+  password?: string;
 }
 
 /** A file that deletes itself on its first read is revealed by a click, never fetched by a tab switch. */
@@ -26,11 +29,24 @@ function isSelfDeleting(files: GroupShare[], slug: string): boolean {
   return !!file && (file.burn_after_reading || file.one_time_download);
 }
 
+function isProtected(files: GroupShare[], slug: string): boolean {
+  return !!files.find((f) => f.slug === slug)?.has_password;
+}
+
+function protectedNotice(result: Awaited<ReturnType<typeof unlockShare>> | null): string {
+  if (!result) return "This file is password protected.";
+  if (result.status === "wrong") return "This file has a different password.";
+  if (result.status === "limited") return result.message;
+  if (result.status === "ok" || result.status === "gone") return "This file is no longer available.";
+  return "Could not load this file.";
+}
+
 export function SharePageClient({
   groupFiles,
   initialSlug,
   initialContent,
   isAuthenticated,
+  password,
 }: SharePageClientProps) {
   const [activeSlug, setActiveSlug] = useState(initialSlug);
   const [fileContents, setFileContents] = useState<Record<string, string>>({
@@ -62,6 +78,16 @@ export function SharePageClient({
         return next;
       });
       try {
+        if (isProtected(groupFiles, slug)) {
+          // The content endpoint never returns a protected file: it goes through unlock.
+          const result = password === undefined ? null : await unlockShare(slug, password);
+          if (result?.status === "ok" && result.content) {
+            setFileContents((prev) => ({ ...prev, [slug]: result.content }));
+          } else {
+            setNotices((prev) => ({ ...prev, [slug]: protectedNotice(result) }));
+          }
+          return;
+        }
         const res = await authFetch(`/api/shares/${encodeURIComponent(slug)}/content`);
         if (res.ok) {
           const data = (await res.json()) as { content?: string; password_protected?: boolean };
@@ -88,7 +114,7 @@ export function SharePageClient({
         });
       }
     },
-    [fileContents, groupFiles]
+    [fileContents, groupFiles, password]
   );
 
   const activeContent = fileContents[activeSlug];
@@ -143,6 +169,7 @@ export function SharePageClient({
               key={activeSlug}
               slug={activeSlug}
               isMarkdown={isMarkdown}
+              password={isProtected(groupFiles, activeSlug) ? password : undefined}
               onRevealed={(content) => {
                 const slug = activeSlug;
                 setFileContents((prev) => ({ ...prev, [slug]: content }));

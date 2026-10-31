@@ -4,36 +4,34 @@ import { useEffect, useRef, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
-import { HtmlViewer } from "@/components/html-viewer";
-import { MarkdownViewerWrapper } from "@/components/markdown-viewer-wrapper";
-import { getApiUrl } from "@/lib/api-client";
+import { OnceOnlyNotice } from "@/components/reveal-share-content";
+import { ShareContentArea } from "@/components/share-content-area";
+import { unlockShare } from "@/lib/share-unlock";
+import type { GroupShare } from "@/types/share";
 
 interface PasswordGateProps {
   slug: string;
-  title: string;
   isMarkdown: boolean;
+  groupFiles: GroupShare[];
+  isAuthenticated: boolean;
+  /** The share deletes itself on its first read, which the unlock performs. */
+  selfDeleting: boolean;
+}
+
+interface Unlocked {
+  content: string;
+  password: string;
 }
 
 /**
- * "Try again in 3 minutes" from a Retry-After header. The API sends the value as
- * either a number of seconds or an absolute Unix timestamp, so both are accepted.
+ * Stands in for a protected share's content area. A correct password renders the
+ * share's normal content area in its place. The unlocked content and password live
+ * only in this component's state: nothing is written to storage, cookies or the
+ * URL, so a refresh asks for the password again.
  */
-function describeWait(retryAfter: string | null): string {
-  const value = Number(retryAfter);
-  if (!retryAfter || !Number.isFinite(value) || value <= 0) return "Too many attempts. Try again later.";
-  const seconds = value > 1e9 ? value - Date.now() / 1000 : value;
-  if (seconds <= 0) return "Too many attempts. Try again later.";
-  if (seconds < 60) return `Too many attempts. Try again in ${Math.ceil(seconds)} seconds.`;
-  const minutes = Math.ceil(seconds / 60);
-  return `Too many attempts. Try again in ${minutes} minute${minutes !== 1 ? "s" : ""}.`;
-}
-
-export function PasswordGate({ slug, title, isMarkdown }: PasswordGateProps) {
-  // The unlocked content lives only in this component's state: nothing is written
-  // to storage, cookies or the URL, so a refresh asks for the password again.
-  const [content, setContent] = useState<string | null>(null);
+export function PasswordGate({ slug, isMarkdown, groupFiles, isAuthenticated, selfDeleting }: PasswordGateProps) {
   const [password, setPassword] = useState("");
+  const [unlocked, setUnlocked] = useState<Unlocked | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -49,63 +47,58 @@ export function PasswordGate({ slug, title, isMarkdown }: PasswordGateProps) {
     setLoading(true);
     setError(null);
 
-    try {
-      const res = await fetch(getApiUrl(`/api/shares/${slug}/unlock`), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password }),
-      });
-
-      if (res.ok) {
-        const data = (await res.json()) as { content?: string };
-        setPassword("");
-        setContent(data.content ?? "");
-        return;
-      }
-
-      if (res.status === 429) {
-        setError(describeWait(res.headers.get("Retry-After")));
-      } else if (res.status === 401) {
+    const result = await unlockShare(slug, password);
+    switch (result.status) {
+      case "ok":
+        if (result.content) {
+          setUnlocked({ content: result.content, password });
+          setPassword("");
+        } else {
+          // A one-time or burn share another visitor already opened unlocks to nothing.
+          setError("This share is no longer available.");
+        }
+        break;
+      case "wrong":
         setError("Incorrect password");
-      } else if (res.status === 404 || res.status === 410) {
+        break;
+      case "limited":
+        setError(result.message);
+        break;
+      case "gone":
         setError("This share is no longer available.");
-      } else {
-        setError("Something went wrong.");
-      }
-    } catch {
-      setError("Network error. Please try again.");
-    } finally {
-      setLoading(false);
+        break;
+      default:
+        setError("Something went wrong. Please try again.");
     }
+    setLoading(false);
   };
 
-  if (content !== null) {
+  if (unlocked) {
     return (
-      <div className="flex flex-1 flex-col gap-4 p-4 md:p-6 max-w-[1200px] mx-auto w-full animate-fade-in">
-        <Card>
-          <CardContent className={isMarkdown ? "p-4 md:p-6" : "p-2"}>
-            {isMarkdown ? (
-              <MarkdownViewerWrapper content={content} />
-            ) : (
-              <HtmlViewer htmlContent={content} />
-            )}
-          </CardContent>
-        </Card>
-      </div>
+      <ShareContentArea
+        slug={slug}
+        isMarkdown={isMarkdown}
+        content={unlocked.content}
+        groupFiles={groupFiles}
+        isAuthenticated={isAuthenticated}
+        password={unlocked.password}
+      />
     );
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
+    <div className="flex items-center justify-center p-4 py-10">
       <div className="w-full max-w-sm border border-border rounded-lg p-8">
         <div className="flex flex-col items-center gap-5">
           <p className="font-mono text-2xl font-semibold tracking-tight">
             {">"} unlock
           </p>
 
-          <p className="text-sm text-muted-foreground truncate max-w-[240px] text-center">
-            {title}
-          </p>
+          {selfDeleting && (
+            <div className="flex flex-col items-center gap-1 text-center">
+              <OnceOnlyNotice />
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="w-full flex flex-col gap-3">
             <Input
@@ -130,11 +123,7 @@ export function PasswordGate({ slug, title, isMarkdown }: PasswordGateProps) {
             </Button>
           </form>
 
-          {error && (
-            <p className="text-sm text-destructive text-center">
-              {error}
-            </p>
-          )}
+          {error && <p className="text-sm text-destructive text-center">{error}</p>}
 
           <div className="flex items-center gap-3 w-full">
             <div className="h-px flex-1 bg-border" />
