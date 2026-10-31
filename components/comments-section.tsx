@@ -36,7 +36,6 @@ interface CommentsResponse {
 }
 
 interface CommentsSectionProps {
-  shareId: string;
   slug: string;
   isAuthenticated: boolean;
 }
@@ -105,7 +104,6 @@ interface CommentItemProps {
   comment: Comment;
   depth: number;
   isAuthenticated: boolean;
-  shareId: string;
   slug: string;
   onReplyPosted: (newComment: Comment) => void;
 }
@@ -114,7 +112,6 @@ function CommentItem({
   comment,
   depth,
   isAuthenticated,
-  shareId,
   slug,
   onReplyPosted,
 }: CommentItemProps) {
@@ -137,7 +134,7 @@ function CommentItem({
       };
       if (!isAuthenticated && replyName.trim()) body.author_name = replyName.trim();
 
-      const res = await fetch(getApiUrl(`/api/shares/${shareId}/comments`), {
+      const res = await fetch(getApiUrl(`/api/shares/${encodeURIComponent(slug)}/comments`), {
         method: "POST",
         headers: { ...authHeaders, "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -268,7 +265,6 @@ function CommentItem({
               comment={reply}
               depth={depth + 1}
               isAuthenticated={isAuthenticated}
-              shareId={shareId}
               slug={slug}
               onReplyPosted={onReplyPosted}
             />
@@ -279,7 +275,7 @@ function CommentItem({
   );
 }
 
-export function CommentsSection({ shareId, slug, isAuthenticated }: CommentsSectionProps) {
+export function CommentsSection({ slug, isAuthenticated }: CommentsSectionProps) {
   const [comments, setComments] = useState<Comment[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -296,7 +292,7 @@ export function CommentsSection({ shareId, slug, isAuthenticated }: CommentsSect
     async (pageNum: number, append = false) => {
       try {
         const authHeaders = await getAuthHeaders();
-        const url = getApiUrl(`/api/shares/${shareId}/comments?page=${pageNum}&per_page=${perPage}`);
+        const url = getApiUrl(`/api/shares/${encodeURIComponent(slug)}/comments?page=${pageNum}&per_page=${perPage}`);
         const res = await fetch(url, { headers: authHeaders });
 
         if (!res.ok) {
@@ -315,7 +311,7 @@ export function CommentsSection({ shareId, slug, isAuthenticated }: CommentsSect
         setLoadingMore(false);
       }
     },
-    [shareId]
+    [slug]
   );
 
   useEffect(() => {
@@ -333,7 +329,7 @@ export function CommentsSection({ shareId, slug, isAuthenticated }: CommentsSect
       const body: Record<string, string> = { content: content.trim() };
       if (!isAuthenticated && name.trim()) body.author_name = name.trim();
 
-      const res = await fetch(getApiUrl(`/api/shares/${shareId}/comments`), {
+      const res = await fetch(getApiUrl(`/api/shares/${encodeURIComponent(slug)}/comments`), {
         method: "POST",
         headers: { ...authHeaders, "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -432,8 +428,7 @@ export function CommentsSection({ shareId, slug, isAuthenticated }: CommentsSect
                 comment={comment}
                 depth={0}
                 isAuthenticated={isAuthenticated}
-                shareId={shareId}
-                slug={slug}
+                  slug={slug}
                 onReplyPosted={handleReplyPosted}
               />
             ))}

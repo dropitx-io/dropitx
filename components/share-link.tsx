@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SharePasswordForm } from "@/components/share-password-form";
 import { Check, Copy, ExternalLink, Trash2, AlertTriangle, Lock } from "lucide-react";
+import { getApiUrl } from "@/lib/api-client";
 import type { UploadResult } from "@/components/upload-dropzone";
 
 interface ShareLinkProps {
@@ -18,11 +19,8 @@ export function ShareLink({ result }: ShareLinkProps) {
   const [passwordOpen, setPasswordOpen] = useState(false);
   const [hasPassword, setHasPassword] = useState(false);
 
-  const shareUrl = typeof window !== "undefined" ? `${window.location.origin}/s/${result.slug}` : `/s/${result.slug}`;
-  const deleteUrl =
-    typeof window !== "undefined"
-      ? `${window.location.origin}/api/shares/${result.slug}`
-      : `/api/shares/${result.slug}`;
+  const shareUrl = result.url;
+  const deleteUrl = getApiUrl(`/api/shares/${result.slug}`);
 
   const handleCopy = async () => {
     try {

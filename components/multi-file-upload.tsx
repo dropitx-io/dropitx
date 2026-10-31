@@ -16,7 +16,7 @@ import {
   Check,
   File,
 } from "lucide-react";
-import { authFetch, getAuthHeaders } from "@/lib/api-client";
+import { getApiUrl, getAuthHeaders } from "@/lib/api-client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { getFileIcon, formatFileSize } from "@/lib/file-utils";
@@ -30,10 +30,12 @@ interface QueuedFile {
   error?: string;
 }
 
+/** `POST /api/upload/multi` response: one share holding all the files. */
 interface UploadResult {
-  group_slug: string;
-  group_url: string;
-  files: Array<{ slug: string; url: string; filename: string }>;
+  slug: string;
+  url: string;
+  files: Array<{ filename: string }>;
+  file_count: number;
 }
 
 const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
@@ -105,7 +107,7 @@ export function MultiFileUpload() {
           } else {
             try {
               const err = JSON.parse(xhr.responseText);
-              reject(new Error(err.error || "Upload failed"));
+              reject(new Error(err.detail || "Upload failed"));
             } catch {
               reject(new Error("Upload failed"));
             }
@@ -113,7 +115,7 @@ export function MultiFileUpload() {
         };
         xhr.onerror = () => reject(new Error("Network error"));
 
-        xhr.open("POST", "/api/upload/multi");
+        xhr.open("POST", getApiUrl("/api/upload/multi"));
         // Add auth header
         getAuthHeaders().then((h: Record<string, string>) => {
           Object.entries(h).forEach(([k, v]) => xhr.setRequestHeader(k, v));
@@ -139,8 +141,8 @@ export function MultiFileUpload() {
   };
 
   const copyUrl = async () => {
-    if (!result?.group_url) return;
-    await navigator.clipboard.writeText(result.group_url);
+    if (!result?.url) return;
+    await navigator.clipboard.writeText(result.url);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -290,7 +292,7 @@ export function MultiFileUpload() {
             </div>
             <div className="flex items-center gap-2">
               <code className="flex-1 rounded-lg bg-muted px-3 py-1.5 text-sm font-mono truncate">
-                {result.group_url}
+                {result.url}
               </code>
               <Button size="icon-sm" variant="outline" onClick={copyUrl}>
                 {copied ? (

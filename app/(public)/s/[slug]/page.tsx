@@ -219,7 +219,6 @@ export default async function SharePage({ params }: SharePageProps) {
           initialSlug={slug}
           initialContent={fileContent}
           isAuthenticated={!!sessionUser}
-          shareId={share.id}
         />
       ) : (
         <>
@@ -236,7 +235,7 @@ export default async function SharePage({ params }: SharePageProps) {
           </Card>
 
           {/* Comments section */}
-          <CommentsSectionWrapper shareId={share.id} slug={slug} isAuthenticated={!!sessionUser} />
+          <CommentsSectionWrapper slug={slug} isAuthenticated={!!sessionUser} />
         </>
       )}
     </div>
@@ -245,13 +244,11 @@ export default async function SharePage({ params }: SharePageProps) {
 
 /** Client wrapper to import CommentsSection for the server component boundary */
 function CommentsSectionWrapper({
-  shareId,
   slug,
   isAuthenticated,
 }: {
-  shareId: string;
   slug: string;
   isAuthenticated: boolean;
 }) {
-  return <CommentsSection shareId={shareId} slug={slug} isAuthenticated={isAuthenticated} />;
+  return <CommentsSection slug={slug} isAuthenticated={isAuthenticated} />;
 }

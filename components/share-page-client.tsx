@@ -18,7 +18,6 @@ interface SharePageClientProps {
   /** Content of the initial file, already read by the server. */
   initialContent: string;
   isAuthenticated: boolean;
-  shareId: string;
 }
 
 /** A file that deletes itself on its first read is revealed by a click, never fetched by a tab switch. */
@@ -32,7 +31,6 @@ export function SharePageClient({
   initialSlug,
   initialContent,
   isAuthenticated,
-  shareId,
 }: SharePageClientProps) {
   const [activeSlug, setActiveSlug] = useState(initialSlug);
   const [fileContents, setFileContents] = useState<Record<string, string>>({
@@ -170,7 +168,6 @@ export function SharePageClient({
 
       {/* Comments section */}
       <CommentsSection
-        shareId={shareId}
         slug={activeSlug}
         isAuthenticated={isAuthenticated}
       />
