@@ -1,0 +1,182 @@
+name: Deploy to vps192 production
+
+# Flow: CI passes on main -> build image -> open promotion PR in vps192-k8s-config ->
+# wait for its validate run -> Slack "merge to deploy".
+# Promotion gate is a human merging the promotion PR (private-repo style, even though
+# this public org repo could use environment reviewers): vps192-k8s-config's own
+# deploy.yml is the only thing that applies manifests, and it reports the rollout result.
+#
+# NEXT_PUBLIC_* values are baked into the image at build time and come from
+# repository VARIABLES (vars.*), so switching the frontend's API URL or Firebase
+# project is a variable change + re-run, not a workflow edit.
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false # never cancel a half-finished promotion
+
+permissions: {}
+
+env:
+  # workflow_run: the commit CI tested; workflow_dispatch: the selected branch head.
+  SOURCE_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+  SERVICE: dropitx-fe
+  IMAGE_REPO: ghcr.io/dropitx-io/dropitx
+  CONFIG_REPO: phuongddx/vps192-k8s-config
+  OVERLAY: apps/dropitx-fe/vps192/kustomization.yaml
+  RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+jobs:
+  build:
+    # Only CI runs triggered by a push to main may deploy; PR runs never do.
+    if: github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.SOURCE_SHA }}
+
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push immutable image
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
+        with:
+          context: .
+          platforms: linux/amd64
+          push: true
+          provenance: false
+          sbom: false
+          tags: ${{ env.IMAGE_REPO }}:${{ env.SOURCE_SHA }}
+          build-args: |
+            NEXT_PUBLIC_API_URL=${{ vars.NEXT_PUBLIC_API_URL }}
+            NEXT_PUBLIC_FIREBASE_API_KEY=${{ vars.NEXT_PUBLIC_FIREBASE_API_KEY }}
+            NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=${{ vars.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN }}
+            NEXT_PUBLIC_FIREBASE_PROJECT_ID=${{ vars.NEXT_PUBLIC_FIREBASE_PROJECT_ID }}
+            NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=${{ vars.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET }}
+            NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=${{ vars.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID }}
+            NEXT_PUBLIC_FIREBASE_APP_ID=${{ vars.NEXT_PUBLIC_FIREBASE_APP_ID }}
+            NEXT_PUBLIC_APP_URL=${{ vars.NEXT_PUBLIC_APP_URL }}
+            NEXT_PUBLIC_APP_HOST=${{ vars.NEXT_PUBLIC_APP_HOST }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  promote:
+    needs: build
+    runs-on: ubuntu-latest
+    # Scopes the token secret to this job only. It is NOT an approval gate.
+    environment: vps192-promotion
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    env:
+      # Fine-grained PAT on vps192-k8s-config: Contents RW, Pull requests RW, Actions R.
+      # Environment secret on vps192-promotion.
+      GH_TOKEN: ${{ secrets.VPS192_CONFIG_PROMOTION_TOKEN }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          sparse-checkout: .github/scripts
+
+      - name: Open config promotion PR
+        id: open
+        run: |
+          set -euo pipefail
+          config="$RUNNER_TEMP/config"
+          gh auth setup-git
+          gh repo clone "$CONFIG_REPO" "$config"
+          git -C "$config" config user.name "github-actions[bot]"
+          git -C "$config" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          branch="promote/$SERVICE-$SOURCE_SHA"
+          git -C "$config" switch -c "$branch"
+          # Rewrite only this image's newTag; fail unless exactly one entry matched.
+          python3 -c 'import pathlib,re,sys; path=pathlib.Path(sys.argv[1]); text=path.read_text(); pattern=r"(?m)^(\s*- name: "+re.escape(sys.argv[2])+r"\n\s*newTag: ).+$"; updated,count=re.subn(pattern,lambda match:match.group(1)+sys.argv[3],text); assert count == 1, count; path.write_text(updated)' "$config/$OVERLAY" "$IMAGE_REPO" "$SOURCE_SHA"
+          git -C "$config" add "$OVERLAY"
+          if git -C "$config" diff --cached --quiet; then
+            echo "::notice::$CONFIG_REPO main already runs $SOURCE_SHA; nothing to promote"
+            exit 0
+          fi
+          git -C "$config" commit -m "promote($SERVICE): $SOURCE_SHA"
+          # --force keeps workflow re-runs idempotent on this bot-owned branch.
+          git -C "$config" push --force origin "$branch"
+          echo "head_sha=$(git -C "$config" rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          if [ -z "$(gh pr list --repo "$CONFIG_REPO" --head "$branch" --json url --jq '.[]')" ]; then
+            gh pr create \
+              --repo "$CONFIG_REPO" \
+              --base main \
+              --head "$branch" \
+              --title "promote($SERVICE): $SOURCE_SHA" \
+              --body "Source commit: ${{ github.server_url }}/${{ github.repository }}/commit/$SOURCE_SHA"
+          fi
+
+      - name: Wait for config validation, then ask for the merge
+        if: steps.open.outputs.head_sha != ''
+        env:
+          HEAD_SHA: ${{ steps.open.outputs.head_sha }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          set -euo pipefail
+          .github/scripts/watch-config-run.sh validate.yml "$HEAD_SHA" pull_request
+          pr_url=$(gh pr view "promote/$SERVICE-$SOURCE_SHA" --repo "$CONFIG_REPO" --json url --jq .url)
+          .github/scripts/notify-slack.sh \
+            ":large_yellow_circle: *$SERVICE* \`${SOURCE_SHA:0:7}\` passed config validation. <$pr_url|Merge the promotion PR to deploy> (merging redeploys every vps192 service)."
+
+  notify:
+    needs: [build, promote]
+    if: always()
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          sparse-checkout: .github/scripts
+
+      - name: Post failures to Slack
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          CI_EVENT: ${{ github.event.workflow_run.event }}
+          CI_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+          CI_URL: ${{ github.event.workflow_run.html_url }}
+          BUILD_RESULT: ${{ needs.build.result }}
+          PROMOTE_RESULT: ${{ needs.promote.result }}
+        run: |
+          set -euo pipefail
+          sha="\`${SOURCE_SHA:0:7}\`"
+          case "$BUILD_RESULT/$PROMOTE_RESULT" in
+            skipped/*)
+              # Build skipped means CI did not pass; alert only for real failures on main pushes.
+              if [ "$CI_EVENT" = push ] && [ "$CI_CONCLUSION" = failure ]; then
+                message=":x: *$SERVICE* CI failed on main at $sha. <$CI_URL|View CI run>"
+              else
+                exit 0
+              fi
+              ;;
+            success/success)
+              # The promote job already posted "merge to deploy"; nothing is deployed yet.
+              exit 0
+              ;;
+            success/cancelled | cancelled/*)
+              message=":white_circle: *$SERVICE* $sha was not promoted (cancelled). <$RUN_URL|View run>"
+              ;;
+            success/*)
+              message=":x: *$SERVICE* $sha promotion PR failed or config validation failed. <$RUN_URL|View run>"
+              ;;
+            *)
+              message=":x: *$SERVICE* $sha image build failed. <$RUN_URL|View run>"
+              ;;
+          esac
+          .github/scripts/notify-slack.sh "$message"
