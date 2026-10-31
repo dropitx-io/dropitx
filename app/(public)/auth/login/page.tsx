@@ -7,9 +7,16 @@ import { useAuth } from "@/components/auth-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
+/** Same-origin paths sign-in may return to: a share, an invite, or a dashboard page (for an expired session). */
 function isValidRedirect(path: string | null): boolean {
   if (!path) return false;
-  return (path.startsWith("/s/") || path.startsWith("/invite/")) && !path.includes("//") && !path.includes("\\");
+  const allowed =
+    path.startsWith("/s/") ||
+    path.startsWith("/invite/") ||
+    path === "/dashboard" ||
+    path.startsWith("/dashboard/") ||
+    path.startsWith("/dashboard?");
+  return allowed && !path.includes("//") && !path.includes("\\");
 }
 
 /* ─── Icons ─── */
