@@ -105,10 +105,8 @@ export async function getTopShares(limit: number): Promise<TopSharesResponse> {
   );
 }
 
-/** Totals over all of the caller's shares; see `getTopShares` for the windows. */
-export async function getShareTotals(): Promise<ShareTotals> {
-  return (await getTopShares(1)).totals;
-}
+/** Totals over all of the caller's shares, shared by the layout and the page within one render; see `getTopShares` for the windows. */
+export const getShareTotals = cache(async (): Promise<ShareTotals> => (await getTopShares(1)).totals);
 
 /**
  * One share's analytics over the last `days` UTC calendar days, or `null` when the
