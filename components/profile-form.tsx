@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/auth-provider";
-import { authFetch } from "@/lib/api-client";
+import { apiErrorDetail, authFetch } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -45,12 +45,12 @@ export function ProfileForm({
         method: "PUT",
         body: JSON.stringify({ display_name: trimmed }),
       });
-      if (!res.ok) throw new Error("Failed to update profile");
+      if (!res.ok) throw new Error(await apiErrorDetail(res, "Failed to update profile"));
       setName(trimmed);
       toast.success("Profile updated");
       router.refresh();
-    } catch {
-      toast.error("Failed to update profile");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to update profile");
     } finally {
       setSaving(false);
     }

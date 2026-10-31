@@ -62,6 +62,25 @@ export interface TeamShareRow {
     view_count: number | null;
     file_size: number | null;
     created_at: string | null;
+    has_password?: boolean;
+  } | null;
+}
+
+/** One row of `GET /api/dashboard/teams`: the caller's membership with the team embedded.
+ *  The endpoint has no response schema, so this mirrors the rows it returns. */
+export interface TeamMembership {
+  team_id: string;
+  role: "owner" | "editor" | "viewer" | "member" | "admin";
+  joined_at: string | null;
+  teams: {
+    id: string;
+    name: string;
+    slug: string;
+    description: string | null;
+    owner_id: string | null;
+    plan: TeamPlan;
+    created_at: string;
+    updated_at: string;
   } | null;
 }
 

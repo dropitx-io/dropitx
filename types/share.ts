@@ -1,5 +1,8 @@
 import type { components } from "@/lib/api-types";
 
+/** A share as the dashboard lists it: the API's share metadata (no password hash, no delete token). */
+export type ShareListItem = components["schemas"]["ShareMeta"];
+
 export interface Share {
   id: string;
   slug: string;

@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { createAdminClient } from "@/utils/supabase/server";
 import { getSessionUser } from "@/lib/firebase/server";
+import { getTeams } from "@/lib/dashboard-data";
 import { DashboardShell } from "@/components/dashboard-shell";
 
 export default async function DashboardLayout({
@@ -23,17 +23,10 @@ export default async function DashboardLayout({
     .join("")
     .toUpperCase();
 
-  const admin = createAdminClient();
-  const { data: memberships } = await admin
-    .from("team_members")
-    .select("teams(slug, name)")
-    .eq("user_id", user.uid);
-
-  // Typed by the Database generic — the teams embed is a many-to-one join object.
-  const teams = (memberships ?? []).map((m) => {
-    const t = m.teams;
-    return { slug: t?.slug ?? "", name: t?.name ?? "" };
-  });
+  const memberships = await getTeams();
+  const teams = memberships.flatMap((m) =>
+    m.teams ? [{ slug: m.teams.slug, name: m.teams.name }] : [],
+  );
 
   return (
     <DashboardShell
@@ -44,4 +37,3 @@ export default async function DashboardLayout({
     </DashboardShell>
   );
 }
-

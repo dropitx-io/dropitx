@@ -1,17 +1,10 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { createAdminClient } from "@/utils/supabase/server";
 import { getSessionUser } from "@/lib/firebase/server";
+import { getFavorites } from "@/lib/dashboard-data";
 import { Heart, Star, Copy } from "lucide-react";
-import type { Share } from "@/types/share";
-import type { ShareWithPasswordFlag } from "@/app/(dashboard)/dashboard/page";
-
-interface FavoriteRow {
-  share_id: string;
-  created_at: string;
-  shares: Share | null;
-}
+import type { ShareListItem } from "@/types/share";
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("en-US", {
@@ -27,22 +20,7 @@ export default async function FavoritesPage() {
 
   if (!user) redirect("/auth/login");
 
-  const admin = createAdminClient();
-  const { data: favorites } = await admin
-    .from("favorites")
-    .select("share_id, created_at, shares(*)")
-    .eq("user_id", user.uid)
-    .order("created_at", { ascending: false });
-
-  const favList = (favorites ?? []) as unknown as FavoriteRow[];
-  const shares: (ShareWithPasswordFlag & { favorited_at: string })[] = favList
-    .map((f) => f.shares)
-    .filter((s): s is Share => !!s)
-    .map(({ password_hash, ...rest }, i) => ({
-      ...rest,
-      has_password: !!password_hash,
-      favorited_at: favList[i].created_at,
-    }));
+  const shares: (ShareListItem & { favorited_at: string })[] = await getFavorites();
 
   return (
     <div className="space-y-6">
@@ -75,13 +53,13 @@ export default async function FavoritesPage() {
               </div>
               <div className="flex items-center gap-2">
                 <p className="flex-1 truncate text-[14.5px] font-semibold">
-                  {share.title || share.filename}
+                  {share.title || share.filename || share.slug}
                 </p>
                 <Star className="size-3.5 fill-primary text-primary" />
               </div>
               <div className="mt-1 flex items-center gap-2 text-[11px] text-muted-foreground">
                 <span className="rounded-full bg-surface-warm px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-[0.05em] text-fg-soft">
-                  {share.mime_type.split("/")[1]?.toUpperCase() || "FILE"}
+                  {share.mime_type?.split("/")[1]?.toUpperCase() || "FILE"}
                 </span>
                 <span className="font-mono">{share.view_count.toLocaleString()} views</span>
               </div>

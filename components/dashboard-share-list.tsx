@@ -6,37 +6,19 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { FileText, Lock, Copy, Trash2, MoreHorizontal, FileCode, Globe } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { authFetch } from "@/lib/api-client";
-import type { Share } from "@/types/share";
-
-export type ShareWithPasswordFlag = Omit<Share, "password_hash"> & {
-  has_password: boolean;
-};
+import { apiErrorDetail, authFetch } from "@/lib/api-client";
+import type { ShareListItem } from "@/types/share";
+import type { TeamShareRow } from "@/types/team";
 
 interface TeamOption {
   slug: string;
   name: string;
 }
 
-interface TeamShareItem {
-  created_at: string;
-  shared_by: string;
-  shares: {
-    id: string;
-    slug: string;
-    filename: string;
-    title: string | null;
-    mime_type: string;
-    view_count: number;
-    file_size: number | null;
-    created_at: string;
-  } | null;
-}
-
 interface DashboardShareListProps {
-  personalShares: ShareWithPasswordFlag[];
+  personalShares: ShareListItem[];
   teams: TeamOption[];
-  teamShareMap: Record<string, TeamShareItem[]>;
+  teamShareMap: Record<string, TeamShareRow[]>;
 }
 
 function isMarkdown(mime: string, filename: string): boolean {
@@ -54,7 +36,8 @@ function formatSize(bytes: number | null): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function formatDate(iso: string): string {
+function formatDate(iso: string | null): string {
+  if (!iso) return "—";
   return new Date(iso).toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
@@ -69,7 +52,7 @@ type Row = {
   mime_type: string;
   view_count: number;
   file_size: number | null;
-  created_at: string;
+  created_at: string | null;
   has_password: boolean;
   shared_by?: string;
 };
@@ -98,11 +81,11 @@ export function DashboardShareList({
       ? personalShares.map((s) => ({
           id: s.id,
           slug: s.slug,
-          filename: s.filename,
-          title: s.title,
-          mime_type: s.mime_type,
+          filename: s.filename ?? "",
+          title: s.title ?? null,
+          mime_type: s.mime_type ?? "",
           view_count: s.view_count,
-          file_size: s.file_size,
+          file_size: s.file_size ?? null,
           created_at: s.created_at,
           has_password: s.has_password,
         }))
@@ -113,11 +96,11 @@ export function DashboardShareList({
             slug: r.shares!.slug,
             filename: r.shares!.filename,
             title: r.shares!.title,
-            mime_type: r.shares!.mime_type,
-            view_count: r.shares!.view_count,
+            mime_type: r.shares!.mime_type ?? "",
+            view_count: r.shares!.view_count ?? 0,
             file_size: r.shares!.file_size,
             created_at: r.shares!.created_at,
-            has_password: false,
+            has_password: r.shares!.has_password ?? false,
             shared_by: r.shared_by,
           }));
 
@@ -136,10 +119,7 @@ export function DashboardShareList({
     setDeleting(row.id);
     try {
       const res = await authFetch(`/api/shares/${row.slug}`, { method: "DELETE" });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to delete");
-      }
+      if (!res.ok) throw new Error(await apiErrorDetail(res, "Failed to delete"));
       toast.success("Share deleted");
       router.refresh();
     } catch (err) {

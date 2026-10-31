@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
-import { createAdminClient } from "@/utils/supabase/server";
 import { getSessionUser } from "@/lib/firebase/server";
+import { getProfile } from "@/lib/dashboard-data";
 import { redirect } from "next/navigation";
 import { ProfileForm } from "@/components/profile-form";
 
@@ -8,14 +8,9 @@ export default async function ProfilePage() {
   const cookieStore = await cookies();
   const user = await getSessionUser(cookieStore);
 
-  if (!user) redirect("/");
+  if (!user) redirect("/auth/login");
 
-  const admin = createAdminClient();
-  const { data: profile } = await admin
-    .from("user_profiles")
-    .select("display_name, avatar_url")
-    .eq("id", user.uid)
-    .maybeSingle();
+  const profile = await getProfile();
 
   const providers: string[] = [];
 
@@ -30,13 +25,12 @@ export default async function ProfilePage() {
       <div className="rounded-lg border border-border bg-card p-6">
         <ProfileForm
           userId={user.uid}
-          displayName={profile?.display_name ?? ""}
-          avatarUrl={profile?.avatar_url ?? ""}
-          email={user.email ?? ""}
+          displayName={profile.displayName}
+          avatarUrl={profile.avatarUrl}
+          email={profile.email || user.email || ""}
           providers={providers}
         />
       </div>
     </div>
   );
 }
-
