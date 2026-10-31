@@ -87,11 +87,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } else {
         const detail = await res.text().catch(() => "");
         console.error(`Account provisioning failed: GET /api/auth/session returned ${res.status}`, detail);
-        toast.error("We could not finish setting up your account. Dashboard pages may not load. Try signing in again.");
+        toast.error("We could not finish setting up your account. Dashboard pages may not load. Try signing in again.", { id: "provisioning-failed" });
       }
     } catch (error) {
       console.error("Account provisioning failed: GET /api/auth/session did not complete", error);
-      toast.error("We could not reach the server to finish setting up your account. Try again in a moment.");
+      toast.error("We could not reach the server to finish setting up your account. Try again in a moment.", { id: "provisioning-failed" });
     }
   }, [profile]);
 

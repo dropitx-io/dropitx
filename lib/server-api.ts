@@ -9,8 +9,8 @@ export class ApiError extends Error {
   status: number;
   detail: unknown;
 
-  constructor(status: number, detail: unknown) {
-    super(`API request failed with status ${status}`);
+  constructor(status: number, detail: unknown, path?: string) {
+    super(`API request failed with status ${status}${path ? ` for ${path}` : ""}`);
     this.name = "ApiError";
     this.status = status;
     this.detail = detail;
@@ -49,6 +49,9 @@ export async function serverApiFetch<T>(
   path: string,
   init: ServerApiInit = {},
 ): Promise<T> {
+  if (!path.startsWith("/")) {
+    throw new Error(`serverApiFetch path must start with "/", got "${path}"`);
+  }
   const { auth = "session", headers: initHeaders, cache, ...rest } = init;
 
   const ip = (await headers()).get("cf-connecting-ip");
@@ -66,7 +69,7 @@ export async function serverApiFetch<T>(
     cache: cache ?? "no-store",
   });
 
-  if (!res.ok) throw new ApiError(res.status, await parseBody(res));
+  if (!res.ok) throw new ApiError(res.status, await parseBody(res), path);
   if (res.status === 204) return undefined as T;
   return (await parseBody(res)) as T;
 }
