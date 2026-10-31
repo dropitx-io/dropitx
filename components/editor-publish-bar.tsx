@@ -126,18 +126,12 @@ export function EditorPublishBar({
 
     setPublishing(true);
     try {
-      let publishContent = content;
-      let isEncrypted = false;
-
-      if (encryptionState.enabled && encryptionState.key) {
-        publishContent = await encrypt(content, encryptionState.key);
-        isEncrypted = true;
-      }
-
+      // Always false: the editor refuses to open encrypted shares, and the API clears the stored IV and salt on
+      // every update. Revisit this together with that refusal.
       const body: UpdateBody = {
-        content: publishContent,
+        content,
         is_private: isPrivate,
-        encrypted: isEncrypted,
+        encrypted: false,
       };
       if (expiresIn) body.expires_in = expiresIn;
       if (maxDownloads) body.max_downloads = parseInt(maxDownloads, 10);
@@ -153,13 +147,15 @@ export function EditorPublishBar({
 
       const data = await res.json();
       toast.success("Updated successfully!");
+      // The expiry was applied; a later update keeps it unless the user picks another.
+      setExpiresIn("");
       onPublished?.(editSlug, data.url);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Update failed");
     } finally {
       setPublishing(false);
     }
-  }, [editSlug, content, isPrivate, maxDownloads, expiresIn, encryptionState, onPublished]);
+  }, [editSlug, content, isPrivate, maxDownloads, expiresIn, onPublished]);
 
   const copyUrl = useCallback(async () => {
     if (!publishedUrl) return;
@@ -201,11 +197,13 @@ export function EditorPublishBar({
             </div>
           </div>
 
-          {/* Row 2: Encryption */}
-          <EncryptionToggle
-            onStateChange={setEncryptionState}
-            disabled={publishing}
-          />
+          {/* Row 2: Encryption — chosen when a document is created; an update cannot carry the key in a share link */}
+          {mode === "create" && (
+            <EncryptionToggle
+              onStateChange={setEncryptionState}
+              disabled={publishing}
+            />
+          )}
 
           {/* Row 3: Burn after reading — a new document only; the update API cannot change it */}
           {mode === "create" && (
