@@ -31,7 +31,7 @@ No test framework is currently configured. Verify changes manually by running `n
 **App Router segments** (`app/`):
 - `app/(public)/` — Landing page, auth, editor, search, share viewing, `/invite` (team invite acceptance), `/developers`, `/embed` (oEmbed/share embeds)
 - `app/(dashboard)/` — Authenticated dashboard: `teams/`, `analytics/`, `profile/`, `favorites/`
-- `app/api/` — Only `/api/og-image` (OG image generation) remains; business logic lives in the FastAPI backend
+- `app/api/` — Only `/api/og-image` (OG image generation) and `/api/shares` (access-cookie routes) remain; business logic lives in the FastAPI backend
 
 **Components & Styling**:
 - `components/` — Feature components (kebab-case filenames, under 200 lines each); `components/team/` holds the team-collaboration UI
