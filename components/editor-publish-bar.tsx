@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Check, Copy, Loader2, Lock, Unlock, FileEdit, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { trackEvent, AnalyticsEvent } from "@/lib/analytics";
-import { apiErrorDetail, authFetch, getAuthHeaders } from "@/lib/api-client";
+import { useAuth } from "@/components/auth-provider";
+import { apiErrorDetail, authFetch } from "@/lib/api-client";
 import type { components } from "@/lib/api-types";
 import { Input } from "@/components/ui/input";
 import { ExpirationSelect } from "@/components/expiration-select";
@@ -20,6 +21,8 @@ interface EditorPublishBarProps {
   mode: "create" | "edit";
   editSlug?: string;
   editTitle?: string;
+  /** Privacy of the share being edited, so an update never changes it unless the user does. */
+  initialIsPrivate?: boolean;
   onPublished?: (slug: string, url: string) => void;
   onClearDraft?: () => void;
   draftSavedAt?: Date | null;
@@ -38,17 +41,19 @@ export function EditorPublishBar({
   mode,
   editSlug,
   editTitle,
+  initialIsPrivate = false,
   onPublished,
   onClearDraft,
   draftSavedAt,
 }: EditorPublishBarProps) {
-  const [user, setUser] = useState<boolean>(false);
+  const { user, loading: authLoading } = useAuth();
   const [publishing, setPublishing] = useState(false);
   const [publishedUrl, setPublishedUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-  const [isPrivate, setIsPrivate] = useState(false);
+  const [isPrivate, setIsPrivate] = useState(initialIsPrivate);
   const [maxDownloads, setMaxDownloads] = useState("");
-  const [expiresIn, setExpiresIn] = useState("30d");
+  // An existing share keeps its expiry unless the user picks a new one, so editing starts with no choice made.
+  const [expiresIn, setExpiresIn] = useState(mode === "edit" ? "" : "30d");
   const [showOptions, setShowOptions] = useState(false);
   const [burnAfterReading, setBurnAfterReading] = useState(false);
   const [encryptionState, setEncryptionState] = useState<EncryptionState>({
@@ -57,10 +62,6 @@ export function EditorPublishBar({
     keyString: "",
     isPasswordMode: false,
   });
-
-  useEffect(() => {
-    getAuthHeaders().then((h) => setUser(!!h.Authorization));
-  }, []);
 
   const handlePublish = useCallback(async () => {
     if (!content.trim()) {
@@ -137,8 +138,8 @@ export function EditorPublishBar({
         content: publishContent,
         is_private: isPrivate,
         encrypted: isEncrypted,
-        expires_in: expiresIn,
       };
+      if (expiresIn) body.expires_in = expiresIn;
       if (maxDownloads) body.max_downloads = parseInt(maxDownloads, 10);
 
       const res = await authFetch(`/api/publish/${encodeURIComponent(editSlug)}`, {
@@ -206,12 +207,14 @@ export function EditorPublishBar({
             disabled={publishing}
           />
 
-          {/* Row 3: Burn after reading */}
-          <BurnAfterReadingToggle
-            enabled={burnAfterReading}
-            onChange={setBurnAfterReading}
-            disabled={publishing}
-          />
+          {/* Row 3: Burn after reading — a new document only; the update API cannot change it */}
+          {mode === "create" && (
+            <BurnAfterReadingToggle
+              enabled={burnAfterReading}
+              onChange={setBurnAfterReading}
+              disabled={publishing}
+            />
+          )}
         </div>
       )}
 
@@ -304,6 +307,10 @@ export function EditorPublishBar({
                 {copied ? <Check className="size-3 text-success" /> : <Copy className="size-3" />}
               </Button>
             </div>
+          ) : authLoading ? (
+            <Button size="sm" disabled className="gap-1.5">
+              <Loader2 className="size-3 animate-spin" />
+            </Button>
           ) : !user ? (
             <a href="/auth/login?redirect=/editor">
               <Button size="sm" className="gap-1.5">
