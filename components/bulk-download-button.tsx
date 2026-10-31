@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Download, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { getApiUrl, getAuthHeaders } from "@/lib/api-client";
+import { apiErrorDetail, getApiUrl, getAuthHeaders } from "@/lib/api-client";
 
 interface BulkDownloadButtonProps {
   groupSlug: string;
@@ -31,10 +31,7 @@ export function BulkDownloadButton({
         headers: authHeaders,
       });
 
-      if (!response.ok) {
-        const err = await response.json().catch(() => ({ error: "Download failed" }));
-        throw new Error(err.error || "Download failed");
-      }
+      if (!response.ok) throw new Error(await apiErrorDetail(response, "Download failed"));
 
       // Trigger browser download
       const blob = await response.blob();

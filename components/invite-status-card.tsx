@@ -3,6 +3,8 @@ import { AlertCircle, CheckCircle, Clock, Mail } from "lucide-react";
 type InviteStatusVariant =
   | "not_found"
   | "already_used"
+  | "declined"
+  | "revoked"
   | "expired"
   | "email_mismatch"
   | "not_logged_in"
@@ -32,6 +34,16 @@ const VARIANT_CONFIG: Record<
     icon: CheckCircle,
     iconColor: "text-success",
     title: "Invite Already Used",
+  },
+  declined: {
+    icon: AlertCircle,
+    iconColor: "text-muted-foreground",
+    title: "Invite Declined",
+  },
+  revoked: {
+    icon: AlertCircle,
+    iconColor: "text-destructive",
+    title: "Invite Revoked",
   },
   expired: {
     icon: Clock,
@@ -78,7 +90,7 @@ export function InviteStatusCard({
         {message && (
           <p className="mt-2 text-muted-foreground">{message}</p>
         )}
-        {inviteEmail && (
+        {inviteEmail ? (
           <p className="mt-2 text-sm text-muted-foreground">
             Invite sent to <strong>{inviteEmail}</strong>
             {currentUserEmail && (
@@ -88,6 +100,12 @@ export function InviteStatusCard({
               </>
             )}
           </p>
+        ) : (
+          currentUserEmail && (
+            <p className="mt-2 text-sm text-muted-foreground">
+              Logged in as <strong>{currentUserEmail}</strong>
+            </p>
+          )
         )}
         {subMessage && (
           <p className="mt-2 text-sm text-muted-foreground">

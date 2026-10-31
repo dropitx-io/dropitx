@@ -1,8 +1,9 @@
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
-import { createAdminClient } from "@/utils/supabase/server";
 import { getSessionUser } from "@/lib/firebase/server";
+import { AccountNotProvisionedError, getShareAnalytics } from "@/lib/dashboard-data";
+import { AccountSetupState } from "@/components/account-setup-state";
 import { AnalyticsStatsCards } from "@/components/analytics/analytics-stats-cards";
 import { AnalyticsViewChart } from "@/components/analytics/analytics-view-chart";
 import { AnalyticsReferrerChart } from "@/components/analytics/analytics-referrer-chart";
@@ -11,19 +12,13 @@ import { AnalyticsEmptyState } from "@/components/analytics/analytics-empty-stat
 import { ArrowLeft, Link as LinkIcon, Copy } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import type { ShareAnalytics, ViewTimeSeriesPoint, ReferrerBreakdown, GeoBreakdown } from "@/types/analytics";
+import type { ShareAnalyticsResponse } from "@/types/analytics";
 
 interface PerShareAnalyticsPageProps {
   params: Promise<{ slug: string }>;
 }
 
-const EMPTY_ANALYTICS: ShareAnalytics = {
-  total_views: 0,
-  unique_views: 0,
-  views_today: 0,
-  views_7d: 0,
-  avg_daily_views: 0,
-};
+const ANALYTICS_DAYS = 30;
 
 export default async function PerShareAnalyticsPage({ params }: PerShareAnalyticsPageProps) {
   const { slug } = await params;
@@ -32,30 +27,20 @@ export default async function PerShareAnalyticsPage({ params }: PerShareAnalytic
 
   if (!user) redirect("/auth/login");
 
-  const admin = createAdminClient();
-  const { data: share } = await admin
-    .from("shares")
-    .select("id, user_id, slug, title, filename")
-    .eq("slug", slug)
-    .eq("user_id", user.uid)
-    .single();
+  let data: ShareAnalyticsResponse | null;
+  try {
+    data = await getShareAnalytics(slug, ANALYTICS_DAYS);
+  } catch (err) {
+    if (err instanceof AccountNotProvisionedError) return <AccountSetupState />;
+    throw err;
+  }
 
-  if (!share) notFound();
-  const [analyticsRes, timeseriesRes, referrersRes, geoRes] = await Promise.all([
-    admin.rpc("get_share_analytics", { p_share_id: share.id, p_days: 30 }),
-    admin.rpc("get_share_view_timeseries", { p_share_id: share.id, p_days: 30 }),
-    admin.rpc("get_share_referrers", { p_share_id: share.id, p_days: 30 }),
-    admin.rpc("get_share_geo", { p_share_id: share.id, p_days: 30 }),
-  ]);
+  if (!data) notFound();
 
-  const analytics: ShareAnalytics = (analyticsRes.data as ShareAnalytics[])?.[0] ?? EMPTY_ANALYTICS;
-  const timeseries: ViewTimeSeriesPoint[] = (timeseriesRes.data as ViewTimeSeriesPoint[]) ?? [];
-  const referrers: ReferrerBreakdown[] = (referrersRes.data as ReferrerBreakdown[]) ?? [];
-  const geo: GeoBreakdown[] = (geoRes.data as GeoBreakdown[]) ?? [];
-
-  const title = share.title ?? share.filename;
+  const { share, summary, timeseries, referrers, geo, days } = data;
+  const title = share.title ?? share.filename ?? share.slug;
   const shareUrl = `${process.env.NEXT_PUBLIC_APP_URL || "https://dropitx.com"}/s/${share.slug}`;
-  const hasData = analytics.total_views > 0;
+  const hasData = summary.total_views > 0;
 
   return (
     <div className="space-y-5">
@@ -87,11 +72,11 @@ export default async function PerShareAnalyticsPage({ params }: PerShareAnalytic
 
       {hasData ? (
         <>
-          <AnalyticsStatsCards analytics={analytics} />
+          <AnalyticsStatsCards analytics={summary} days={days} />
 
           <div className="rounded-lg border border-border bg-card p-5">
             <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/80">
-              Views over time (30d)
+              Views over time (last {days} days)
             </p>
             <AnalyticsViewChart data={timeseries} />
           </div>
@@ -99,7 +84,7 @@ export default async function PerShareAnalyticsPage({ params }: PerShareAnalytic
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="rounded-lg border border-border bg-card p-5">
               <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/80">
-                Traffic sources
+                Traffic sources (last {days} days)
               </p>
               {referrers.length > 0 ? (
                 <AnalyticsReferrerChart data={referrers} />
@@ -109,7 +94,7 @@ export default async function PerShareAnalyticsPage({ params }: PerShareAnalytic
             </div>
             <div className="rounded-lg border border-border bg-card p-5">
               <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/80">
-                Geography
+                Geography (last {days} days)
               </p>
               {geo.length > 0 ? (
                 <AnalyticsGeoChart data={geo} />
@@ -120,7 +105,7 @@ export default async function PerShareAnalyticsPage({ params }: PerShareAnalytic
           </div>
         </>
       ) : (
-        <AnalyticsEmptyState />
+        <AnalyticsEmptyState message={`No views in the last ${days} days.`} />
       )}
     </div>
   );

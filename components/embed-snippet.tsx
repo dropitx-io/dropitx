@@ -4,13 +4,15 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Code, Copy, Check } from "lucide-react";
 
+const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://dropitx.com";
+
 interface EmbedSnippetProps {
   slug: string;
 }
 
 export function EmbedSnippet({ slug }: EmbedSnippetProps) {
   const [copied, setCopied] = useState(false);
-  const embedCode = `<iframe src="${window.location.origin}/embed/${slug}" width="600" height="400" frameborder="0" loading="lazy" title="DropItX Embed"></iframe>`;
+  const embedCode = `<iframe src="${SITE_URL}/embed/${slug}" width="600" height="400" frameborder="0" loading="lazy" title="DropItX Embed"></iframe>`;
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(embedCode);

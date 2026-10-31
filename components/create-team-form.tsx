@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Users, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { authFetch } from "@/lib/api-client";
+import { apiErrorDetail, authFetch } from "@/lib/api-client";
 import { isValidTeamName, isValidTeamSlug } from "@/lib/team-utils";
 
 /** Auto-generates a slug from a name (mirrors server-side logic without random suffix). */
@@ -52,11 +52,11 @@ export function CreateTeamForm() {
         method: "POST",
         body: JSON.stringify({ name: trimmedName, slug: finalSlug }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to create team");
+      if (!res.ok) throw new Error(await apiErrorDetail(res, "Failed to create team"));
+      const team = (await res.json()) as { slug: string };
 
       toast.success(`Team "${trimmedName}" created`);
-      router.push(`/dashboard/teams/${data.team.slug}`);
+      router.push(`/dashboard/teams/${team.slug}`);
       router.refresh();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to create team");

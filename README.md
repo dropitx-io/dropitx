@@ -1,6 +1,6 @@
 # DropItX
 
-Drop HTML and Markdown files, write in the built-in editor, and get short shareable links. Programmatic access via REST API and CLI. Built with Next.js 16 (frontend), FastAPI (backend), Supabase, and Tailwind CSS.
+Drop HTML and Markdown files, write in the built-in editor, and get short shareable links. Programmatic access via REST API and CLI. Built with Next.js 16 (frontend), FastAPI (backend), Firebase Auth, and Tailwind CSS.
 
 ## Features
 
@@ -9,11 +9,11 @@ Drop HTML and Markdown files, write in the built-in editor, and get short sharea
 - **Markdown**: GitHub-like rendered preview with syntax highlighting, toggle to raw source
 - **Share**: Short slug-based URLs (`/s/abc123`), optional custom slugs
 - **Private shares**: `is_private` flag hides shares from search and public listing
-- **Password Protection**: Bcryptjs hashed passwords with secure access cookies
-- **End-to-End Encryption**: AES-256-GCM client-side encryption with key in URL
+- **Password Protection**: Passwords verified by the API; unlocked content renders in place
+- **End-to-End Encryption**: not available in the web app yet (planned); the editor does not offer it until the share page can decrypt
 - **Burn-After-Reading**: Share self-destructs on first view
 - **Expiration**: Configurable share expiration (default 30 days)
-- **Multi-File**: Bundle multiple files per share with tabs
+- **Multi-File**: View multi-file shares with tabs (creating them from the web upload box is not available)
 - **Comments**: Thread discussion on shared content
 - **Version History**: Track and restore previous versions
 - **QR Codes**: Auto-generate QR codes for share URLs
@@ -23,26 +23,25 @@ Drop HTML and Markdown files, write in the built-in editor, and get short sharea
 - **CLI**: `dropitx` binary for publish/update/delete from the terminal
 - **Analytics**: View counts, geographic data, referrer tracking
 - **Teams**: Workspace collaboration with role-based access
-- **Security**: Sandboxed iframe viewing with CSP, rate limiting, RLS on all tables
+- **Security**: Sandboxed iframe viewing with CSP, rate limiting, API-enforced authorization
 
 ## Tech Stack
 
-- **Next.js 16** (App Router, React 19) — pure frontend on Vercel
-- **FastAPI** (Python) — backend API on Render
+- **Next.js 16** (App Router, React 19) — pure frontend, shipped as a Docker image
+- **FastAPI** (Python) — the backend API; the frontend's only data path
 - **TypeScript** (strict mode)
-- **Supabase** (PostgreSQL, Storage, Auth — Google/GitHub OAuth)
+- **Firebase Auth** (Google, GitHub, email/password)
 - **CodeMirror 6** (Markdown editor, SSR-disabled)
 - **Tailwind CSS 4** + shadcn/ui (Clay design system — light-first, warm cream, terracotta accent, organic radii)
-- **Upstash Redis** (rate limiting)
-- **CLI**: `packages/cli/` — TypeScript ESM, binary `dropitx`
+- **CLI**: `dropitx-cli` — Python, published to PyPI as `dropitx`
 
 ## Getting Started
 
 ### Prerequisites
 
 - Node.js 20+
-- Supabase project (or local via Supabase CLI)
-- Upstash Redis instance
+- A running `dropitx-api` instance
+- A Firebase project (web config and a service-account key)
 
 ### Setup
 
@@ -61,29 +60,19 @@ npm run dev   # http://localhost:3000
 
 | Variable | Description |
 |----------|-------------|
-| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
-| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Supabase anon/public key |
-| `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key (server-only) |
-| `UPSTASH_REDIS_REST_URL` | Upstash Redis REST endpoint |
-| `UPSTASH_REDIS_REST_TOKEN` | Upstash Redis auth token |
-| `NEXT_PUBLIC_API_URL` | FastAPI backend URL (e.g. `https://dropitx-api.onrender.com`) |
+| `NEXT_PUBLIC_API_URL` | FastAPI backend URL (required), e.g. `http://localhost:8000` |
+| `NEXT_PUBLIC_FIREBASE_*` | Firebase web SDK config (6 variables, see `.env.example`) |
+| `FIREBASE_ADMIN_PROJECT_ID`, `FIREBASE_ADMIN_CLIENT_EMAIL`, `FIREBASE_ADMIN_PRIVATE_KEY` | Firebase Admin credentials (server-only) |
+| `NEXT_PUBLIC_APP_URL` | Canonical site origin for absolute links |
+| `NEXT_PUBLIC_APP_HOST` | App host without scheme (Docker build arg) |
 
-### Database Setup
-
-`supabase/schema.sql` is the base shares schema. Auth, editor, and API key tables live in `supabase/migrations/`.
-
-```bash
-supabase link --project-ref <your-project-ref>
-supabase db push
-```
-
-Manual alternative: run `supabase/schema.sql` then all files in `supabase/migrations/` in timestamp order.
+The database schema belongs to `dropitx-api`; this repository has no migrations. See `docs/CONFIGURATION.md` for details.
 
 ## CLI Quick Start
 
 ```bash
-# Build and link the CLI
-cd packages/cli && npm install && npm run build && npm link
+# Install the CLI
+pip install dropitx
 
 # Authenticate (generate an API key at /dashboard first)
 dropitx login
@@ -141,14 +130,11 @@ All API endpoints are served by the FastAPI backend. v1 endpoints require `Autho
 ```
 app/                  # Next.js App Router pages (pure frontend)
 app/editor/           # Markdown editor (SSR-disabled)
-app/api/              # Only OG image route remains
+app/api/              # OG image route and session login/logout
 components/           # React components (ui/ for primitives)
-lib/                  # Utilities (api-client, team-rpc, analytics, etc.)
+lib/                  # Utilities (api-client, server-api, firebase, etc.)
 lib/editor-extensions/# CodeMirror slash commands, image drop
-utils/supabase/       # Supabase client factories (browser, server, admin)
 types/                # TypeScript interfaces
-supabase/             # Schema and migrations
-packages/cli/         # CLI tool (dropitx binary)
 public/               # Static assets
 docs/                 # Project documentation
 ```
@@ -158,6 +144,7 @@ docs/                 # Project documentation
 - `npm run dev` — Development server
 - `npm run build` — Production build + TypeScript check
 - `npm run lint` — ESLint
+- `npm run check:hygiene` — `tsc --noEmit && eslint`
 
 ## Documentation
 

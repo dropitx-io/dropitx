@@ -5,7 +5,7 @@
  * Uses router.refresh() for data invalidation after invite creation/cancellation.
  */
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,8 +13,8 @@ import { Badge } from "@/components/ui/badge";
 import { X, Loader2, Copy, Mail, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { isValidEmail } from "@/lib/validation";
-import { authFetch } from "@/lib/api-client";
-import type { TeamRole, TeamInvite } from "@/types/team";
+import { apiErrorDetail, authFetch } from "@/lib/api-client";
+import type { TeamRole, TeamInvite, CreateInviteResponse } from "@/types/team";
 
 interface InviteMemberDialogProps {
   teamSlug: string;
@@ -46,13 +46,17 @@ export function InviteMemberDialog({
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [rateLimited, setRateLimited] = useState(false);
 
-  // Reset state when dialog opens
-  useEffect(() => {
+  // Reset transient state whenever the dialog transitions to open
+  // (adjust state during render — React's recommended pattern for reacting
+  // to a prop change without an effect).
+  const [prevOpen, setPrevOpen] = useState(open);
+  if (open !== prevOpen) {
+    setPrevOpen(open);
     if (open) {
       setRateLimited(false);
       setInviteUrl(null);
     }
-  }, [open]);
+  }
 
   if (!open) return null;
 
@@ -71,14 +75,13 @@ export function InviteMemberDialog({
         method: "POST",
         body: JSON.stringify({ email: trimmed, role }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to create invite");
-
-      if (data.rate_limited) {
+      if (res.status === 429) {
         setRateLimited(true);
         toast.error("Rate limit reached. Try again later.");
         return;
       }
+      if (!res.ok) throw new Error(await apiErrorDetail(res, "Failed to create invite"));
+      const data = (await res.json()) as CreateInviteResponse;
 
       setInviteUrl(data.invite_url);
       toast.success("Invite created");
@@ -96,15 +99,15 @@ export function InviteMemberDialog({
   async function handleCancelInvite(inviteId: string) {
     setCancellingId(inviteId);
     try {
-      const res = await authFetch(
-        `/api/dashboard/teams/${teamSlug}/invites?id=${inviteId}`,
-        { method: "DELETE" },
-      );
-      if (!res.ok) throw new Error("Failed to cancel invite");
+      const res = await authFetch(`/api/dashboard/teams/${teamSlug}/invites`, {
+        method: "DELETE",
+        body: JSON.stringify({ invite_id: inviteId }),
+      });
+      if (!res.ok) throw new Error(await apiErrorDetail(res, "Failed to cancel invite"));
       toast.success("Invite cancelled");
       router.refresh();
-    } catch {
-      toast.error("Failed to cancel invite");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to cancel invite");
     } finally {
       setCancellingId(null);
     }

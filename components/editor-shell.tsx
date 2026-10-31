@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback, useMemo, type RefObject } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo, useSyncExternalStore, type RefObject } from "react";
 import { useSearchParams } from "next/navigation";
 import type { EditorView } from "@codemirror/view";
 import dynamic from "next/dynamic";
@@ -18,8 +18,10 @@ import {
 import { VersionHistory } from "@/components/version-history";
 import { nanoid } from "nanoid";
 import { toast } from "sonner";
-import { authFetch } from "@/lib/api-client";
-import { History, X } from "lucide-react";
+import { useAuth } from "@/components/auth-provider";
+import { apiErrorDetail, authFetch } from "@/lib/api-client";
+import type { components } from "@/lib/api-types";
+import { Ban, Flame, History, Lock, TriangleAlert, X, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const EditorPane = dynamic(
@@ -29,6 +31,27 @@ const EditorPane = dynamic(
 );
 
 type TabMode = "write" | "preview";
+type ShareMeta = components["schemas"]["ShareMeta"];
+
+/** Opening a share that deletes itself on its first read would destroy it, so the editor never reads its content. */
+function consumedOnRead(meta: ShareMeta): boolean {
+  return meta.burn_after_reading || meta.one_time_download;
+}
+
+/** Where loading an existing share stands. Anything but "ready" keeps the editor, and its Update button, out of reach. */
+type EditorGate =
+  | { status: "loading" }
+  | { status: "ready" }
+  | { status: "blocked"; icon: LucideIcon; title: string; message: string };
+
+const LOAD_FAILED = "Could not load this document.";
+
+function blocked(icon: LucideIcon, title: string, message: string): EditorGate {
+  return { status: "blocked", icon, title, message };
+}
+
+/** No-op subscription for useSyncExternalStore hydration detection. */
+const emptySubscribe = () => () => {};
 
 export function EditorShell() {
   const searchParams = useSearchParams();
@@ -36,13 +59,25 @@ export function EditorShell() {
 
   const [content, setContent] = useState("");
   const [tab, setTab] = useState<TabMode>("write");
-  const [mounted, setMounted] = useState(false);
+  // False during SSR/hydration, true on the client after mount — gates the
+  // loading skeleton and client-only initialization below.
+  const mounted = useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false
+  );
   const [editTitle, setEditTitle] = useState<string | undefined>();
   const [showVersionHistory, setShowVersionHistory] = useState(false);
   const editorPaneRef = useRef<EditorPaneRef>(null);
   const previewContainerRef = useRef<HTMLDivElement>(null);
-  const initialDraftRef = useRef<string | null>(null);
-  const isDirty = content.length > 0 && content !== (initialDraftRef.current ?? "");
+  const [initialContent, setInitialContent] = useState<string | null>(null);
+  const { loading: authLoading } = useAuth();
+  const [gate, setGate] = useState<EditorGate>(editSlug ? { status: "loading" } : { status: "ready" });
+  const [loadedIsPrivate, setLoadedIsPrivate] = useState(false);
+  // Reading content counts a view, so a re-run of the load effect must not read it twice. Set only once the
+  // session has been restored: before that the requests carry no credentials and would be refused or misread.
+  const loadStartedFor = useRef<string | null>(null);
+  const isDirty = content.length > 0 && content !== (initialContent ?? "");
 
   const { hasDraft, restoreDraft, clearDraft } = useEditorAutoSave(content);
   const autoSave = useAutoSave(content, {
@@ -52,40 +87,64 @@ export function EditorShell() {
   });
 
   useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  useEffect(() => {
     if (!mounted) return;
-    if (initialDraftRef.current !== null) return;
+    if (initialContent !== null) return;
 
     if (editSlug) {
-      authFetch(`/api/shares/${editSlug}`)
-        .then((res) => {
-          if (!res.ok) throw new Error("Not found");
-          return res.json();
-        })
-        .then((data) => {
-          setContent(data.content || "");
-          setEditTitle(data.title || data.filename);
-          initialDraftRef.current = data.content || "";
-        })
-        .catch(() => {
-          initialDraftRef.current = "";
-        });
+      if (authLoading) return;
+      if (loadStartedFor.current === editSlug) return;
+      loadStartedFor.current = editSlug;
+      const path = `/api/shares/${encodeURIComponent(editSlug)}`;
+      (async (): Promise<EditorGate> => {
+        const metaRes = await authFetch(path);
+        if (!metaRes.ok) return blocked(TriangleAlert, "This document could not be opened.", await apiErrorDetail(metaRes, LOAD_FAILED));
+        const meta = (await metaRes.json()) as ShareMeta;
+        const name = meta.title || meta.filename || undefined;
+        setEditTitle(name);
+        if (!meta.is_owner) {
+          return blocked(Ban, "You can only edit your own shares.", "Sign in with the account that published this document to edit it.");
+        }
+        if (consumedOnRead(meta)) {
+          return blocked(
+            Flame,
+            "This document cannot be edited.",
+            `${name ? `"${name}" is` : "It is"} set to delete itself the first time its content is read, so opening it in the editor would destroy it.`,
+          );
+        }
+        if (meta.encrypted) {
+          return blocked(Lock, "Encrypted shares can't be edited here.", "Its content is encrypted, and the editor cannot decrypt it. Publish a new document instead.");
+        }
+        const contentRes = await authFetch(`${path}/content`);
+        if (!contentRes.ok) return blocked(TriangleAlert, "This document could not be opened.", await apiErrorDetail(contentRes, LOAD_FAILED));
+        const data = (await contentRes.json()) as { content?: string; password_protected?: boolean };
+        if (!data.content) {
+          return blocked(
+            data.password_protected ? Lock : TriangleAlert,
+            "This document could not be opened.",
+            data.password_protected ? "Its content is protected by a password and was not returned." : "The document has no content to edit.",
+          );
+        }
+        setLoadedIsPrivate(meta.is_private);
+        setContent(data.content);
+        setInitialContent(data.content);
+        return { status: "ready" };
+      })()
+        .catch(() => blocked(TriangleAlert, "This document could not be opened.", LOAD_FAILED))
+        .then(setGate);
       return;
     }
 
     if (hasDraft) {
       const draft = restoreDraft();
       if (draft && draft.length > 0) {
-        initialDraftRef.current = draft;
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time initialization from localStorage; must run post-hydration (gated on mounted/hasDraft), lazy init would SSR/hydration-mismatch
+        setInitialContent(draft);
         setContent(draft);
       }
     } else {
-      initialDraftRef.current = "";
+      setInitialContent("");
     }
-  }, [mounted, hasDraft, restoreDraft, editSlug]);
+  }, [mounted, authLoading, initialContent, hasDraft, restoreDraft, editSlug]);
 
   useEffect(() => {
     if (!isDirty) return;
@@ -152,8 +211,7 @@ export function EditorShell() {
         body: formData,
       });
       if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Upload failed");
+        throw new Error(await apiErrorDetail(res, "Upload failed"));
       }
       const { url, filename } = await res.json();
 
@@ -188,6 +246,32 @@ export function EditorShell() {
             <div className="size-3 rounded-sm bg-primary" />
           </div>
           <p className="text-muted-foreground font-mono text-sm">Loading editor...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (gate.status === "loading") {
+    return (
+      <div className="flex h-[calc(100vh-3rem)] items-center justify-center bg-background">
+        <p className="text-muted-foreground font-mono text-sm">Loading document...</p>
+      </div>
+    );
+  }
+
+  if (gate.status === "blocked") {
+    const Icon = gate.icon;
+    return (
+      <div className="flex h-[calc(100vh-3rem)] items-center justify-center bg-background px-4">
+        <div className="flex max-w-sm flex-col items-center gap-3 text-center">
+          <Icon className="size-6 text-orange-500" />
+          <p className="font-medium">{gate.title}</p>
+          <p className="text-sm text-muted-foreground">{gate.message}</p>
+          <a href="/editor">
+            <Button variant="outline" size="sm">
+              Start a new document
+            </Button>
+          </a>
         </div>
       </div>
     );
@@ -330,6 +414,7 @@ export function EditorShell() {
         mode={editSlug ? "edit" : "create"}
         editSlug={editSlug || undefined}
         editTitle={editTitle}
+        initialIsPrivate={loadedIsPrivate}
         draftSavedAt={autoSave.savedAt}
         onClearDraft={() => {
           clearDraft();

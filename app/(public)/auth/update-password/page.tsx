@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { useAuth } from "@/components/auth-provider";
 import { updateUserPassword } from "@/lib/firebase/auth";
 import { Button } from "@/components/ui/button";
@@ -106,12 +107,12 @@ export default function UpdatePasswordPage() {
 
       <div className="relative z-10 w-full max-w-[400px]">
         {/* Logo */}
-        <a href="/" className="mb-10 inline-flex items-center gap-2.5">
+        <Link href="/" className="mb-10 inline-flex items-center gap-2.5">
           <div className="flex size-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
             <DropIcon className="size-5" />
           </div>
           <span className="font-display text-xl font-bold tracking-tight">DropItX</span>
-        </a>
+        </Link>
 
         <div className="mb-6">
           <h1 className="font-display text-[28px] font-bold tracking-tight text-foreground">

@@ -96,6 +96,7 @@ export function EncryptionToggle({
   // Auto-generate random key when toggled on in random mode
   useEffect(() => {
     if (enabled && !isPasswordMode && !ready && !generating) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- reacts to the parent-controlled `enabled` prop by starting async key generation (WebCrypto); no event handler exists to move this to
       handleGenerateRandom();
     }
   }, [enabled, isPasswordMode, ready, generating, handleGenerateRandom]);

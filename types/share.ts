@@ -1,3 +1,19 @@
+import type { components } from "@/lib/api-types";
+
+/** The share fields the dashboard list and cards render; nothing else is kept from the API's share metadata. */
+export type ShareListItem = Pick<
+  components["schemas"]["ShareMeta"],
+  | "id"
+  | "slug"
+  | "filename"
+  | "title"
+  | "mime_type"
+  | "file_size"
+  | "view_count"
+  | "created_at"
+  | "has_password"
+>;
+
 export interface Share {
   id: string;
   slug: string;
@@ -32,14 +48,8 @@ export interface ShareGroup {
   created_at: string;
 }
 
-export interface GroupShare {
-  slug: string;
-  filename: string;
-  mime_type: string;
-  file_size: number | null;
-  download_count: number;
-  max_downloads: number | null;
-}
+/** A sibling share in the same group, as the API lists it on a share page. */
+export type GroupShare = components["schemas"]["GroupFile"];
 
 export interface SearchResult {
   slug: string;

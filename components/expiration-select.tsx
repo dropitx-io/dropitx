@@ -9,16 +9,20 @@ import {
 } from "@/components/ui/select";
 import { Clock } from "lucide-react";
 
+/**
+ * Each value is what the API reads as `expires_in`: a named period it knows, or a whole number of seconds.
+ * The upload API additionally requires 60 seconds to 30 days; publish applies no bounds. Choices it cannot
+ * express, such as "forever", are not offered.
+ */
 export const EXPIRATION_OPTIONS = [
-  { value: "5m", label: "5 minutes" },
-  { value: "10m", label: "10 minutes" },
+  { value: "300", label: "5 minutes" },
+  { value: "600", label: "10 minutes" },
   { value: "1h", label: "1 hour" },
   { value: "6h", label: "6 hours" },
-  { value: "12h", label: "12 hours" },
-  { value: "1d", label: "1 day" },
+  { value: "43200", label: "12 hours" },
+  { value: "24h", label: "1 day" },
   { value: "7d", label: "1 week" },
   { value: "30d", label: "1 month" },
-  { value: "forever", label: "Forever" },
 ] as const;
 
 export type ExpirationValue = (typeof EXPIRATION_OPTIONS)[number]["value"];

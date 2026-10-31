@@ -1,11 +1,13 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { createAdminClient } from "@/utils/supabase/server";
 import { getSessionUser } from "@/lib/firebase/server";
+import { AccountNotProvisionedError, getTopShares } from "@/lib/dashboard-data";
+import { AccountSetupState } from "@/components/account-setup-state";
 import { AnalyticsTopPerformers } from "@/components/analytics/analytics-top-performers";
 import { cn } from "@/lib/utils";
-import type { TopShare } from "@/types/analytics";
-import type { Share } from "@/types/share";
+import type { TopSharesResponse } from "@/types/analytics";
+
+const TOP_SHARES_LIMIT = 10;
 
 export default async function GlobalAnalyticsPage() {
   const cookieStore = await cookies();
@@ -13,28 +15,20 @@ export default async function GlobalAnalyticsPage() {
 
   if (!user) redirect("/auth/login");
 
-  const admin = createAdminClient();
-  const { data: shares } = await admin
-    .from("shares")
-    .select("id, view_count")
-    .eq("user_id", user.uid);
+  let data: TopSharesResponse;
+  try {
+    data = await getTopShares(TOP_SHARES_LIMIT);
+  } catch (err) {
+    if (err instanceof AccountNotProvisionedError) return <AccountSetupState />;
+    throw err;
+  }
 
-  const { data: topShares } = await admin.rpc("get_user_top_shares", {
-    p_user_id: user.uid,
-    p_limit: 10,
-  });
-
-  const shareList = (shares ?? []) as Pick<Share, "id" | "view_count">[];
-  const topSharesList = (topShares ?? []) as TopShare[];
-
-  const totalViews = shareList.reduce((sum, s) => sum + s.view_count, 0);
-  const totalUniqueViews = topSharesList.reduce((sum, s) => sum + s.unique_views, 0);
-  const sharesWithViews = topSharesList.filter((s) => s.total_views > 0).length;
-  const avgViewsPerShare = shareList.length > 0
-    ? Math.round((totalViews / shareList.length) * 10) / 10
+  const { totals, top } = data;
+  const avgViewsPerShare = totals.share_count > 0
+    ? Math.round((totals.total_views / totals.share_count) * 10) / 10
     : 0;
 
-  const hasData = topSharesList.some((s) => s.total_views > 0);
+  const hasData = top.some((s) => s.total_views > 0);
 
   return (
     <div className="space-y-6">
@@ -45,25 +39,16 @@ export default async function GlobalAnalyticsPage() {
             Track how your shares are performing.
           </p>
         </div>
-        <div className="flex items-center gap-1 rounded-full bg-card p-1 clay-raised">
-          {["7d", "30d", "90d"].map((r) => (
-            <button
-              key={r}
-              type="button"
-              className="rounded-full px-3 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground data-[active=true]:bg-primary data-[active=true]:text-primary-foreground"
-              data-active={r === "30d"}
-            >
-              {r}
-            </button>
-          ))}
-        </div>
+        <span className="rounded-full bg-card px-3 py-1.5 text-xs font-semibold text-muted-foreground clay-raised">
+          Last 30 days
+        </span>
       </div>
 
       <div className="grid grid-cols-2 gap-5 sm:grid-cols-4">
-        <StatTile label="Total Views" value={totalViews.toLocaleString()} accent />
-        <StatTile label="Unique Visitors" value={totalUniqueViews.toLocaleString()} />
-        <StatTile label="Shares with Views" value={sharesWithViews.toString()} />
-        <StatTile label="Avg Views/Share" value={avgViewsPerShare.toString()} />
+        <StatTile label="Total Views" window="All time" value={totals.total_views.toLocaleString()} accent />
+        <StatTile label="Unique Visitors" window="Last 30 days" value={totals.unique_views.toLocaleString()} />
+        <StatTile label="Shares with Views" window="Last 30 days" value={totals.shares_with_views.toLocaleString()} />
+        <StatTile label="Avg Views/Share" window="All time" value={avgViewsPerShare.toLocaleString()} />
       </div>
 
       {/* Views-over-time placeholder */}
@@ -78,14 +63,18 @@ export default async function GlobalAnalyticsPage() {
 
       {hasData ? (
         <div className="space-y-3">
-          <h2 className="font-mono text-sm font-semibold">Top Performers (30d)</h2>
-          <AnalyticsTopPerformers shares={topSharesList} />
+          <h2 className="font-mono text-sm font-semibold">Top Performers (last 30 days)</h2>
+          <AnalyticsTopPerformers shares={top} />
         </div>
       ) : (
         <div className="grid place-items-center rounded-[34px] border-2 border-dashed border-border bg-card py-16 text-center clay-raised">
-          <p className="font-display text-lg font-bold">No data yet</p>
+          <p className="font-display text-lg font-bold">
+            {totals.total_views > 0 ? "No views in the last 30 days" : "No data yet"}
+          </p>
           <p className="mt-1 text-sm text-muted-foreground">
-            Once your shares start getting views, you&apos;ll see them ranked here.
+            {totals.total_views > 0
+              ? "Shares that get views over the next 30 days will be ranked here."
+              : "Once your shares start getting views, you’ll see them ranked here."}
           </p>
         </div>
       )}
@@ -93,7 +82,17 @@ export default async function GlobalAnalyticsPage() {
   );
 }
 
-function StatTile({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
+function StatTile({
+  label,
+  window,
+  value,
+  accent,
+}: {
+  label: string;
+  window: string;
+  value: string;
+  accent?: boolean;
+}) {
   return (
     <div className="rounded-[22px] bg-card p-5 clay-raised">
       <p className="font-mono text-[10px] uppercase tracking-[0.06em] text-muted-foreground">{label}</p>
@@ -103,7 +102,7 @@ function StatTile({ label, value, accent }: { label: string; value: string; acce
       )}>
         {value}
       </p>
+      <p className="mt-2 text-[11px] text-muted-foreground">{window}</p>
     </div>
   );
 }
-

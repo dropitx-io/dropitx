@@ -4,7 +4,6 @@ import { AuthProvider } from "@/components/auth-provider";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
-import { VercelAnalytics } from "@/components/vercel-analytics";
 import "./globals.css";
 
 const inter = Inter({
@@ -50,7 +49,6 @@ export default function RootLayout({
             <Toaster />
           </AuthProvider>
         </ThemeProvider>
-        <VercelAnalytics />
       </body>
     </html>
   );

@@ -18,8 +18,8 @@ export function AnalyticsTopPerformers({ shares }: AnalyticsTopPerformersProps) 
             <tr className="border-b border-border bg-muted/40 text-[11px] uppercase tracking-wider text-muted-foreground/80">
               <th className="p-3 text-left font-semibold">#</th>
               <th className="p-3 text-left font-semibold">Title</th>
-              <th className="p-3 text-right font-semibold">Views</th>
-              <th className="p-3 text-right font-semibold">Unique</th>
+              <th className="p-3 text-right font-semibold">Views (30d)</th>
+              <th className="p-3 text-right font-semibold">Unique (30d)</th>
               <th className="hidden p-3 text-right font-semibold sm:table-cell">VTR</th>
             </tr>
           </thead>
@@ -42,7 +42,7 @@ export function AnalyticsTopPerformers({ shares }: AnalyticsTopPerformersProps) 
                       href={`/dashboard/analytics/${share.slug}`}
                       className="block max-w-[260px] truncate font-medium hover:text-primary"
                     >
-                      {share.title}
+                      {share.title ?? share.slug}
                     </Link>
                     <span className="font-mono text-xs text-muted-foreground">
                       /{share.slug}

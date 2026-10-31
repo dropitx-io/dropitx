@@ -1,7 +1,14 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { createAdminClient } from "@/utils/supabase/server";
 import { getSessionUser } from "@/lib/firebase/server";
+import {
+  AccountNotProvisionedError,
+  getTeam,
+  getTeamEvents,
+  getTeamMembers,
+  getTeamShares,
+} from "@/lib/dashboard-data";
+import { AccountSetupState } from "@/components/account-setup-state";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,7 +19,19 @@ import { StatCard } from "@/components/stat-card";
 import { EmptyStateCard } from "@/components/empty-state-card";
 import { TeamShareCard } from "@/components/team-share-card";
 import { TeamActivityFeed } from "@/components/team-activity-feed";
-import type { TeamEvent } from "@/types/team-event";
+
+const RECENT_EVENTS = 10;
+
+async function loadOverview(slug: string) {
+  const team = await getTeam(slug);
+  if (!team) return null;
+  const [shareRows, members, events] = await Promise.all([
+    getTeamShares(slug),
+    getTeamMembers(slug),
+    getTeamEvents(slug, RECENT_EVENTS),
+  ]);
+  return { team, shareRows, memberCount: members.length, events };
+}
 
 export default async function TeamOverviewPage({
   params,
@@ -25,62 +44,24 @@ export default async function TeamOverviewPage({
 
   if (!user) redirect("/auth/login");
 
-  const admin = createAdminClient();
+  let overview: Awaited<ReturnType<typeof loadOverview>>;
+  try {
+    overview = await loadOverview(slug);
+  } catch (err) {
+    if (err instanceof AccountNotProvisionedError) return <AccountSetupState />;
+    throw err;
+  }
+  if (!overview) redirect("/dashboard/teams");
 
-  // Fetch team
-  const { data: team, error: teamError } = await admin
-    .from("teams")
-    .select("*")
-    .eq("slug", slug)
-    .single();
+  const { team, shareRows, memberCount, events } = overview;
+  const userRole = team.role;
 
-  if (!team) redirect("/dashboard/teams");
+  // Keep only rows that still have a share attached.
+  const validShares = shareRows.flatMap((row) =>
+    row.shares ? [{ created_at: row.created_at, shared_by: row.shared_by, share: row.shares }] : [],
+  );
 
-  // Verify membership
-  const { data: membership, error: memberError } = await admin
-    .from("team_members")
-    .select("role")
-    .eq("team_id", team.id)
-    .eq("user_id", user.uid)
-    .single();
-
-  if (!membership) redirect("/dashboard/teams");
-
-  const userRole = String(membership.role);
-
-  // Fetch team shares — Supabase returns shares as nested array from join
-  const { data: teamShareRows } = await admin
-    .from("team_shares")
-    .select("created_at, shared_by, shares(id, slug, filename, title, mime_type, view_count, file_size, created_at)")
-    .eq("team_id", team.id)
-    .order("created_at", { ascending: false });
-
-  // Flatten Supabase join rows: `shares` is an array from the join
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const validShares = ((teamShareRows ?? []) as any[])
-    .map((row) => {
-      const sharesArr = Array.isArray(row.shares) ? row.shares : row.shares ? [row.shares] : [];
-      if (sharesArr.length === 0) return null;
-      return { created_at: row.created_at, shared_by: row.shared_by, share: sharesArr[0] };
-    })
-    .filter(Boolean);
-
-  // Count members
-  const { count: memberCount } = await admin
-    .from("team_members")
-    .select("*", { count: "exact", head: true })
-    .eq("team_id", team.id);
-
-  // Fetch recent activity events
-  const { data: events } = await admin
-    .from("team_events")
-    .select("id, event_type, actor_id, target_user_id, metadata, created_at")
-    .eq("team_id", team.id)
-    .order("created_at", { ascending: false })
-    .limit(10);
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const totalViews = validShares.reduce((sum: number, r: any) => sum + (r.share?.view_count ?? 0), 0);
+  const totalViews = validShares.reduce((sum, r) => sum + (r.share.view_count ?? 0), 0);
 
   const isOwnerOrEditor = userRole === "owner" || userRole === "editor";
 
@@ -93,7 +74,7 @@ export default async function TeamOverviewPage({
           title={team.name}
           subtitle={`${team.slug} · ${team.plan} plan`}
         >
-          <Badge variant={userRole as "owner" | "editor" | "viewer"}>{userRole}</Badge>
+          <Badge variant={userRole}>{userRole}</Badge>
         </PageHeader>
         <div className="flex gap-2 mt-2">
           {isOwnerOrEditor && (
@@ -119,11 +100,11 @@ export default async function TeamOverviewPage({
       <div className="grid grid-cols-3 max-[920px]:grid-cols-1 gap-4">
         <StatCard icon={FileText} value={validShares.length} label="Shares" />
         <StatCard icon={Eye} value={totalViews} label="Total Views" />
-        <StatCard icon={Users} value={memberCount ?? 0} label="Members" />
+        <StatCard icon={Users} value={memberCount} label="Members" />
       </div>
 
       {/* Recent Activity */}
-      {events && events.length > 0 && (
+      {events.length > 0 && (
         <Card className="border border-border rounded-[var(--radius-card)] shadow-[var(--shadow)]">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -132,7 +113,7 @@ export default async function TeamOverviewPage({
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <TeamActivityFeed events={events as TeamEvent[]} />
+            <TeamActivityFeed events={events} />
           </CardContent>
         </Card>
       )}
@@ -146,11 +127,10 @@ export default async function TeamOverviewPage({
         />
       ) : (
         <div className="space-y-3">
-          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-          {validShares.map((row: any) => (
+          {validShares.map((row) => (
             <TeamShareCard
               key={row.share.id}
-              share={row.share as never}
+              share={row.share}
               teamName={team.name}
             />
           ))}

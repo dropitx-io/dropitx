@@ -5,7 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SharePasswordForm } from "@/components/share-password-form";
-import { Check, Copy, ExternalLink, Trash2, AlertTriangle, Lock } from "lucide-react";
+import { Check, Copy, ExternalLink, Trash2, AlertTriangle, Lock, Loader2 } from "lucide-react";
+import { apiErrorDetail, getApiUrl } from "@/lib/api-client";
 import type { UploadResult } from "@/components/upload-dropzone";
 
 interface ShareLinkProps {
@@ -14,15 +15,13 @@ interface ShareLinkProps {
 
 export function ShareLink({ result }: ShareLinkProps) {
   const [copied, setCopied] = useState(false);
-  const [deleteShown, setDeleteShown] = useState(true);
+  const [deleting, setDeleting] = useState(false);
+  const [deleted, setDeleted] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [passwordOpen, setPasswordOpen] = useState(false);
   const [hasPassword, setHasPassword] = useState(false);
 
-  const shareUrl = typeof window !== "undefined" ? `${window.location.origin}/s/${result.slug}` : `/s/${result.slug}`;
-  const deleteUrl =
-    typeof window !== "undefined"
-      ? `${window.location.origin}/api/shares/${result.slug}`
-      : `/api/shares/${result.slug}`;
+  const shareUrl = result.url;
 
   const handleCopy = async () => {
     try {
@@ -34,6 +33,43 @@ export function ShareLink({ result }: ShareLinkProps) {
       input?.select();
     }
   };
+
+  const handleDelete = async () => {
+    if (!result.deleteToken) return;
+    if (!window.confirm("Delete this share? The link will stop working immediately.")) return;
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      const res = await fetch(getApiUrl(`/api/shares/${encodeURIComponent(result.slug)}`), {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ delete_token: result.deleteToken }),
+      });
+      if (!res.ok) {
+        setDeleteError(await apiErrorDetail(res, "Failed to delete the share."));
+        return;
+      }
+      setDeleted(true);
+    } catch {
+      setDeleteError("Network error. Please try again.");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  if (deleted) {
+    return (
+      <Card className="animate-slide-up">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Trash2 className="size-4 text-muted-foreground" />
+            Share deleted
+          </CardTitle>
+          <CardDescription>{result.filename} is no longer available at its link.</CardDescription>
+        </CardHeader>
+      </Card>
+    );
+  }
 
   return (
     <Card className="animate-slide-up">
@@ -86,18 +122,19 @@ export function ShareLink({ result }: ShareLinkProps) {
           </p>
         )}
 
-        {/* Delete link */}
-        {deleteShown && (
-          <div className="rounded-md border border-destructive/30 bg-destructive/5 p-3 transition-colors">
-            <div className="mb-2 flex items-center gap-2 text-sm font-medium text-destructive">
+        {/* Delete share */}
+        {result.deleteToken && (
+          <div className="rounded-md border border-destructive/30 bg-destructive/5 p-3 transition-colors flex flex-col gap-2">
+            <div className="flex items-center gap-2 text-sm font-medium text-destructive">
               <AlertTriangle className="size-4 shrink-0" />
-              Save this delete link — it will not be shown again
+              Delete token (shown once)
             </div>
             <div className="flex items-center gap-2">
               <Input
-                id="delete-url-input"
-                value={`${deleteUrl}`}
+                id="delete-token-input"
+                value={result.deleteToken}
                 readOnly
+                aria-label="Delete token (shown once)"
                 className="font-mono text-xs"
               />
               <Button
@@ -106,28 +143,30 @@ export function ShareLink({ result }: ShareLinkProps) {
                 size="icon"
                 onClick={async () => {
                   try {
-                    await navigator.clipboard.writeText(deleteUrl);
+                    await navigator.clipboard.writeText(result.deleteToken ?? "");
                   } catch {
                     const input = document.getElementById(
-                      "delete-url-input",
+                      "delete-token-input",
                     ) as HTMLInputElement;
                     input?.select();
                   }
                 }}
-                aria-label="Copy delete link"
+                aria-label="Copy delete token"
               >
                 <Copy className="size-4" />
               </Button>
             </div>
+            {deleteError && <p className="text-xs text-destructive">{deleteError}</p>}
             <Button
               type="button"
               variant="ghost"
               size="xs"
-              className="mt-2 text-destructive"
-              onClick={() => setDeleteShown(false)}
+              className="self-start text-destructive"
+              disabled={deleting}
+              onClick={handleDelete}
             >
-              <Trash2 className="size-3" />
-              Dismiss
+              {deleting ? <Loader2 className="size-3 animate-spin" /> : <Trash2 className="size-3" />}
+              Delete share
             </Button>
           </div>
         )}

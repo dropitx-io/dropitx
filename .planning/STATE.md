@@ -3,17 +3,17 @@ gsd_state_version: 1.0
 milestone: v2.5.0
 milestone_name: milestone
 current_phase: 01
-current_phase_name: Build Hygiene
+current_phase_name: build-hygiene
 status: executing
-stopped_at: Completed 01-02-PLAN.md
-last_updated: "2026-08-11T01:44:04.647Z"
-last_activity: 2026-08-11
+stopped_at: Completed 01-04-PLAN.md — Phase 01 complete (4/4), ready for Phase 01.1 execution
+last_updated: "2026-08-16T06:32:59.083Z"
+last_activity: 2026-08-16
 last_activity_desc: Phase 01 execution started
 progress:
-  total_phases: 1
-  completed_phases: 0
-  total_plans: 4
-  completed_plans: 3
+  total_phases: 2
+  completed_phases: 1
+  total_plans: 15
+  completed_plans: 4
 ---
 
 # Project State
@@ -23,16 +23,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-10)
 
 **Core value:** Users can share content securely via a link in seconds, with full control over who sees it and for how long.
-**Current focus:** Phase 01 — Build Hygiene
+**Current focus:** Phase 01 — build-hygiene
 
 ## Current Position
 
-Phase: 01 (Build Hygiene) — EXECUTING
-Plan: 4 of 4
-Status: Ready to execute
-Last activity: 2026-08-11 — Phase 01 execution started
+Phase: 01 (build-hygiene) — COMPLETE (pending phase verification)
+Plan: 4 of 4 complete
+Status: Phase 01 execution complete — ready for Phase 01.1 execution
+Last activity: 2026-08-16 — Plan 01-04 complete: build enforcement gate green (typecheck 0 errors, lint 0 errors, npm run build exit 0)
 
-Progress: [████████░░] 75%
+Progress: [███░░░░░░░] 27%
 
 ## Performance Metrics
 
@@ -61,6 +61,7 @@ Progress: [████████░░] 75%
 | Phase 01 P01 | 11 min | 2 tasks | 4 files |
 | Phase 01 P03 | 9 min | 2 tasks | 6 files |
 | Phase 01 P02 | 8 min | 3 tasks | 5 files |
+| Phase 01 P04 | 40 min | 3 tasks | 30 files |
 
 ## Accumulated Context
 
@@ -79,6 +80,9 @@ Recent decisions affecting current work:
 - [Phase ?]: lib/api-client.ts fails fast at module load on missing NEXT_PUBLIC_API_URL; removed dead trycloudflare tunnel fallback (HYG-05); Vercel env var must be confirmed before merge
 - [Phase ?]: Typed bulkInvite RPC return as BulkInviteResult + widened bulkInviteWithValidation union so team-invite-form defensive checks compile without any (Plan 02)
 - [Phase ?]: Left pre-existing 13 team-rpc.ts tsc errors (RPC-name drift) untouched — present at HEAD, deferred-items.md, Plan 04 scope (Plan 02)
+- [Phase 01 P04]: Untyped RPC boundary — lib/supabase-untyped.ts exposes untypedRpc/untypedFrom for RPC names drifted from the generated Database types; drifted team-rpc/token-security calls route through it instead of call-site as-casts, pending cross-repo reconciliation
+- [Phase 01 P04]: HYG-02 enforcement surface on Next 16 is npm run lint as a separate gate (0 errors) — next build no longer runs ESLint at all (the eslint NextConfig key no longer exists); HYG-01 TypeScript enforcement is what runs in-build
+- [Phase 01 P04]: Production builds prerender /dashboard/analytics which initializes Firebase at module load — Vercel Production env MUST include all 6 NEXT_PUBLIC_FIREBASE_* vars alongside NEXT_PUBLIC_API_URL or the production build/deploy fails
 
 ### Pending Todos
 
@@ -87,7 +91,12 @@ None yet.
 ### Blockers/Concerns
 
 - Phase 4 (Feature Completion) spans two repos: frontend wiring here, backend persistence in dropitx-api/. Plans must coordinate the cross-repo contract.
-- next.config.ts currently disables typecheck and lint — Phase 1 must resolve the underlying TS errors that prompted the workaround before re-enabling.
+- RESOLVED (Plan 01-04): next.config.ts suppression flags removed; build enforces TypeScript. Remaining: Vercel Production env must carry all 6 NEXT_PUBLIC_FIREBASE_* vars + NEXT_PUBLIC_API_URL before next deploy.
+- WINDOWS.md entries 1-2 (RPC-name/column drift vs live DB) remain open — contained behind lib/supabase-untyped.ts; reconciliation is cross-repo scope (Phase 01.1 / dropitx-api/).
+
+### Roadmap Evolution
+
+- Phase 01.1 inserted after Phase 1: API Integration Migration - align frontend with live api.dropitx.site backend (fix broken profile/favorites calls, wire ~15 unintegrated endpoint groups) (URGENT)
 
 ## Deferred Items
 
@@ -99,6 +108,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-08-11T01:43:47.838Z
-Stopped at: Completed 01-02-PLAN.md
-Resume file: None
+Last session: 2026-08-16T06:32:52.444Z
+Stopped at: Completed 01-04-PLAN.md — Phase 01 complete (4/4), ready for Phase 01.1 execution
+Resume file: .planning/phases/01.1-api-integration-migration/01.1-01-PLAN.md

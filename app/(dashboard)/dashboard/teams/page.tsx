@@ -1,22 +1,13 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { createAdminClient } from "@/utils/supabase/server";
 import { getSessionUser } from "@/lib/firebase/server";
+import { AccountNotProvisionedError, getTeams } from "@/lib/dashboard-data";
+import { AccountSetupState } from "@/components/account-setup-state";
 import Link from "next/link";
 import { Users, Plus, Clock } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import type { TeamRole } from "@/types/team";
-
-interface TeamWithRole {
-  id: string;
-  name: string;
-  slug: string;
-  created_by: string;
-  plan: string;
-  created_at: string;
-  role: TeamRole;
-}
+import type { TeamMembership } from "@/types/team";
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("en-US", {
@@ -32,25 +23,16 @@ export default async function TeamsPage() {
 
   if (!user) redirect("/auth/login");
 
-  const admin = createAdminClient();
-  const { data: memberships } = await admin
-    .from("team_members")
-    .select("role, teams(id, name, slug, created_by, plan, created_at)")
-    .eq("user_id", user.uid);
+  let memberships: TeamMembership[];
+  try {
+    memberships = await getTeams();
+  } catch (err) {
+    if (err instanceof AccountNotProvisionedError) return <AccountSetupState />;
+    throw err;
+  }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const teams: TeamWithRole[] = ((memberships ?? []) as any[]).map((m) => {
-    const t = Array.isArray(m.teams) ? m.teams[0] : m.teams;
-    return {
-      id: t?.id ?? "",
-      name: t?.name ?? "",
-      slug: t?.slug ?? "",
-      created_by: t?.created_by ?? "",
-      plan: t?.plan ?? "free",
-      created_at: t?.created_at ?? "",
-      role: m.role as TeamRole,
-    };
-  });
+  // A membership whose team row is gone has nothing to show.
+  const teams = memberships.flatMap((m) => (m.teams ? [{ ...m.teams, role: m.role }] : []));
 
   return (
     <div className="mx-auto max-w-[1200px] space-y-5">

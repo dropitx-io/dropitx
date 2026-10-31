@@ -1,7 +1,3 @@
-"use client";
-
-import { track } from "@vercel/analytics";
-
 export const AnalyticsEvent = {
   DOCUMENT_UPLOADED: "document_uploaded",
   CONTENT_PUBLISHED: "content_published",
@@ -12,20 +8,14 @@ export const AnalyticsEvent = {
 
 type EventName = (typeof AnalyticsEvent)[keyof typeof AnalyticsEvent];
 
-const THROTTLE_MS = 5000;
-const lastSent = new Map<string, number>();
-
+/**
+ * Product-event hook kept so call sites stay stable. No third-party analytics
+ * sink is wired up; share page views are recorded by the API itself.
+ */
 export function trackEvent(
   name: EventName,
   props?: Record<string, string | number | boolean>,
-) {
-  try {
-    const now = Date.now();
-    const last = lastSent.get(name) ?? 0;
-    if (now - last < THROTTLE_MS) return;
-    lastSent.set(name, now);
-    track(name, props);
-  } catch {
-    // Analytics must never break user flows
-  }
+): void {
+  void name;
+  void props;
 }

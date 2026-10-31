@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { SearchBar } from "@/components/search-bar";
 import { SearchResults } from "@/components/search-results";
 import type { SearchResult } from "@/types/share";
-import { getApiUrl } from "@/lib/api-client";
+import { apiErrorDetail, getApiUrl } from "@/lib/api-client";
 
 export default function SearchPage() {
   const searchParams = useSearchParams();
@@ -18,14 +18,18 @@ export default function SearchPage() {
   const [error, setError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
-  // Sync query from URL search params (primitive dependency)
-  useEffect(() => {
+  // Sync query from URL search params (adjust state during render — React's
+  // recommended pattern for mirroring a prop/param into state).
+  const [prevParam, setPrevParam] = useState(trimmedParam);
+  if (trimmedParam !== prevParam) {
+    setPrevParam(trimmedParam);
     setQuery(trimmedParam);
-  }, [trimmedParam]);
+  }
 
   const performSearch = useCallback(async (term: string) => {
     if (term.length < 2) {
       setResults([]);
+      setIsLoading(false);
       return;
     }
 
@@ -42,8 +46,7 @@ export default function SearchPage() {
         { signal: controller.signal },
       );
       if (!res.ok) {
-        const body = await res.json().catch(() => null);
-        setError(body?.error ?? "Search failed");
+        setError(await apiErrorDetail(res, "Search failed"));
         setResults([]);
         return;
       }
@@ -60,11 +63,7 @@ export default function SearchPage() {
 
   // Re-search when query changes
   useEffect(() => {
-    if (query.length === 0) {
-      setResults([]);
-      setIsLoading(false);
-      return;
-    }
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- search-on-query-change; setStates run after await inside performSearch (or clear stale results for short queries)
     performSearch(query);
   }, [query, performSearch]);
 

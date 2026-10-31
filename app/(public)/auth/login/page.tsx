@@ -1,14 +1,24 @@
 "use client";
 
 import { useState, Suspense, useEffect } from "react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/auth-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
+/** Same-origin paths sign-in may return to: a share, an invite, the editor, or a dashboard page. */
 function isValidRedirect(path: string | null): boolean {
   if (!path) return false;
-  return (path.startsWith("/s/") || path.startsWith("/invite/")) && !path.includes("//") && !path.includes("\\");
+  const allowed =
+    path.startsWith("/s/") ||
+    path.startsWith("/invite/") ||
+    path === "/editor" ||
+    path.startsWith("/editor?") ||
+    path === "/dashboard" ||
+    path.startsWith("/dashboard/") ||
+    path.startsWith("/dashboard?");
+  return allowed && !path.includes("//") && !path.includes("\\");
 }
 
 /* ─── Icons ─── */
@@ -190,12 +200,12 @@ function LoginContent() {
       <div className="relative z-10 flex flex-1 items-center justify-center px-6 py-12 md:px-12">
         <div className="w-full max-w-[400px]">
           {/* Logo */}
-          <a href="/" className="mb-10 inline-flex items-center gap-2.5">
+          <Link href="/" className="mb-10 inline-flex items-center gap-2.5">
             <div className="flex size-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
               <DropIcon className="size-5" />
             </div>
             <span className="font-display text-xl font-bold tracking-tight">DropItX</span>
-          </a>
+          </Link>
 
           {/* Mode Toggle — pill tabs */}
           <div className="mb-8">

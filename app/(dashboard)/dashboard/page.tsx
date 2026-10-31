@@ -1,19 +1,42 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { createAdminClient } from "@/utils/supabase/server";
 import { getSessionUser } from "@/lib/firebase/server";
+import {
+  AccountNotProvisionedError,
+  getAllShares,
+  getShareTotals,
+  getTeamShares,
+  getTeams,
+} from "@/lib/dashboard-data";
+import { AccountSetupState } from "@/components/account-setup-state";
 import { DashboardShareList } from "@/components/dashboard-share-list";
 import { DashboardUpload } from "@/components/dashboard-upload";
-import { BarChart3, FileText, HardDrive, Clock } from "lucide-react";
+import { BarChart3, FileText, HardDrive, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { Share } from "@/types/share";
-
-export type ShareWithPasswordFlag = Omit<Share, "password_hash"> & { has_password: boolean };
+import type { TeamShareRow } from "@/types/team";
 
 function formatFileSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+async function loadDashboardHome() {
+  const [totals, shareList, memberships] = await Promise.all([
+    getShareTotals(),
+    getAllShares(),
+    getTeams(),
+  ]);
+
+  const teams = memberships.flatMap((m) =>
+    m.teams ? [{ slug: m.teams.slug, name: m.teams.name }] : [],
+  );
+  const teamShareResults = await Promise.all(
+    teams.map(async (team) => [team.slug, await getTeamShares(team.slug)] as const),
+  );
+  const teamShareMap: Record<string, TeamShareRow[]> = Object.fromEntries(teamShareResults);
+
+  return { totals, shareList, teams, teamShareMap };
 }
 
 export default async function DashboardPage() {
@@ -22,47 +45,16 @@ export default async function DashboardPage() {
 
   if (!user) redirect("/auth/login");
 
-  const admin = createAdminClient();
-  const { data: shares } = await admin
-    .from("shares")
-    .select("*")
-    .eq("user_id", user.uid)
-    .order("created_at", { ascending: false });
-
-  const shareList: ShareWithPasswordFlag[] = (shares ?? []).map((s: Share) => {
-    const { password_hash, ...rest } = s;
-    return { ...rest, has_password: !!password_hash };
-  });
-  const totalShares = shareList.length;
-  const totalViews = shareList.reduce((sum, s) => sum + s.view_count, 0);
-  const totalSize = shareList.reduce((sum, s) => sum + (s.file_size ?? 0), 0);
-
-  const { data: memberships } = await admin
-    .from("team_members")
-    .select("team_id, teams(slug, name)")
-    .eq("user_id", user.uid);
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const teams = ((memberships ?? []) as any[]).map((m) => {
-    const t = Array.isArray(m.teams) ? m.teams[0] : m.teams;
-    return { id: m.team_id as string, slug: t?.slug ?? "", name: t?.name ?? "" };
-  });
-
-  const teamShareQueries = teams.map(async (team) => {
-    const { data: teamShares } = await admin
-      .from("team_shares")
-      .select("created_at, shared_by, shares(id, slug, filename, title, mime_type, view_count, file_size, created_at)")
-      .eq("team_id", team.id)
-      .order("created_at", { ascending: false });
-    return { slug: team.slug, shares: teamShares ?? [] };
-  });
-  const teamShareResults = await Promise.all(teamShareQueries);
-
-  const teamShareMap: Record<string, unknown[]> = {};
-  for (const { slug, shares } of teamShareResults) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    teamShareMap[slug] = shares as any[];
+  let home: Awaited<ReturnType<typeof loadDashboardHome>>;
+  try {
+    home = await loadDashboardHome();
+  } catch (err) {
+    if (err instanceof AccountNotProvisionedError) return <AccountSetupState />;
+    throw err;
   }
+  const { totals, shareList, teams, teamShareMap } = home;
+
+  const totalSize = totals.total_size;
 
   return (
     <div className="space-y-7">
@@ -71,23 +63,19 @@ export default async function DashboardPage() {
         <StatCard
           icon={<BarChart3 className="size-[15px]" />}
           label="Total views"
-          value={totalViews.toLocaleString()}
+          value={totals.total_views.toLocaleString()}
           accent
-          delta={
-            <span className="flex items-center gap-1.5 text-success">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M7 17 17 7" />
-                <path d="M8 7h9v9" />
-              </svg>
-              +{totalViews > 0 ? "18.2" : "0"}% this week
-            </span>
-          }
+          delta={<span className="text-muted-foreground">All time</span>}
         />
         <StatCard
           icon={<FileText className="size-[15px]" />}
-          label="Active shares"
-          value={totalShares.toLocaleString()}
-          delta={<span className="text-muted-foreground">{totalShares > 0 ? "3 expiring soon" : "No shares yet"}</span>}
+          label="Total shares"
+          value={totals.share_count.toLocaleString()}
+          delta={
+            <span className="text-muted-foreground">
+              {totals.share_count > 0 ? "Includes expired and private" : "No shares yet"}
+            </span>
+          }
         />
         <StatCard
           icon={<HardDrive className="size-[15px]" />}
@@ -97,19 +85,10 @@ export default async function DashboardPage() {
           delta={<span className="text-muted-foreground">{totalSize > 0 ? Math.round((totalSize / (5 * 1024 * 1024 * 1024)) * 100) : 0}% of 5 GB plan</span>}
         />
         <StatCard
-          icon={<Clock className="size-[15px]" />}
-          label="Avg. lifespan"
-          value="6.3"
-          unit="days"
-          delta={
-            <span className="flex items-center gap-1.5 text-success">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M7 17 17 7" />
-                <path d="M8 7h9v9" />
-              </svg>
-              +0.8d vs last month
-            </span>
-          }
+          icon={<Users className="size-[15px]" />}
+          label="Unique views"
+          value={totals.unique_views.toLocaleString()}
+          delta={<span className="text-muted-foreground">Last 30 days</span>}
         />
       </section>
 
@@ -117,8 +96,8 @@ export default async function DashboardPage() {
 
       <DashboardShareList
         personalShares={shareList}
-        teams={teams.map((t) => ({ slug: t.slug, name: t.name }))}
-        teamShareMap={teamShareMap as Record<string, { created_at: string; shared_by: string; shares: { id: string; slug: string; filename: string; title: string | null; mime_type: string; view_count: number; file_size: number | null; created_at: string } | null }[]>}
+        teams={teams}
+        teamShareMap={teamShareMap}
       />
     </div>
   );
