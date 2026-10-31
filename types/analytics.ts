@@ -1,52 +1,17 @@
-export type ReferrerSource =
-  | "direct"
-  | "google"
-  | "twitter"
-  | "slack"
-  | "discord"
-  | "github"
-  | "embed"
-  | "other";
+import type { components } from "@/lib/api-types";
 
-export interface ShareView {
-  id: number;
-  share_id: string;
-  viewed_at: string;
-  referrer: string | null;
-  referrer_source: ReferrerSource | null;
-  country_code: string | null;
-  visitor_hash: string | null;
-  is_unique: boolean;
-}
+type Schemas = components["schemas"];
 
-export interface ShareAnalytics {
-  total_views: number;
-  unique_views: number;
-  views_today: number;
-  views_7d: number;
-  avg_daily_views: number;
-}
+/** Per-share summary. Counts cover the requested window except `views_today` and `views_7d`, which have their own windows. */
+export type ShareAnalytics = Schemas["ShareAnalytics"];
+export type ViewTimeSeriesPoint = Schemas["ViewTimeSeriesPoint"];
+export type ReferrerBreakdown = Schemas["ReferrerBreakdown"];
+export type GeoBreakdown = Schemas["GeoBreakdown"];
+export type AnalyticsShareRef = Schemas["AnalyticsShareRef"];
+export type ShareAnalyticsResponse = Schemas["ShareAnalyticsResponse"];
 
-export interface ViewTimeSeriesPoint {
-  date: string;
-  views: number;
-  unique_views: number;
-}
-
-export interface ReferrerBreakdown {
-  referrer_source: string;
-  views: number;
-}
-
-export interface GeoBreakdown {
-  country_code: string;
-  views: number;
-}
-
-export interface TopShare {
-  share_id: string;
-  slug: string;
-  title: string;
-  total_views: number;
-  unique_views: number;
-}
+/** A share ranked by its views in the last 30 days. */
+export type TopShare = Schemas["TopShare"];
+/** Totals over all of the caller's shares: `total_views` is lifetime, `unique_views` and `shares_with_views` are last 30 days. */
+export type ShareTotals = Schemas["ShareTotals"];
+export type TopSharesResponse = Schemas["TopSharesResponse"];

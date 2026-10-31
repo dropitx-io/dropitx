@@ -4,13 +4,12 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import type { components } from "@/lib/api-types";
 import { collectPages } from "@/lib/collect-pages";
-import { ApiError, serverApiFetch } from "@/lib/server-api";
+import { ApiError, serverApiFetch, serverApiFetchOrNull } from "@/lib/server-api";
+import type { ShareAnalyticsResponse, ShareTotals, TopSharesResponse } from "@/types/analytics";
 import type { ShareListItem } from "@/types/share";
 import type { TeamMembership, TeamShareRow } from "@/types/team";
 
 type ShareListResponse = components["schemas"]["ShareListResponse"];
-type ShareTotals = components["schemas"]["ShareTotals"];
-type TopSharesResponse = components["schemas"]["TopSharesResponse"];
 type FavoriteShare = components["schemas"]["FavoriteShare"];
 type SessionProfile = components["schemas"]["SessionProfile"];
 
@@ -93,14 +92,34 @@ export async function getAllShares(): Promise<ShareListItem[]> {
 }
 
 /**
- * Totals over all of the caller's shares. `total_views` and `total_size` are
- * lifetime; `unique_views` and `shares_with_views` cover the last 30 days.
+ * The caller's top shares by last-30-day views plus totals over all their shares.
+ * `totals.total_views` is lifetime; `totals.unique_views` and `totals.shares_with_views`
+ * cover the last 30 days.
  */
-export async function getShareTotals(): Promise<ShareTotals> {
-  const res = await dashboardCall(() =>
-    serverApiFetch<TopSharesResponse>("/api/dashboard/analytics/top-shares?limit=1"),
+export async function getTopShares(limit: number): Promise<TopSharesResponse> {
+  return dashboardCall(() =>
+    serverApiFetch<TopSharesResponse>(`/api/dashboard/analytics/top-shares?limit=${limit}`),
   );
-  return res.totals;
+}
+
+/** Totals over all of the caller's shares; see `getTopShares` for the windows. */
+export async function getShareTotals(): Promise<ShareTotals> {
+  return (await getTopShares(1)).totals;
+}
+
+/**
+ * One share's analytics over the last `days` UTC calendar days, or `null` when the
+ * slug does not exist or the caller does not own it (the API answers both with 404).
+ */
+export async function getShareAnalytics(
+  slug: string,
+  days: number,
+): Promise<ShareAnalyticsResponse | null> {
+  return dashboardCall(() =>
+    serverApiFetchOrNull<ShareAnalyticsResponse>(
+      `/api/dashboard/shares/${encodeURIComponent(slug)}/analytics?days=${days}`,
+    ),
+  );
 }
 
 /** A team's shares, newest first, following offset pages. Only the fields the list renders leave this function. */
