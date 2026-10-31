@@ -37,7 +37,7 @@ export function TeamActivityFeed({ events }: TeamActivityFeedProps) {
                 <div key={event.id} className="flex items-center gap-3 py-1.5">
                   <Icon className={`size-4 shrink-0 ${color}`} />
                   <p className="flex-1 text-sm">
-                    {formatEventDescription(event.event_type, event.metadata)}
+                    {formatEventDescription(event.event_type, event.payload)}
                   </p>
                   <span className="whitespace-nowrap text-xs text-muted-foreground">
                     {formatRelativeTime(event.created_at)}

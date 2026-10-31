@@ -1,5 +1,6 @@
 import type { TeamEventType } from "@/types/team-event";
 import {
+  Activity,
   Mail,
   MailCheck,
   MailX,
@@ -12,8 +13,8 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
-/** Map event type to its corresponding lucide icon. */
-export function getEventIcon(eventType: TeamEventType): LucideIcon {
+/** Map event type to its corresponding lucide icon; a type the feed does not know gets a generic one. */
+export function getEventIcon(eventType: string): LucideIcon {
   const iconMap: Record<TeamEventType, LucideIcon> = {
     "invite.created": Mail,
     "invite.accepted": MailCheck,
@@ -25,11 +26,11 @@ export function getEventIcon(eventType: TeamEventType): LucideIcon {
     "member.role_changed": Shield,
     "member.removed": UserX,
   };
-  return iconMap[eventType];
+  return iconMap[eventType as TeamEventType] ?? Activity;
 }
 
 /** Map event type to a tailwind text-color class. */
-export function getEventColor(eventType: TeamEventType): string {
+export function getEventColor(eventType: string): string {
   const colorMap: Record<TeamEventType, string> = {
     "invite.created": "text-blue-500",
     "invite.accepted": "text-success",
@@ -41,14 +42,15 @@ export function getEventColor(eventType: TeamEventType): string {
     "member.role_changed": "text-blue-500",
     "member.removed": "text-red-500",
   };
-  return colorMap[eventType];
+  return colorMap[eventType as TeamEventType] ?? "text-muted-foreground";
 }
 
 /** Human-readable description for a team event. */
 export function formatEventDescription(
-  eventType: TeamEventType,
-  metadata: Record<string, unknown>,
+  eventType: string,
+  payload: Record<string, unknown> | null,
 ): string {
+  const metadata = payload ?? {};
   switch (eventType) {
     case "invite.created":
       return `Invited ${metadata.email ?? "someone"} as ${metadata.role ?? "viewer"}`;

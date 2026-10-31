@@ -6,7 +6,7 @@ interface Team {
   id: string;
   name: string;
   slug: string;
-  created_by: string;
+  owner_id: string | null;
   plan: string;
   created_at: string;
   role?: string;

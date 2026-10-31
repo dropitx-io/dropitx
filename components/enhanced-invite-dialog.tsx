@@ -26,10 +26,10 @@ import {
   MessageCircle
 } from "lucide-react";
 import { toast } from "sonner";
-import type { TeamRole, TeamInvite } from "@/types/team";
+import type { TeamRole, TeamInvite, CreateInviteResponse } from "@/types/team";
 import { useEmailValidation } from "@/hooks/use-email-validation";
 import { CopyButton } from "@/components/copy-button";
-import { authFetch } from "@/lib/api-client";
+import { apiErrorDetail, authFetch } from "@/lib/api-client";
 
 interface EnhancedInviteDialogProps {
   teamSlug: string;
@@ -72,8 +72,8 @@ export function EnhancedInviteDialog({
         body: JSON.stringify({ email: validatedEmail, role }),
       });
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to create invite");
+      if (!res.ok) throw new Error(await apiErrorDetail(res, "Failed to create invite"));
+      const data = (await res.json()) as CreateInviteResponse;
 
       setInviteUrl(data.invite_url);
       toast.success("Invite created successfully");
@@ -89,15 +89,15 @@ export function EnhancedInviteDialog({
   const handleCancelInvite = async (inviteId: string) => {
     setCancellingId(inviteId);
     try {
-      const res = await authFetch(
-        `/api/dashboard/teams/${teamSlug}/invites?id=${inviteId}`,
-        { method: "DELETE" }
-      );
-      if (!res.ok) throw new Error("Failed to cancel invite");
+      const res = await authFetch(`/api/dashboard/teams/${teamSlug}/invites`, {
+        method: "DELETE",
+        body: JSON.stringify({ invite_id: inviteId }),
+      });
+      if (!res.ok) throw new Error(await apiErrorDetail(res, "Failed to cancel invite"));
       toast.success("Invite cancelled");
       onInviteCreated();
     } catch (error) {
-      toast.error("Failed to cancel invite");
+      toast.error(error instanceof Error ? error.message : "Failed to cancel invite");
     } finally {
       setCancellingId(null);
     }
@@ -109,11 +109,11 @@ export function EnhancedInviteDialog({
       const res = await authFetch(`/api/dashboard/teams/${teamSlug}/invites/${inviteId}/resend`, {
         method: "POST",
       });
-      if (!res.ok) throw new Error("Failed to resend invite");
+      if (!res.ok) throw new Error(await apiErrorDetail(res, "Failed to resend invite"));
       toast.success("Invite resent successfully");
       onInviteCreated();
     } catch (error) {
-      toast.error("Failed to resend invite");
+      toast.error(error instanceof Error ? error.message : "Failed to resend invite");
     } finally {
       setResendingId(null);
     }
@@ -140,7 +140,7 @@ export function EnhancedInviteDialog({
   };
 
   const getStatus = (invite: TeamInvite) => {
-    if (invite.accepted_at) return "accepted";
+    if (invite.status === "accepted") return "accepted";
     if (new Date(invite.expires_at) < new Date()) return "expired";
     return "pending";
   };

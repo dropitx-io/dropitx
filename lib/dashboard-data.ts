@@ -7,7 +7,14 @@ import { collectPages } from "@/lib/collect-pages";
 import { ApiError, serverApiFetch, serverApiFetchOrNull } from "@/lib/server-api";
 import type { ShareAnalyticsResponse, ShareTotals, TopSharesResponse } from "@/types/analytics";
 import type { ShareListItem } from "@/types/share";
-import type { TeamMembership, TeamShareRow } from "@/types/team";
+import type { TeamEvent } from "@/types/team-event";
+import type {
+  TeamDetail,
+  TeamInvite,
+  TeamMember,
+  TeamMembership,
+  TeamShareRow,
+} from "@/types/team";
 
 type ShareListResponse = components["schemas"]["ShareListResponse"];
 type FavoriteShare = components["schemas"]["FavoriteShare"];
@@ -156,6 +163,72 @@ export async function getTeamShares(slug: string): Promise<TeamShareRow[]> {
       has_password: row.shares.has_password,
     },
   }));
+}
+
+/**
+ * One team with the caller's role, or `null` when the API answers with a client
+ * error other than 401 or 429 (not a member, no such team): the caller sends the
+ * visitor back to the team list. Server errors and rate limits still propagate.
+ */
+export async function getTeam(slug: string): Promise<TeamDetail | null> {
+  return dashboardCall(async () => {
+    try {
+      return await serverApiFetch<TeamDetail>(`/api/dashboard/teams/${encodeURIComponent(slug)}`);
+    } catch (err) {
+      if (
+        err instanceof ApiError &&
+        err.status >= 400 &&
+        err.status < 500 &&
+        err.status !== 401 &&
+        err.status !== 429
+      ) {
+        return null;
+      }
+      throw err;
+    }
+  });
+}
+
+/** A team's members, earliest joined first (the API does not order them). */
+export async function getTeamMembers(slug: string): Promise<TeamMember[]> {
+  const members = await dashboardCall(() =>
+    serverApiFetch<TeamMember[]>(`/api/dashboard/teams/${encodeURIComponent(slug)}/members`),
+  );
+  const joined = (m: TeamMember) => Date.parse(m.joined_at ?? m.created_at);
+  return [...members].sort((a, b) => joined(a) - joined(b));
+}
+
+/**
+ * A team's invites in every status, newest first (the API does not order them).
+ * The API includes each invite's `token` for team owners; it is a credential no page
+ * renders, so it is dropped here and never reaches the page or a client component.
+ */
+export async function getTeamInvites(slug: string): Promise<TeamInvite[]> {
+  const rows = await dashboardCall(() =>
+    serverApiFetch<(TeamInvite & { token?: string })[]>(
+      `/api/dashboard/teams/${encodeURIComponent(slug)}/invites`,
+    ),
+  );
+  const invites: TeamInvite[] = rows.map((row) => ({
+    id: row.id,
+    team_id: row.team_id,
+    email: row.email,
+    role: row.role,
+    status: row.status,
+    invited_by: row.invited_by,
+    expires_at: row.expires_at,
+    created_at: row.created_at,
+  }));
+  return invites.sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at));
+}
+
+/** A team's most recent events, newest first. */
+export async function getTeamEvents(slug: string, limit: number): Promise<TeamEvent[]> {
+  return dashboardCall(() =>
+    serverApiFetch<TeamEvent[]>(
+      `/api/dashboard/teams/${encodeURIComponent(slug)}/events?limit=${limit}`,
+    ),
+  );
 }
 
 /** The caller's bookmarked shares, most recently favorited first. */

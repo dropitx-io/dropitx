@@ -4,10 +4,10 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Eye, Clock, FileText, FileCode, ExternalLink } from "lucide-react";
 import Link from "next/link";
-import type { Share } from "@/types/share";
+import type { TeamShareRow } from "@/types/team";
 
 interface TeamShareCardProps {
-  share: Share;
+  share: NonNullable<TeamShareRow["shares"]>;
   sharedByName?: string;
   teamName: string;
 }
@@ -45,20 +45,22 @@ export function TeamShareCard({ share, sharedByName, teamName }: TeamShareCardPr
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <p className="font-medium truncate">
-              {share.title || share.filename}
+              {share.title || share.filename || share.slug}
             </p>
             <Badge variant={isMarkdown ? "markdown" : "html"} className="shrink-0 text-xs">
               {isMarkdown ? "MD" : "HTML"}
             </Badge>
           </div>
           <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground mt-1">
-            <span className="flex items-center gap-1">
-              <Clock className="size-3" />
-              {formatDate(share.created_at)}
-            </span>
+            {share.created_at && (
+              <span className="flex items-center gap-1">
+                <Clock className="size-3" />
+                {formatDate(share.created_at)}
+              </span>
+            )}
             <span className="flex items-center gap-1">
               <Eye className="size-3" />
-              {share.view_count}
+              {share.view_count ?? 0}
             </span>
             {share.file_size != null && (
               <span>{formatFileSize(share.file_size)}</span>

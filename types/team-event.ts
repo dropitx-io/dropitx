@@ -1,4 +1,4 @@
-/** Event types — must match DB CHECK constraint in team_events table exactly */
+/** Event types the activity feed knows how to describe. */
 export type TeamEventType =
   | "invite.created"
   | "invite.accepted"
@@ -10,29 +10,23 @@ export type TeamEventType =
   | "member.role_changed"
   | "member.removed";
 
-/** A single team event row from team_events table */
+/**
+ * One row of `GET /api/dashboard/teams/{slug}/events`. `event_type` is free text in
+ * the database, so it may be a type the feed does not know; `payload` is the parsed
+ * jsonb object, empty when the event recorded nothing.
+ */
 export interface TeamEvent {
   id: string;
-  team_id: string;
-  actor_id: string | null;
-  target_user_id: string | null;
-  event_type: TeamEventType;
-  metadata: Record<string, unknown>;
+  team_id: string | null;
+  user_id: string | null;
+  event_type: string;
+  payload: Record<string, unknown> | null;
   created_at: string;
 }
 
-/** Invite status — must match DB CHECK constraint on team_invites.status */
+/** Values of the `status` column on team invites (a pending invite past its expiry stays `pending`). */
 export type TeamInviteStatus =
   | "pending"
   | "accepted"
   | "declined"
-  | "revoked"
-  | "expired";
-
-/** Paginated events response from GET /api/.../events */
-export interface TeamEventsResponse {
-  events: TeamEvent[];
-  total: number;
-  limit: number;
-  offset: number;
-}
+  | "revoked";

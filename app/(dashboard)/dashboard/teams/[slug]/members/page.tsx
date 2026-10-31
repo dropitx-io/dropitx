@@ -5,92 +5,48 @@
 
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { createAdminClient } from "@/utils/supabase/server";
 import { getSessionUser } from "@/lib/firebase/server";
+import {
+  AccountNotProvisionedError,
+  getTeam,
+  getTeamInvites,
+  getTeamMembers,
+} from "@/lib/dashboard-data";
+import { AccountSetupState } from "@/components/account-setup-state";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Users } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { TeamMemberRow } from "@/components/team-member-row";
 import { MembersPageClient } from "@/components/members-page-client";
-import type { TeamRole, TeamInvite } from "@/types/team";
-
-interface MemberRow {
-  user_id: string;
-  role: TeamRole;
-  joined_at: string;
-  display_name?: string | null;
-  avatar_url?: string | null;
-}
 
 interface Props {
   params: Promise<{ slug: string }>;
 }
 
-async function getTeamData(slug: string) {
-  const cookieStore = await cookies();
-  const user = await getSessionUser(cookieStore);
-  if (!user) redirect("/auth/login");
-
-  const admin = createAdminClient();
-  const { data: team, error: teamError } = await admin
-    .from("teams")
-    .select("id, name, slug, plan, created_by")
-    .eq("slug", slug)
-    .single();
-
-  if (!team || teamError) redirect("/dashboard/teams");
-
-  const { data: membership } = await admin
-    .from("team_members")
-    .select("role")
-    .eq("team_id", team.id)
-    .eq("user_id", user.uid)
-    .single();
-
-  if (!membership) redirect("/dashboard/teams");
-
-  const [membersRes, invitesRes] = await Promise.all([
-    admin
-      .from("team_members")
-      .select("user_id, role, joined_at, user_profiles(display_name, avatar_url)")
-      .eq("team_id", team.id)
-      .order("joined_at", { ascending: true }),
-    admin
-      .from("team_invites")
-      .select("id, email, role, status, expires_at, created_at, invited_by")
-      .eq("team_id", team.id)
-      .order("created_at", { ascending: false }),
-  ]);
-
-  const members = (membersRes.data ?? []).map((m) => {
-    const profile = Array.isArray(m.user_profiles)
-      ? m.user_profiles[0]
-      : m.user_profiles;
-    return {
-      user_id: m.user_id,
-      role: m.role as TeamRole,
-      joined_at: m.joined_at,
-      display_name: (profile as { display_name: string | null } | null)
-        ?.display_name,
-      avatar_url: (profile as { avatar_url: string | null } | null)
-        ?.avatar_url,
-    };
-  });
-
-  const invites = invitesRes.data ?? [];
-
-  return {
-    team,
-    user,
-    userRole: membership.role as TeamRole,
-    members: members as MemberRow[],
-    invites: invites as TeamInvite[],
-  };
+async function loadMembersPage(slug: string) {
+  const team = await getTeam(slug);
+  if (!team) return null;
+  const [members, invites] = await Promise.all([getTeamMembers(slug), getTeamInvites(slug)]);
+  return { team, members, invites };
 }
 
 export default async function TeamMembersPage({ params }: Props) {
   const { slug } = await params;
-  const { team, user, userRole, members, invites } = await getTeamData(slug);
+  const cookieStore = await cookies();
+  const user = await getSessionUser(cookieStore);
+  if (!user) redirect("/auth/login");
+
+  let page: Awaited<ReturnType<typeof loadMembersPage>>;
+  try {
+    page = await loadMembersPage(slug);
+  } catch (err) {
+    if (err instanceof AccountNotProvisionedError) return <AccountSetupState />;
+    throw err;
+  }
+  if (!page) redirect("/dashboard/teams");
+
+  const { team, members, invites } = page;
+  const userRole = team.role;
   const canInvite = userRole === "owner" || userRole === "editor";
 
   return (
@@ -119,10 +75,10 @@ export default async function TeamMembersPage({ params }: Props) {
           <div className="divide-y divide-border">
             {members.map((m) => (
               <TeamMemberRow
-                key={m.user_id}
+                key={m.id}
                 userId={m.user_id}
-                displayName={m.display_name ?? null}
-                avatarUrl={m.avatar_url ?? null}
+                displayName={m.user_profiles?.display_name ?? null}
+                avatarUrl={m.user_profiles?.avatar_url ?? null}
                 role={m.role}
                 viewerRole={userRole}
                 isSelf={m.user_id === user.uid}
