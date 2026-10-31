@@ -2,7 +2,8 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getSessionUser } from "@/lib/firebase/server";
-import { getFavorites } from "@/lib/dashboard-data";
+import { AccountNotProvisionedError, getFavorites } from "@/lib/dashboard-data";
+import { AccountSetupState } from "@/components/account-setup-state";
 import { Heart, Star, Copy } from "lucide-react";
 import type { ShareListItem } from "@/types/share";
 
@@ -20,7 +21,13 @@ export default async function FavoritesPage() {
 
   if (!user) redirect("/auth/login");
 
-  const shares: (ShareListItem & { favorited_at: string })[] = await getFavorites();
+  let shares: (ShareListItem & { favorited_at: string })[];
+  try {
+    shares = await getFavorites();
+  } catch (err) {
+    if (err instanceof AccountNotProvisionedError) return <AccountSetupState />;
+    throw err;
+  }
 
   return (
     <div className="space-y-6">

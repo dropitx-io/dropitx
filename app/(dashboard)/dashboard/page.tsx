@@ -1,7 +1,14 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/firebase/server";
-import { getAllShares, getShareTotals, getTeamShares, getTeams } from "@/lib/dashboard-data";
+import {
+  AccountNotProvisionedError,
+  getAllShares,
+  getShareTotals,
+  getTeamShares,
+  getTeams,
+} from "@/lib/dashboard-data";
+import { AccountSetupState } from "@/components/account-setup-state";
 import { DashboardShareList } from "@/components/dashboard-share-list";
 import { DashboardUpload } from "@/components/dashboard-upload";
 import { BarChart3, FileText, HardDrive, Users } from "lucide-react";
@@ -14,12 +21,7 @@ function formatFileSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-export default async function DashboardPage() {
-  const cookieStore = await cookies();
-  const user = await getSessionUser(cookieStore);
-
-  if (!user) redirect("/auth/login");
-
+async function loadDashboardHome() {
   const [totals, shareList, memberships] = await Promise.all([
     getShareTotals(),
     getAllShares(),
@@ -33,6 +35,24 @@ export default async function DashboardPage() {
     teams.map(async (team) => [team.slug, await getTeamShares(team.slug)] as const),
   );
   const teamShareMap: Record<string, TeamShareRow[]> = Object.fromEntries(teamShareResults);
+
+  return { totals, shareList, teams, teamShareMap };
+}
+
+export default async function DashboardPage() {
+  const cookieStore = await cookies();
+  const user = await getSessionUser(cookieStore);
+
+  if (!user) redirect("/auth/login");
+
+  let home: Awaited<ReturnType<typeof loadDashboardHome>>;
+  try {
+    home = await loadDashboardHome();
+  } catch (err) {
+    if (err instanceof AccountNotProvisionedError) return <AccountSetupState />;
+    throw err;
+  }
+  const { totals, shareList, teams, teamShareMap } = home;
 
   const totalSize = totals.total_size;
 
@@ -53,7 +73,7 @@ export default async function DashboardPage() {
           value={totals.share_count.toLocaleString()}
           delta={
             <span className="text-muted-foreground">
-              {totals.share_count > 0 ? "Includes expired shares" : "No shares yet"}
+              {totals.share_count > 0 ? "Includes expired and private" : "No shares yet"}
             </span>
           }
         />
@@ -68,12 +88,7 @@ export default async function DashboardPage() {
           icon={<Users className="size-[15px]" />}
           label="Unique views"
           value={totals.unique_views.toLocaleString()}
-          unit="30 days"
-          delta={
-            <span className="text-muted-foreground">
-              {totals.shares_with_views.toLocaleString()} shares viewed
-            </span>
-          }
+          delta={<span className="text-muted-foreground">Last 30 days</span>}
         />
       </section>
 

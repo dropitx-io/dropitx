@@ -1,7 +1,8 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/firebase/server";
-import { getTeams } from "@/lib/dashboard-data";
+import { AccountNotProvisionedError, getTeams } from "@/lib/dashboard-data";
+import { AccountSetupState } from "@/components/account-setup-state";
 import { DashboardShell } from "@/components/dashboard-shell";
 
 export default async function DashboardLayout({
@@ -23,17 +24,24 @@ export default async function DashboardLayout({
     .join("")
     .toUpperCase();
 
-  const memberships = await getTeams();
-  const teams = memberships.flatMap((m) =>
-    m.teams ? [{ slug: m.teams.slug, name: m.teams.name }] : [],
-  );
+  let teams: { slug: string; name: string }[] = [];
+  let content: React.ReactNode = children;
+  try {
+    const memberships = await getTeams();
+    teams = memberships.flatMap((m) =>
+      m.teams ? [{ slug: m.teams.slug, name: m.teams.name }] : [],
+    );
+  } catch (err) {
+    if (!(err instanceof AccountNotProvisionedError)) throw err;
+    content = <AccountSetupState />;
+  }
 
   return (
     <DashboardShell
       user={{ displayName, email, initials }}
       teams={teams}
     >
-      {children}
+      {content}
     </DashboardShell>
   );
 }

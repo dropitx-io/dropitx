@@ -56,7 +56,7 @@ export interface TeamShareRow {
   shares: {
     id: string;
     slug: string;
-    filename: string;
+    filename: string | null;
     title: string | null;
     mime_type: string | null;
     view_count: number | null;

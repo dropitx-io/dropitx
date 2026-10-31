@@ -94,7 +94,7 @@ export function DashboardShareList({
           .map((r) => ({
             id: r.shares!.id,
             slug: r.shares!.slug,
-            filename: r.shares!.filename,
+            filename: r.shares!.filename ?? "",
             title: r.shares!.title,
             mime_type: r.shares!.mime_type ?? "",
             view_count: r.shares!.view_count ?? 0,

@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { getSessionUser } from "@/lib/firebase/server";
-import { getProfile } from "@/lib/dashboard-data";
+import { AccountNotProvisionedError, getProfile, type DashboardProfile } from "@/lib/dashboard-data";
+import { AccountSetupState } from "@/components/account-setup-state";
 import { redirect } from "next/navigation";
 import { ProfileForm } from "@/components/profile-form";
 
@@ -10,7 +11,13 @@ export default async function ProfilePage() {
 
   if (!user) redirect("/auth/login");
 
-  const profile = await getProfile();
+  let profile: DashboardProfile;
+  try {
+    profile = await getProfile();
+  } catch (err) {
+    if (err instanceof AccountNotProvisionedError) return <AccountSetupState />;
+    throw err;
+  }
 
   const providers: string[] = [];
 
