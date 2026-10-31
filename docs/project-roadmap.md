@@ -93,11 +93,10 @@
 
 ### Phase 5.5: Feature Completion & Crypto — COMPLETE ✅
 **Jun 2026**
-- **End-to-End Encryption**: AES-256-GCM client-side (Web Crypto API), key in URL fragment
+- **End-to-End Encryption** (historical; the encrypted content viewer was later removed and the editor no longer offers the toggle, so the feature is not available in the web app and is planned)
   - `lib/crypto.ts` utilities with Uint8Array/BufferSource compatibility
-  - Encryption toggle UI and encrypted content viewer
 - **Burn-After-Reading**: Share self-destructs on first view (atomic, secure)
-  - `burn-after-reading-toggle.tsx`, `burn-after-reading-tracker.tsx`, `burned-state.tsx` components
+  - `burn-after-reading-toggle.tsx`, `burned-state.tsx` components
 - **Complete 8 Missing Features** (Gap Analysis from competitor audit):
   - All UI components for B1–B10 feature gap analysis now implemented
   - Includes expiration controls, file tabs, version history UI, comments UI, QR code, analytics
@@ -110,11 +109,11 @@ The following features are **UI-ready** in the codebase (components exist) but w
 
 | Feature | Components | Status | Notes |
 |---------|-----------|--------|-------|
-| **End-to-End Encryption** | `encryption-toggle.tsx`, `encrypted-content-viewer.tsx`, `lib/crypto.ts` | ✅ Complete | AES-256-GCM client-side, key in URL fragment |
-| **Burn-After-Reading** | `burn-after-reading-toggle.tsx`, `burn-after-reading-tracker.tsx`, `burn-warning-banner.tsx`, `burned-state.tsx` | ✅ Complete | Share self-destructs on first view |
+| **End-to-End Encryption** | `encryption-toggle.tsx` (not mounted), `lib/crypto.ts` | ⏸ Not available | No decrypt-on-view; the editor does not offer it; planned |
+| **Burn-After-Reading** | `burn-after-reading-toggle.tsx`, `burn-warning-banner.tsx`, `burned-state.tsx`, `reveal-share-content.tsx` | ✅ Complete | Share self-destructs on first view |
 | **Configurable Expiration** | `expiration-select.tsx`, `expiry-badge.tsx`, `expired-state.tsx` | ✅ Complete | Beyond default 30-day option |
 | **Version History** | `version-history.tsx` | ✅ UI Complete | Backend support needs verification |
-| **Multi-File Support** | `file-tabs.tsx`, `file-list-sidebar.tsx`, `multi-file-upload.tsx` | ✅ UI Complete | Backend support needs verification |
+| **Multi-File Support** | `file-tabs.tsx`, `file-list-sidebar.tsx` | ✅ Viewing only | Creating multi-file shares from the web upload box is not available |
 | **Comments/Discussion** | `comments-section.tsx` | ✅ UI Complete | Backend persistence not yet wired |
 | **QR Code Generation** | `qr-code-button.tsx` | ✅ Complete | Calls backend `/api/qr/{slug}` endpoint |
 

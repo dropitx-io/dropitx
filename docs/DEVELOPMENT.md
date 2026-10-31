@@ -73,7 +73,7 @@ lib/                 # Utilities & business helpers
   server-api.ts      # serverApiFetch() — server-component calls to FastAPI
   firebase/          # Firebase client, auth helpers, session verification (server.ts)
   utils.ts           # cn() class merger (clsx + tailwind-merge)
-  crypto.ts          # AES-256-GCM helpers
+  crypto.ts          # AES-256-GCM helpers (unused by pages until decrypt-on-view exists)
   password.ts        # bcryptjs hashing
   editor-extensions/ # CodeMirror 6 extensions (slash commands, upload, etc.)
 hooks/               # Custom React hooks (use-email-validation, use-team, use-toast)

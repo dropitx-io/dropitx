@@ -112,7 +112,7 @@ Charts use vivid, distinct hues inspired by Clay's warmth:
 - **EditorPublishBar**: Title input, custom slug input, privacy toggle, publish button; sticky at bottom
 
 ### Dashboard / Auth Components
-- **DashboardShareCard**: Share card with title, slug, stats (views), edit/delete actions, password lock toggle
+- **DashboardShareList**: Dashboard list of shares with title, slug, stats (views), edit/delete actions
 - **ApiKeyManager**: Table of API keys (prefix, created_at, last_used_at); create/revoke actions
 - **BookmarkToggle**: Icon button; filled/outline state; optimistic update
 - **ProfileForm**: Display name + avatar URL inputs with save feedback

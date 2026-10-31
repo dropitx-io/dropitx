@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-**DropItX** is a Next.js 16 frontend for secure file sharing with inline editing, advanced privacy controls, and team collaboration. Upload HTML and Markdown files, write with an integrated CodeMirror 6 editor, generate short shareable links with optional passwords, and manage content programmatically via REST API or CLI. Supports end-to-end encryption, burn-after-reading, version history, comments, QR code sharing, and analytics.
+**DropItX** is a Next.js 16 frontend for secure file sharing with inline editing, advanced privacy controls, and team collaboration. Upload HTML and Markdown files, write with an integrated CodeMirror 6 editor, generate short shareable links with optional passwords, and manage content programmatically via REST API or CLI. Supports burn-after-reading, version history, comments, QR code sharing, and analytics.
 
 **Status**: v1.4.1 (2026-04-26) — Production ready with comprehensive feature set.
 
@@ -21,8 +21,8 @@
 | **Theme** | `next-themes` (light/dark mode) |
 | **Analytics** | Recorded by the API (`POST /api/analytics/track`); no third-party analytics in the frontend |
 | **Rate Limiting** | Enforced by the API; the frontend shows a toast on 429 |
-| **CLI** | `packages/cli/` — TypeScript ESM, binary `dropitx` |
-| **Encryption** | Web Crypto API (AES-256-GCM, client-side) |
+| **CLI** | Separate Python repository `dropitx-cli` (PyPI `dropitx`); not part of this repo |
+| **Encryption** | `lib/crypto.ts` Web Crypto helpers exist, but E2E publishing/viewing is not available in the web app (planned) |
 
 ## Directory Structure
 
@@ -31,7 +31,7 @@ app/                           # Next.js App Router (routes + layouts)
 ├── (public)/                  # Public routes (landing, editor, shares, auth)
 │   ├── page.tsx              # Landing page (HeroSection + ProofCards + WorkflowSteps + CTA)
 │   ├── editor/page.tsx       # Markdown editor with live preview
-│   ├── s/[slug]/page.tsx     # Share viewer (handles .html/.md/.encrypted)
+│   ├── s/[slug]/page.tsx     # Share viewer (handles .html/.md)
 │   ├── embed/[slug]/page.tsx # oEmbed viewer
 │   ├── search/page.tsx       # Full-text search results
 │   ├── auth/login/page.tsx   # Email/password + OAuth login
@@ -63,7 +63,7 @@ components/                    # React components (composable, feature-organized
 ├── [Feature areas]/
 │   ├── editor-*.tsx          # Editor components (pane, preview, toolbar, publish-bar)
 │   ├── share-*.tsx           # Share components (password-gate, link, analytics-tracker)
-│   ├── encryption-toggle.tsx # Encryption UI
+│   ├── encryption-toggle.tsx # Encryption UI (not mounted; planned)
 │   ├── burn-*.tsx            # Burn-after-reading (toggle, tracker, warning, state)
 │   ├── expiration-*.tsx      # Expiration select + badge + state
 │   ├── comments-section.tsx  # Comments/discussion
@@ -87,7 +87,7 @@ lib/                           # Utilities and helpers
 ├── server-api.ts            # serverApiFetch() — server components to FastAPI
 ├── api-types.ts             # Generated from the API's OpenAPI spec
 ├── firebase/                # client.ts, auth.ts, server.ts (session cookie verification)
-├── crypto.ts                # Web Crypto API (AES-256-GCM encrypt/decrypt, key generation)
+├── crypto.ts                # Web Crypto helpers (AES-256-GCM); unused by pages until decrypt-on-view exists
 ├── draft-storage.ts         # localStorage draft persistence (autosave)
 ├── file-utils.ts            # File handling (multi-file logic)
 ├── share-data.ts, share-unlock.ts, dashboard-data.ts  # Typed API readers
@@ -110,16 +110,6 @@ hooks/                        # Custom React hooks
 
 types/                        # TypeScript interfaces
 ├── share.ts, team.ts, team-event.ts, analytics.ts
-
-packages/cli/                # Standalone CLI tool
-├── src/index.ts            # Binary entry: dropitx
-├── src/commands/
-│   ├── login.ts
-│   ├── publish.ts
-│   ├── update.ts
-│   ├── delete.ts
-│   ├── list.ts
-│   └── whoami.ts
 
 docs/                         # Documentation
 ├── project-overview-pdr.md
@@ -154,10 +144,7 @@ public/                       # Static assets (favicon, icons, images)
 
 ### Privacy & Security
 - **Password Protection**: verified by the API (`POST /api/shares/{slug}/unlock`); the unlocked content renders in place, with no frontend access cookie (a refresh asks again); owners skip the password
-- **End-to-End Encryption**: AES-256-GCM client-side (Web Crypto API), key in URL fragment
-  - **Crypto utilities**: `lib/crypto.ts` provides symmetric encryption/decryption with Uint8Array support
-  - **Encryption UI**: Toggle in editor/share flow; decryption happens client-side
-  - **Secure key exchange**: Encryption key never touches server, shared via URL fragment only
+- **End-to-End Encryption**: not available in the web app (planned). `lib/crypto.ts` and `components/encryption-toggle.tsx` remain in the tree, but the editor does not mount the toggle because nothing on the share page decrypts; it never publishes `encrypted: true`
 - **Burn-After-Reading**: Share self-destructs on its first content read; the page shows a reveal state and the client reads `/content` only on an explicit click
   - **UI components**: `burn-after-reading-toggle.tsx`, `reveal-share-content.tsx`, `burned-state.tsx`
   - **Immutable once viewed**: View flag prevents re-access, secure + user-friendly
@@ -168,7 +155,7 @@ public/                       # Static assets (favicon, icons, images)
 - **Burn-After-Reading**: Share self-destructs on first view
 - **Version History**: Track revisions, restore previous versions
 - **Comments**: Thread discussion on shared content
-- **Multi-File Support**: Multiple files per share (tabs + sidebar)
+- **Multi-File Support**: Viewing multi-file shares (tabs + sidebar); creating them from the web upload box is not available
 - **QR Code Generation**: Auto-generate + download QR for share URLs
 - **Expiration Select**: Configurable expiry (5min to forever)
 
@@ -284,8 +271,6 @@ npm run build
 # Type-check and lint
 npm run check:hygiene
 
-# CLI development
-cd packages/cli && npm run build && npm link
 ```
 
 ## Key Architectural Decisions
@@ -293,7 +278,7 @@ cd packages/cli && npm run build && npm link
 1. **Frontend-Only Next.js**: Pure client-side app; all API logic in FastAPI backend for scalability
 2. **Firebase for identity, FastAPI for data**: Firebase Auth owns sign-in and the session cookie; the API owns every row and file
 3. **CodeMirror 6 SSR Disabled**: Loaded via `next/dynamic` to avoid build-time errors
-4. **Web Crypto API**: Client-side encryption for E2E feature without server key storage
+4. **Web Crypto API (planned E2E)**: `lib/crypto.ts` is kept for client-side encryption, but E2E publishing and viewing is not available until the share page can decrypt
 5. **localStorage Drafts**: Offline-first editor with auto-recovery on page reload
 6. **Token-Based Invites**: Secure, shareable invite links with email validation
 7. **API-enforced authorization**: Access rules live in the API; the frontend carries no database keys

@@ -2,7 +2,7 @@
 
 ## Executive Summary
 
-**DropItX** is a modern file sharing platform unifying instant content sharing, rich editing, and team collaboration. Users upload HTML/Markdown files, write using an integrated Markdown editor, and share via short links with optional passwords, end-to-end encryption, and burn-after-reading. Designed for developers, technical teams, and knowledge workers who need secure, frictionless sharing.
+**DropItX** is a modern file sharing platform unifying instant content sharing, rich editing, and team collaboration. Users upload HTML/Markdown files, write using an integrated Markdown editor, and share via short links with optional passwords and burn-after-reading (end-to-end encryption is planned, not available in the web app). Designed for developers, technical teams, and knowledge workers who need secure, frictionless sharing.
 
 **Status**: v1.4.1 (2026-04-26) — Production ready. Core features complete; hardening phase planned.
 
@@ -54,10 +54,10 @@ Existing file sharing platforms excel in one dimension (simplicity, privacy, or 
 
 ### Advanced Privacy & Security
 - **Password Protection**: verified by the API per unlock; the frontend renders the unlocked content in place and keeps no access cookie
-- **End-to-End Encryption**: AES-256-GCM client-side encryption with key in URL fragment
+- **End-to-End Encryption**: planned; not available in the web app (no decrypt-on-view yet, so the editor does not offer it)
 - **Burn-After-Reading**: Share self-destructs on first view
 - **Configurable Expiration**: Custom expiry times (5 min to indefinite) beyond default 30 days
-- **Multi-File Support**: Bundle multiple files per share with tabs and sidebar navigation
+- **Multi-File Support**: View multi-file shares with tabs and sidebar navigation (creating them from the web upload box is not available)
 
 ### Community & Engagement
 - **Comments/Discussion**: Thread-based comments on shared content
@@ -165,6 +165,8 @@ Existing file sharing platforms excel in one dimension (simplicity, privacy, or 
 
 ## Project Milestones
 
+_Historical: this section records what each phase shipped at the time; it describes neither the current stack (Supabase, RLS, Vercel Analytics and the TypeScript CLI have since been replaced or removed) nor what is currently available._
+
 ### Phase 1: Core Functionality (Complete)
 - [x] HTML file upload interface
 - [x] Share link generation and viewing
@@ -189,7 +191,7 @@ Existing file sharing platforms excel in one dimension (simplicity, privacy, or 
 - [x] API key management (create, list, revoke)
 - [x] REST API v1 for programmatic document management
 - [x] Inline image upload for editor
-- [x] CLI tool (`packages/cli/`) with `share-html` binary
+- [x] CLI tool (now the separate Python `dropitx-cli` repository, published as `dropitx`)
 - [x] Private shares (`is_private` flag)
 - [x] RLS hardening
 

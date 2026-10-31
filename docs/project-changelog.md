@@ -10,6 +10,9 @@ All notable changes to DropItX.
 - **Burn-after-reading and one-time shares** show a reveal state; the content is read only on an explicit click.
 - **Team invites** use `/invite/[token]` (the API's `invite_url`); `/invite/accept?token=` redirects to it.
 - **Analytics**: page views are recorded by the API; `trackEvent` in `lib/analytics.ts` is a no-op with its original signature.
+- **Server API address**: optional runtime variable `API_INTERNAL_URL` for server-side calls (falls back to `NEXT_PUBLIC_API_URL`).
+- **Editor**: the end-to-end encryption toggle is no longer offered because nothing on the share page can decrypt; the editor always publishes `encrypted: false`.
+- **Upload box**: the unreachable multi-file mode was removed.
 - **Env and scripts**: `NEXT_PUBLIC_SUPABASE_URL` is no longer a Docker build arg; `check:hygiene` is `tsc --noEmit && eslint`.
 
 ### Removed

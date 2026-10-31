@@ -96,7 +96,7 @@ The `session` cookie is minted by `POST /api/auth/session-login` from a Firebase
 | `getShareMeta`, `getShareContent` | `lib/share-data.ts` | Share metadata (no view counted) and content (counts a view). |
 | `getSessionUser` | `lib/firebase/server.ts` | Verifies the Firebase session cookie with `firebase-admin`. |
 | `unlockShare` | `lib/share-unlock.ts` | Password unlock against the API's `/unlock` endpoint. |
-| `encrypt`/`decrypt`, `generateRandomKey`, `deriveKeyFromPassword` | `lib/crypto.ts` | AES-256-GCM E2E encryption via Web Crypto; key carried in the URL fragment (`#key=…`), never sent to the server. PBKDF2 with 600k iterations for password-derived keys. |
+| `encrypt`/`decrypt`, `generateRandomKey`, `deriveKeyFromPassword` | `lib/crypto.ts` | AES-256-GCM helpers via Web Crypto (PBKDF2, 600k iterations, for password-derived keys). Currently used only by the hidden `components/encryption-toggle.tsx`; no page decrypts, so end-to-end encrypted publishing and viewing is not available in the web app (planned). |
 | `hashPassword`/`verifyPassword` | `lib/password.ts` | bcryptjs password helpers. |
 | `generateApiKey`/`hashApiKey` | `lib/api-key.ts` | API key generation and SHA-256 hashing (keys are never persisted in plaintext). |
 | `createEditorExtensions`, `themeCompartment`, `updateTheme` | `lib/editor-extensions.ts` | CodeMirror 6 extension bundle (slash commands, image drop, theme switching). |

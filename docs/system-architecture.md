@@ -2,7 +2,7 @@
 
 ## Overview
 
-DropItX is a Next.js 16 application (App Router), a pure frontend with no database, storage or rate-limit credentials. All data logic runs on the FastAPI backend (`dropitx-api`, at `NEXT_PUBLIC_API_URL`); sign-in is Firebase Auth. Features include team workspaces, analytics dashboard, password-protected shares, end-to-end encryption (AES-256-GCM), burn-after-reading, version history, multi-file support, comments, QR code generation, rich embedding via oEmbed, and programmatic access via REST API. Two auth models reach the API: a Firebase token (browser ID token, or the session cookie forwarded by server components) and an API key (programmatic). Latest design system: Clay (light-first, warm cream canvas, terracotta accent, organic radii).
+DropItX is a Next.js 16 application (App Router), a pure frontend with no database, storage or rate-limit credentials. All data logic runs on the FastAPI backend (`dropitx-api`, at `NEXT_PUBLIC_API_URL`); sign-in is Firebase Auth. Features include team workspaces, analytics dashboard, password-protected shares, burn-after-reading, version history, multi-file support, comments, QR code generation, rich embedding via oEmbed, and programmatic access via REST API. Two auth models reach the API: a Firebase token (browser ID token, or the session cookie forwarded by server components) and an API key (programmatic). End-to-end encrypted publishing and viewing is not available in the web app (planned). Latest design system: Clay (light-first, warm cream canvas, terracotta accent, organic radii).
 
 ## Architecture Diagram
 

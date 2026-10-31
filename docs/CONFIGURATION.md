@@ -15,6 +15,7 @@ The canonical list lives in `.env.example`. The table below cross-references eac
 | `NEXT_PUBLIC_API_URL` | **Yes** | — | Base URL of the FastAPI backend. `lib/api-client.ts` throws at module load when it is missing; `lib/server-api.ts` and the OG image route read it on the server. Inlined at image-build time, so it is a Docker build arg. |
 | `NEXT_PUBLIC_FIREBASE_API_KEY`, `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`, `NEXT_PUBLIC_FIREBASE_PROJECT_ID`, `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`, `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID`, `NEXT_PUBLIC_FIREBASE_APP_ID` | **Yes** | — | Firebase web SDK config (`lib/firebase/client.ts`). Build args. |
 | `FIREBASE_ADMIN_PROJECT_ID`, `FIREBASE_ADMIN_CLIENT_EMAIL`, `FIREBASE_ADMIN_PRIVATE_KEY` | **Yes** (server-only) | — | Firebase Admin credentials (`lib/firebase/server.ts`) used to mint and verify the httpOnly `session` cookie. Runtime variables, never `NEXT_PUBLIC_`. |
+| `API_INTERNAL_URL` | No (server-only, **run time**) | `NEXT_PUBLIC_API_URL` | Address the Next.js server uses for its own API calls (`lib/server-api.ts` and the OG image route), read at call time and never sent to the browser. Set it when the server reaches the API by a different address than browsers do, for example a container using `http://host.docker.internal:8000` or an in-cluster service name. Not a Docker build arg; pass it with `docker run -e`. `cf-connecting-ip` forwarding is unchanged. |
 | `NEXT_PUBLIC_APP_URL` | No | `https://dropitx.com` | Canonical site origin used to compose absolute share URLs, embed snippets and QR-code URLs (`app/(public)/s/[slug]/page.tsx`, `components/qr-code-button.tsx`, `components/embed-snippet.tsx`, `app/(dashboard)/dashboard/analytics/[slug]/page.tsx`). |
 | `NEXT_PUBLIC_APP_HOST` | No | — | Host of this app without scheme (for example `dropitx.site`). Kept as a documented Docker build arg; no code in this repository reads it today. |
 | `NODE_ENV` | No | Set by Next.js | Standard Next.js variable. Drives the HSTS header (`middleware.ts`, production only). |
@@ -68,7 +69,7 @@ Next.js middleware redirects `/dashboard/*` to `/auth/login?next=...` when the `
 
 ### `.vercelignore`
 
-Excludes `packages/`, `.omx/`, `plans/`, `*.xml`, and `smartletter-data-binding-analysis.html` from Vercel deployments.
+Legacy file from a Vercel deployment; the Docker deployment does not use it (see `.dockerignore` for what the image context excludes).
 
 ## Required vs. Optional Settings
 
@@ -85,6 +86,7 @@ There is no centralized startup validation. Failures surface lazily the first ti
 Optional settings with safe defaults:
 
 - `NEXT_PUBLIC_APP_URL` → `https://dropitx.com`
+- `API_INTERNAL_URL` → unset, so server-side calls use `NEXT_PUBLIC_API_URL`
 
 ## Defaults
 
@@ -136,7 +138,7 @@ docker image build \
 Production-specific behavior driven by config:
 
 - `NODE_ENV=production` (set by the image) enables HSTS (`middleware.ts`).
-- `NEXT_PUBLIC_API_URL` must be reachable from both the browser and the FE server (server components call the API directly), and the API's `ALLOWED_ORIGINS` must include the site origin.
+- `NEXT_PUBLIC_API_URL` must be reachable from browsers. Server components call the API too; they use `API_INTERNAL_URL` when it is set (runtime, `docker run -e`) and `NEXT_PUBLIC_API_URL` otherwise. The API's `ALLOWED_ORIGINS` must include the site origin.
 - `NEXT_PUBLIC_APP_URL` should match the canonical production domain. The code default is `https://dropitx.com`; set it explicitly if the canonical domain differs.
 
 There is no staging-specific config file. A staging environment is a second image or container with its own build args and runtime variables, pointing at a separate API instance.

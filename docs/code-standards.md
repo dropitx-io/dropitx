@@ -2,7 +2,7 @@
 
 ## Overview
 
-Standards for the DropItX codebase. Next.js 16 + TypeScript strict + Tailwind CSS 4. Monorepo with `packages/cli/`.
+Standards for the DropItX codebase. Next.js 16 + TypeScript strict + Tailwind CSS 4. This repository is the frontend only; the CLI is the separate Python `dropitx-cli` repository.
 
 ## File Naming
 
@@ -29,18 +29,9 @@ lib/                      # Utility functions
 lib/editor-extensions/    # CodeMirror extensions
 lib/firebase/             # Firebase client, auth helpers, server session verification
 types/                    # TypeScript interfaces
-packages/cli/             # CLI tool (dropitx binary)
 public/                   # Static assets
 docs/                     # Documentation
 ```
-
-## Monorepo Structure
-
-`packages/cli/` is a standalone TypeScript ESM package:
-- `package.json` with `"type": "module"`, `"bin": { "dropitx": "dist/index.js" }`
-- Build: `tsc` outputs to `dist/`
-- Local link: `npm link` from `packages/cli/` for development
-- Config stored at `~/.dropitx/config.json` (mode 0600, never committed)
 
 ## TypeScript
 
@@ -165,8 +156,6 @@ Never import `lib/firebase/server.ts` in a client component — server-only.
 ```bash
 npm run check:hygiene   # tsc --noEmit && eslint
 npm run build           # TypeScript check + Next.js build
-# CLI:
-cd packages/cli && npm run build
 ```
 
 Fix lint errors before commit. Build must pass before push.

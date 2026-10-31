@@ -47,7 +47,7 @@ Because the codebase has meaningful security and business logic that is currentl
 
 | Module | Why it matters | Test priority |
 |--------|----------------|---------------|
-| `lib/crypto.ts` | AES-256-GCM encryption, PBKDF2 key derivation (600k iterations), IV/salt handling — a regression here leaks plaintext | High |
+| `lib/crypto.ts` | AES-256-GCM encryption, PBKDF2 key derivation (600k iterations), IV/salt handling; not used by any page today, but test it before decrypt-on-view is built | Medium |
 | `lib/password.ts` | bcryptjs hashing for protected shares | High |
 | `lib/api-key.ts` | SHA-256 key hashing — must never persist plaintext | High |
 | `lib/redact-api-path.ts`, `lib/api-forward-headers.ts` | Keeps invite tokens out of logs; header forwarding rules | High |
