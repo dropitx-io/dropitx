@@ -5,7 +5,7 @@ import { Lock, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { getApiUrl, getAuthHeaders } from "@/lib/api-client";
+import { apiErrorDetail, getApiUrl, getAuthHeaders } from "@/lib/api-client";
 
 interface SharePasswordFormProps {
   slug: string;
@@ -41,15 +41,14 @@ export function SharePasswordForm({
           ...(deleteToken ? { delete_token: deleteToken } : {}),
         }),
       });
-      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(data.error || "Failed to update password.");
+        setError(await apiErrorDetail(res, "Failed to update password."));
         return;
       }
       toast.success(passwordValue ? "Password set" : "Password removed");
       setPassword("");
       setConfirm("");
-      onSuccess?.(data.has_password);
+      onSuccess?.(passwordValue !== null);
     } catch {
       setError("Network error. Please try again.");
     } finally {

@@ -4,7 +4,7 @@ import { useCallback, useState } from "react";
 import { useDropzone } from "react-dropzone";
 import { Upload, Loader2, CheckCircle2, XCircle } from "lucide-react";
 import { trackEvent, AnalyticsEvent } from "@/lib/analytics";
-import { authFetch } from "@/lib/api-client";
+import { apiErrorDetail, authFetch } from "@/lib/api-client";
 import { formatFileSize, canPreview } from "@/lib/file-utils";
 import { cn } from "@/lib/utils";
 
@@ -44,13 +44,13 @@ export function UploadDropzone({ onUploadSuccess }: UploadDropzoneProps) {
           body: formData,
         });
 
-        const data = await response.json();
-
         if (!response.ok) {
           setState("error");
-          setErrorMessage(data.error || "Upload failed.");
+          setErrorMessage(await apiErrorDetail(response, "Upload failed."));
           return;
         }
+
+        const data = await response.json();
 
         setState("success");
         trackEvent(AnalyticsEvent.DOCUMENT_UPLOADED, {
