@@ -2154,6 +2154,11 @@ export interface components {
              */
             burned: boolean;
             /**
+             * One Time Download
+             * @default false
+             */
+            one_time_download: boolean;
+            /**
              * Encrypted
              * @default false
              */
@@ -2264,6 +2269,16 @@ export interface components {
              * @default false
              */
             has_password: boolean;
+            /**
+             * Burn After Reading
+             * @default false
+             */
+            burn_after_reading: boolean;
+            /**
+             * One Time Download
+             * @default false
+             */
+            one_time_download: boolean;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -2647,6 +2662,11 @@ export interface components {
              * @default false
              */
             burned: boolean;
+            /**
+             * One Time Download
+             * @default false
+             */
+            one_time_download: boolean;
             /**
              * Encrypted
              * @default false
