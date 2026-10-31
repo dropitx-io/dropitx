@@ -8,11 +8,14 @@ import { CommentsSection } from "@/components/comments-section";
 import { HtmlViewer } from "@/components/html-viewer";
 import { MarkdownViewerWrapper } from "@/components/markdown-viewer-wrapper";
 import { Loader2 } from "lucide-react";
+import { authFetch } from "@/lib/api-client";
 import type { GroupShare } from "@/types/share";
 
 interface SharePageClientProps {
   groupFiles: GroupShare[];
   initialSlug: string;
+  /** Content of the initial file, already read by the server. */
+  initialContent: string;
   isAuthenticated: boolean;
   shareId: string;
 }
@@ -20,33 +23,53 @@ interface SharePageClientProps {
 export function SharePageClient({
   groupFiles,
   initialSlug,
+  initialContent,
   isAuthenticated,
   shareId,
 }: SharePageClientProps) {
   const [activeSlug, setActiveSlug] = useState(initialSlug);
-  const [fileContents, setFileContents] = useState<Record<string, string>>({});
+  const [fileContents, setFileContents] = useState<Record<string, string>>({
+    [initialSlug]: initialContent,
+  });
+  const [notices, setNotices] = useState<Record<string, string>>({});
   const [loadingFiles, setLoadingFiles] = useState<Set<string>>(new Set());
 
   const activeFile = groupFiles.find((f) => f.slug === activeSlug);
   const isMarkdown = activeFile?.mime_type === "text/markdown";
+  const activeNotice = notices[activeSlug];
 
   const handleSelect = useCallback(
     async (slug: string) => {
       setActiveSlug(slug);
 
       // Already have content cached
-      if (fileContents[slug]) return;
+      if (fileContents[slug] !== undefined) return;
 
       // Fetch file content
       setLoadingFiles((prev) => new Set(prev).add(slug));
+      setNotices((prev) => {
+        const next = { ...prev };
+        delete next[slug];
+        return next;
+      });
       try {
-        const res = await fetch(`/api/shares/${slug}/content`);
+        const res = await authFetch(`/api/shares/${encodeURIComponent(slug)}/content`);
         if (res.ok) {
-          const data = await res.json();
-          setFileContents((prev) => ({ ...prev, [slug]: data.content || "" }));
+          const data = (await res.json()) as { content?: string; password_protected?: boolean };
+          if (data.password_protected && !data.content) {
+            setNotices((prev) => ({ ...prev, [slug]: "This file is password protected." }));
+          } else {
+            setFileContents((prev) => ({ ...prev, [slug]: data.content ?? "" }));
+          }
+        } else {
+          const gone = res.status === 404 || res.status === 410;
+          setNotices((prev) => ({
+            ...prev,
+            [slug]: gone ? "This file is no longer available." : "Could not load this file.",
+          }));
         }
       } catch {
-        // Failed to load content
+        setNotices((prev) => ({ ...prev, [slug]: "Could not load this file." }));
       } finally {
         setLoadingFiles((prev) => {
           const next = new Set(prev);
@@ -64,19 +87,19 @@ export function SharePageClient({
   // Build file tabs data
   const tabs = groupFiles.map((f) => ({
     slug: f.slug,
-    filename: f.filename,
-    mime_type: f.mime_type,
-    file_size: f.file_size,
+    filename: f.filename ?? f.slug,
+    mime_type: f.mime_type ?? "text/html",
+    file_size: f.file_size ?? null,
     active: f.slug === activeSlug,
   }));
 
   const sidebarFiles = groupFiles.map((f) => ({
     slug: f.slug,
-    filename: f.filename,
-    mime_type: f.mime_type,
-    file_size: f.file_size,
+    filename: f.filename ?? f.slug,
+    mime_type: f.mime_type ?? "text/html",
+    file_size: f.file_size ?? null,
     download_count: f.download_count,
-    max_downloads: f.max_downloads,
+    max_downloads: f.max_downloads ?? null,
   }));
 
   return (
@@ -104,22 +127,6 @@ export function SharePageClient({
             <div className="flex items-center justify-center py-20">
               <Loader2 className="size-6 animate-spin text-muted-foreground" />
             </div>
-          ) : activeSlug === initialSlug ? (
-            // Show server-rendered content for initial file
-            <div className={isMarkdown ? "p-4 md:p-6" : "p-2"}>
-              {/* Content was already fetched client-side if needed */}
-              {activeContent !== undefined ? (
-                isMarkdown ? (
-                  <MarkdownViewerWrapper content={activeContent} />
-                ) : (
-                  <HtmlViewer htmlContent={activeContent} />
-                )
-              ) : (
-                <div className="flex items-center justify-center py-20 text-muted-foreground text-sm">
-                  Select a file to view
-                </div>
-              )}
-            </div>
           ) : (
             <div className={isMarkdown ? "p-4 md:p-6" : "p-2"}>
               {activeContent !== undefined ? (
@@ -130,7 +137,7 @@ export function SharePageClient({
                 )
               ) : (
                 <div className="flex items-center justify-center py-20 text-muted-foreground text-sm">
-                  Select a file to view
+                  {activeNotice ?? "Select a file to view"}
                 </div>
               )}
             </div>

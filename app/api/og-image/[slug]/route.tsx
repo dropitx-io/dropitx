@@ -1,32 +1,41 @@
 import { ImageResponse } from "@vercel/og";
 import { NextRequest, NextResponse } from "next/server";
-import { createAdminClient } from "@/utils/supabase/server";
+import type { components } from "@/lib/api-types";
+import { forwardHeaders } from "@/lib/api-forward-headers";
 
 export const runtime = "edge";
 
+type ShareMeta = components["schemas"]["ShareMeta"];
+
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ slug: string }> },
 ) {
   const { slug } = await params;
-  const adminClient = createAdminClient();
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL?.trim().replace(/\/+$/, "");
+  if (!apiUrl) {
+    return new NextResponse("API URL is not configured", { status: 500 });
+  }
 
-  const { data: share } = await adminClient
-    .from("shares")
-    .select("filename, title, view_count, is_private, password_hash")
-    .eq("slug", slug)
-    .single();
+  // Metadata only: this route is hit by link unfurlers and must never read content.
+  const res = await fetch(`${apiUrl}/api/shares/${encodeURIComponent(slug)}`, {
+    headers: forwardHeaders(request.headers.get("cf-connecting-ip"), null),
+    cache: "no-store",
+  });
 
-  if (!share) {
+  // Missing, private, expired and rate-limited all look the same to a crawler.
+  if (!res.ok) {
     return new NextResponse("Not found", { status: 404 });
   }
 
-  // Don't expose metadata for private or password-protected shares
-  if (share.is_private || share.password_hash) {
+  const share = (await res.json()) as ShareMeta;
+
+  // Don't expose metadata for password-protected shares
+  if (share.has_password) {
     return new NextResponse("Not found", { status: 404 });
   }
 
-  const title = (share.title ?? share.filename).slice(0, 80);
+  const title = (share.title ?? share.filename ?? share.slug).slice(0, 80);
 
   return new ImageResponse(
     (
@@ -55,7 +64,7 @@ export async function GET(
             color: "#766860",
           }}
         >
-          <span>{share.view_count ?? 0} views</span>
+          <span>{share.view_count} views</span>
           <span style={{ color: "#9a5b3c" }}>DropItX</span>
         </div>
       </div>

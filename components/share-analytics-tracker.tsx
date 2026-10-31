@@ -4,37 +4,34 @@ import { useEffect, useRef } from "react";
 import { getApiUrl } from "@/lib/api-client";
 
 interface ShareAnalyticsTrackerProps {
-  shareId: string;
-  trackingToken: string;
+  slug: string;
 }
 
 /**
- * Client-side tracker that sends a signed token + client referrer to the
- * analytics endpoint. Does NOT increment view_count — server already did that.
+ * Records one page view with the API. Sends only the slug, the client's referrer
+ * and whether the page is framed; the API derives visitor, country and referrer
+ * source itself. Does not change view_count: the content read does.
  */
-export function ShareAnalyticsTracker({ shareId, trackingToken }: ShareAnalyticsTrackerProps) {
+export function ShareAnalyticsTracker({ slug }: ShareAnalyticsTrackerProps) {
   const sent = useRef(false);
 
   useEffect(() => {
-    if (sent.current || !trackingToken) return;
+    if (sent.current) return;
     sent.current = true;
-
-    const isEmbed = window.parent !== window;
 
     fetch(getApiUrl("/api/analytics/track"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        tracking_token: trackingToken,
-        share_id: shareId,
+        slug,
         referrer: document.referrer || null,
-        is_embed: isEmbed,
+        is_embed: window.parent !== window,
       }),
       keepalive: true,
     }).catch(() => {
       // Analytics must never break UX
     });
-  }, [shareId, trackingToken]);
+  }, [slug]);
 
   return null;
 }

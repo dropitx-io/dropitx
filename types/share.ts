@@ -1,3 +1,5 @@
+import type { components } from "@/lib/api-types";
+
 export interface Share {
   id: string;
   slug: string;
@@ -32,14 +34,8 @@ export interface ShareGroup {
   created_at: string;
 }
 
-export interface GroupShare {
-  slug: string;
-  filename: string;
-  mime_type: string;
-  file_size: number | null;
-  download_count: number;
-  max_downloads: number | null;
-}
+/** A sibling share in the same group, as the API lists it on a share page. */
+export type GroupShare = components["schemas"]["GroupFile"];
 
 export interface SearchResult {
   slug: string;

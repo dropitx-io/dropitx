@@ -1,9 +1,10 @@
 import { notFound } from "next/navigation";
-import { createAdminClient } from "@/utils/supabase/server";
 import { getSessionUser } from "@/lib/firebase/server";
 import { cookies } from "next/headers";
 import { EmbedViewedTracker } from "@/components/embed-viewed-tracker";
 import { MarkdownViewerWrapper } from "@/components/markdown-viewer-wrapper";
+import { RevealShareContent } from "@/components/reveal-share-content";
+import { getShareContent, getShareMeta, isOneTimeDownload } from "@/app/(public)/s/[slug]/share-data";
 
 interface EmbedPageProps {
   params: Promise<{ slug: string }>;
@@ -11,20 +12,12 @@ interface EmbedPageProps {
 
 export default async function EmbedPage({ params }: EmbedPageProps) {
   const { slug } = await params;
-  const adminClient = createAdminClient();
-  const cookieStore = await cookies();
+  const share = await getShareMeta(slug);
 
-  const { data: share, error } = await adminClient
-    .from("shares")
-    .select("id, slug, filename, storage_path, mime_type, is_private, password_hash, expires_at, user_id")
-    .eq("slug", slug)
-    .single();
-
-  if (error || !share) notFound();
-  if (share.expires_at && new Date(share.expires_at) < new Date()) notFound();
+  if (!share) notFound();
 
   // Private and password-protected shares return "view only" message
-  const isRestricted = share.is_private || !!share.password_hash;
+  const isRestricted = share.is_private || share.has_password;
 
   if (isRestricted) {
     return (
@@ -43,10 +36,8 @@ export default async function EmbedPage({ params }: EmbedPageProps) {
   }
 
   // Red Team Fix: 2 — Owned shares require auth for embed viewer
-  const isOwnedShare = !!share.user_id;
-
-  if (isOwnedShare) {
-    const sessionUser = await getSessionUser(cookieStore);
+  if (share.has_owner) {
+    const sessionUser = await getSessionUser(await cookies());
 
     if (!sessionUser) {
       return (
@@ -76,14 +67,21 @@ export default async function EmbedPage({ params }: EmbedPageProps) {
     }
   }
 
-  const { data: fileData, error: storageError } = await adminClient.storage
-    .from("html-files")
-    .download(share.storage_path);
-
-  if (storageError || !fileData) notFound();
-
-  const fileContent = await fileData.text();
   const isMarkdown = share.mime_type === "text/markdown";
+
+  // A share that deletes itself on its first content read is revealed by a click, never read here.
+  if (share.burn_after_reading || (await isOneTimeDownload(slug))) {
+    return (
+      <div style={{ background: "#fff8f1" }}>
+        <EmbedViewedTracker slug={slug} />
+        <RevealShareContent slug={slug} isMarkdown={isMarkdown} variant="embed" />
+      </div>
+    );
+  }
+
+  const body = await getShareContent(slug);
+  if (!body) notFound();
+  const fileContent = body.content;
 
   return (
     <div style={{ background: "#fff8f1" }}>
@@ -97,7 +95,7 @@ export default async function EmbedPage({ params }: EmbedPageProps) {
           srcDoc={fileContent}
           style={{ width: "100%", height: "100vh", border: "none" }}
           sandbox="allow-scripts"
-          title={share.filename}
+          title={share.filename ?? share.title ?? slug}
         />
       )}
     </div>
