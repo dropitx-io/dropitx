@@ -12,7 +12,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Key, Plus, Copy, Loader2, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
-import { authFetch } from "@/lib/api-client";
+import { apiErrorDetail, authFetch } from "@/lib/api-client";
 
 interface ApiKey {
   id: string;
@@ -22,11 +22,9 @@ interface ApiKey {
   created_at: string;
 }
 
-interface NewKeyResponse {
+interface NewKeyResponse extends ApiKey {
+  /** The raw key; the API returns it only in the create response. */
   key: string;
-  prefix: string;
-  name: string;
-  created_at: string;
 }
 
 export function ApiKeyManager() {
@@ -41,11 +39,10 @@ export function ApiKeyManager() {
   const fetchKeys = useCallback(async () => {
     try {
       const res = await authFetch("/api/v1/keys");
-      if (!res.ok) throw new Error("Failed to fetch keys");
-      const data = await res.json();
-      setKeys(data.keys ?? []);
-    } catch {
-      toast.error("Failed to load API keys");
+      if (!res.ok) throw new Error(await apiErrorDetail(res, "Failed to fetch keys"));
+      setKeys((await res.json()) as ApiKey[]);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to load API keys");
     } finally {
       setLoading(false);
     }
@@ -69,12 +66,8 @@ export function ApiKeyManager() {
         method: "POST",
         body: JSON.stringify({ name: trimmed }),
       });
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "Failed to generate key");
-      }
-      const data: NewKeyResponse = await res.json();
-      setNewKey(data);
+      if (!res.ok) throw new Error(await apiErrorDetail(res, "Failed to generate key"));
+      setNewKey((await res.json()) as NewKeyResponse);
       setKeyName("");
       // Refresh list (new key won't show the full key, only prefix)
       await fetchKeys();
@@ -91,11 +84,11 @@ export function ApiKeyManager() {
     setRevokingId(id);
     try {
       const res = await authFetch(`/api/v1/keys/${id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Failed to revoke key");
+      if (!res.ok) throw new Error(await apiErrorDetail(res, "Failed to revoke key"));
       toast.success(`Key "${name}" revoked`);
       setKeys((prev) => prev.filter((k) => k.id !== id));
-    } catch {
-      toast.error("Failed to revoke key");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to revoke key");
     } finally {
       setRevokingId(null);
     }

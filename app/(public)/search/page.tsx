@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { SearchBar } from "@/components/search-bar";
 import { SearchResults } from "@/components/search-results";
 import type { SearchResult } from "@/types/share";
-import { getApiUrl } from "@/lib/api-client";
+import { apiErrorDetail, getApiUrl } from "@/lib/api-client";
 
 export default function SearchPage() {
   const searchParams = useSearchParams();
@@ -46,8 +46,7 @@ export default function SearchPage() {
         { signal: controller.signal },
       );
       if (!res.ok) {
-        const body = await res.json().catch(() => null);
-        setError(body?.error ?? "Search failed");
+        setError(await apiErrorDetail(res, "Search failed"));
         setResults([]);
         return;
       }

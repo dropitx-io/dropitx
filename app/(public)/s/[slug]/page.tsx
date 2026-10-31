@@ -1,30 +1,16 @@
 import { notFound, redirect } from "next/navigation";
 import type { Metadata } from "next";
-import { cookies, headers } from "next/headers";
-import { createAdminClient } from "@/utils/supabase/server";
+import { cookies } from "next/headers";
 import { getSessionUser } from "@/lib/firebase/server";
-import { hasValidAccessCookie } from "@/lib/share-access-cookie";
-import { sha256, generateTrackingToken } from "@/lib/analytics-track";
 import { PasswordGate } from "@/components/password-gate";
-import { HtmlViewer } from "@/components/html-viewer";
-import { MarkdownViewerWrapper } from "@/components/markdown-viewer-wrapper";
+import { ShareContentArea } from "@/components/share-content-area";
+import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmbedSnippet } from "@/components/embed-snippet";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { BookmarkToggle } from "@/components/bookmark-toggle";
-import { ShareViewedTracker } from "@/components/share-viewed-tracker";
-import { ShareAnalyticsTracker } from "@/components/share-analytics-tracker";
 import { QrCodeButton } from "@/components/qr-code-button";
-import { SharePageClient } from "@/components/share-page-client";
-import { CommentsSection } from "@/components/comments-section";
 import { FileCode, FileText, Eye, Clock, Calendar } from "lucide-react";
-import type { Share, GroupShare } from "@/types/share";
+import { getShareContent, getShareMeta } from "@/lib/share-data";
 
 const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://dropitx.com";
 
@@ -34,18 +20,12 @@ interface SharePageProps {
 
 export async function generateMetadata({ params }: SharePageProps): Promise<Metadata> {
   const { slug } = await params;
-  const adminClient = createAdminClient();
-
-  const { data: share } = await adminClient
-    .from("shares")
-    .select("id, slug, filename, title, view_count, created_at, is_private, password_hash")
-    .eq("slug", slug)
-    .single<Share>();
+  const share = await getShareMeta(slug);
 
   if (!share) return { title: "Not Found" };
 
   // Red Team Fix: 5 — Don't leak OG tags for private/password-protected shares
-  if (share.is_private || !!share.password_hash) {
+  if (share.is_private || share.has_password) {
     return {
       title: "Protected DropItX Document",
       description: "This content requires authentication to view",
@@ -65,7 +45,7 @@ export async function generateMetadata({ params }: SharePageProps): Promise<Meta
     };
   }
 
-  const title = share.title ?? share.filename;
+  const title = share.title ?? share.filename ?? share.slug;
   const description = `Shared via DropItX — ${share.view_count} views`;
   const ogImageUrl = `${SITE_URL}/api/og-image/${share.slug}`;
   const shareUrl = `${SITE_URL}/s/${share.slug}`;
@@ -122,107 +102,43 @@ function formatFileSize(bytes: number): string {
 
 export default async function SharePage({ params }: SharePageProps) {
   const { slug } = await params;
-  const cookieStore = await cookies();
 
-  // Use admin client to fetch share — needed for password_hash + bypasses RLS for is_private
-  const adminClient = createAdminClient();
-  const { data: share, error: fetchError } = await adminClient
-    .from("shares")
-    .select("id,slug,filename,storage_path,content_text,file_size,mime_type,delete_token,user_id,title,custom_slug,source,is_private,password_hash,created_at,updated_at,expires_at,view_count,group_id")
-    .eq("slug", slug)
-    .single<Share>();
-
-  if (fetchError || !share) notFound();
-
-  if (share.expires_at && new Date(share.expires_at) < new Date()) notFound();
+  const share = await getShareMeta(slug);
+  if (!share) notFound();
 
   // --- ACCESS GATE ---
-  const sessionUser = await getSessionUser(cookieStore);
-  const isOwner = !!sessionUser && sessionUser.uid === share.user_id;
+  const sessionUser = await getSessionUser(await cookies());
+  const isOwner = share.is_owner;
+  // Private shares never reach here: the API answers 404 for everyone but the owner.
+  // A password-protected share shows its header and a password gate, for anonymous and
+  // signed-in non-owners alike; its content is fetched by the gate after an unlock.
+  const gated = !isOwner && share.has_password;
 
-  if (!isOwner) {
-    // Private shares: owner-only (is_private and password_hash are mutually exclusive)
-    if (share.is_private) notFound();
-
-    // Valid access cookie from a previous successful password entry
-    if (!(await hasValidAccessCookie(slug))) {
-      // Password-protected: gate both anonymous and non-owner authenticated users
-      if (share.password_hash) {
-        return <PasswordGate slug={slug} title={share.title ?? share.filename} />;
-      }
-
-      // No password, no session: redirect to login
-      if (!sessionUser) {
-        redirect(`/auth/login?next=/s/${slug}`);
-      }
-      // Non-owner authenticated user on unprotected share: allow
-    }
+  // No password, no session: redirect to login
+  if (!isOwner && !gated && !sessionUser) {
+    redirect(`/auth/login?next=/s/${slug}`);
   }
   // --- END ACCESS GATE ---
 
-  // Record view + increment count via combined RPC (server-side only)
-  const reqHeaders = await headers();
-  const ip =
-    reqHeaders.get("cf-connecting-ip") ??
-    reqHeaders.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-    "";
-  const country =
-    reqHeaders.get("cf-ipcountry") ??
-    reqHeaders.get("x-vercel-ip-country") ??
-    null;
-  const ua = reqHeaders.get("user-agent") ?? "";
-  const visitorHash = await sha256(`${ip}:${ua}`);
+  // A share that deletes itself on its first content read is never read here:
+  // the visitor reveals it with an explicit click.
+  const needsReveal = share.burn_after_reading || share.one_time_download;
 
-  let trackingToken = "";
-  let viewCount = share.view_count + 1;
-
-  try {
-    const { data: viewResult } = await adminClient.rpc("record_and_increment_share_view", {
-      p_share_slug: slug,
-      p_visitor_hash: visitorHash,
-      // Generated RPC signature types these as optional strings (server-side
-      // defaults), not nullable — normalize null to undefined to match.
-      p_referrer: undefined,
-      p_referrer_source: "direct",
-      p_country_code: country ?? undefined,
-    });
-    const row = (viewResult as Array<{ tracking_token: string; is_unique: boolean }>)?.[0];
-    if (row?.tracking_token) {
-      trackingToken = await generateTrackingToken(share.id, row.tracking_token);
-    }
-    viewCount = share.view_count + 1; // optimistic; actual value already incremented in DB
-  } catch {
-    // Analytics must never block viewing — fallback to old increment method
-    const { data: newCount } = await adminClient.rpc("increment_view_count", {
-      share_slug: slug,
-    });
-    viewCount = typeof newCount === "number" ? newCount : share.view_count + 1;
+  let fileContent: string | null = null;
+  if (!gated && !needsReveal) {
+    const body = await getShareContent(slug);
+    if (!body) notFound();
+    fileContent = body.content;
   }
 
-  const { data: fileData, error: storageError } = await adminClient.storage
-    .from("html-files")
-    .download(share.storage_path);
-
-  if (storageError || !fileData) notFound();
-
-  const fileContent = await fileData.text();
   const isMarkdown = share.mime_type === "text/markdown";
-
-  // Fetch sibling files if this share belongs to a group
-  let groupFiles: GroupShare[] = [];
-  if (share.group_id) {
-    const { data: siblings } = await adminClient
-      .from("shares")
-      .select("slug,filename,mime_type,file_size,download_count,max_downloads")
-      .eq("group_id", share.group_id)
-      .order("created_at", { ascending: true });
-    if (siblings) groupFiles = siblings as GroupShare[];
-  }
+  const groupFiles = share.group_files;
+  // The content read above is what counts this visit; the metadata predates it.
+  const viewCount = fileContent === null ? share.view_count : share.view_count + 1;
+  const displayName = share.filename ?? share.title ?? slug;
 
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 md:p-6 max-w-[1200px] mx-auto w-full animate-fade-in">
-      <ShareViewedTracker />
-      <ShareAnalyticsTracker shareId={share.id} trackingToken={trackingToken} />
       {/* Metadata header */}
       <Card>
         <CardHeader className="gap-3">
@@ -235,7 +151,7 @@ export default async function SharePage({ params }: SharePageProps) {
                   <FileCode className="size-5 text-primary" />
                 )}
               </div>
-              <CardTitle className="truncate text-lg">{share.filename}</CardTitle>
+              <CardTitle className="truncate text-lg">{displayName}</CardTitle>
             </div>
             <div className="flex items-center gap-2 shrink-0">
               <Badge variant="outline">
@@ -254,9 +170,9 @@ export default async function SharePage({ params }: SharePageProps) {
               <Eye className="size-3" />
               {viewCount} views
             </span>
-            {share.file_size && (
+            {share.file_size ? (
               <span>{formatFileSize(share.file_size)}</span>
-            )}
+            ) : null}
             {share.expires_at && (
               <span className="flex items-center gap-1">
                 <Clock className="size-3" />
@@ -265,7 +181,7 @@ export default async function SharePage({ params }: SharePageProps) {
             )}
           </CardDescription>
           {/* Embed snippet — only for non-restricted public shares */}
-          {!share.is_private && !share.password_hash && (
+          {!share.is_private && !share.has_password && (
             <div className="mt-3">
               <EmbedSnippet slug={share.slug} />
             </div>
@@ -273,43 +189,24 @@ export default async function SharePage({ params }: SharePageProps) {
         </CardHeader>
       </Card>
 
-      {/* File viewer with tabs for multi-file groups */}
-      {groupFiles.length > 1 ? (
-        <SharePageClient
+      {gated ? (
+        <PasswordGate
+          key={slug}
+          slug={slug}
+          isMarkdown={isMarkdown}
           groupFiles={groupFiles}
-          initialSlug={slug}
           isAuthenticated={!!sessionUser}
-          shareId={share.id}
+          selfDeleting={needsReveal}
         />
       ) : (
-        <>
-          <Card>
-            <CardContent className={isMarkdown ? "p-4 md:p-6" : "p-2"}>
-              {isMarkdown ? (
-                <MarkdownViewerWrapper content={fileContent} />
-              ) : (
-                <HtmlViewer htmlContent={fileContent} />
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Comments section */}
-          <CommentsSectionWrapper shareId={share.id} slug={slug} isAuthenticated={!!sessionUser} />
-        </>
+        <ShareContentArea
+          slug={slug}
+          isMarkdown={isMarkdown}
+          content={fileContent}
+          groupFiles={groupFiles}
+          isAuthenticated={!!sessionUser}
+        />
       )}
     </div>
   );
-}
-
-/** Client wrapper to import CommentsSection for the server component boundary */
-function CommentsSectionWrapper({
-  shareId,
-  slug,
-  isAuthenticated,
-}: {
-  shareId: string;
-  slug: string;
-  isAuthenticated: boolean;
-}) {
-  return <CommentsSection shareId={shareId} slug={slug} isAuthenticated={isAuthenticated} />;
 }

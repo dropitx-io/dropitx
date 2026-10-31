@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Trash2, Loader2, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
-import { authFetch } from "@/lib/api-client";
-import type { TeamRole } from "@/types/team";
+import { apiErrorDetail, authFetch } from "@/lib/api-client";
+import type { TeamMemberRole, TeamRole } from "@/types/team";
 import { TEAM_ROLES } from "@/lib/team-utils";
 
 interface TeamMemberRowProps {
@@ -15,9 +15,9 @@ interface TeamMemberRowProps {
   displayName: string | null;
   avatarUrl: string | null;
   email?: string;
-  role: TeamRole;
+  role: TeamMemberRole;
   /** Current user's role — determines edit permissions. */
-  viewerRole: TeamRole;
+  viewerRole: TeamMemberRole;
   /** Whether this row is the current user. */
   isSelf: boolean;
   teamSlug: string;
@@ -51,10 +51,7 @@ export function TeamMemberRow({
         method: "PATCH",
         body: JSON.stringify({ user_id: userId, role: newRole }),
       });
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "Failed to update role");
-      }
+      if (!res.ok) throw new Error(await apiErrorDetail(res, "Failed to update role"));
       toast.success(`Role updated to ${newRole}`);
       router.refresh();
     } catch (err) {
@@ -70,14 +67,11 @@ export function TeamMemberRow({
 
     setRemoving(true);
     try {
-      const res = await authFetch(
-        `/api/dashboard/teams/${teamSlug}/members?user_id=${userId}`,
-        { method: "DELETE" },
-      );
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "Failed to remove member");
-      }
+      const res = await authFetch(`/api/dashboard/teams/${teamSlug}/members`, {
+        method: "DELETE",
+        body: JSON.stringify({ user_id: userId }),
+      });
+      if (!res.ok) throw new Error(await apiErrorDetail(res, "Failed to remove member"));
       toast.success(isSelf ? "You left the team" : `Removed ${display}`);
       router.refresh();
     } catch (err) {

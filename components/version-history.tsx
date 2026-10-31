@@ -19,15 +19,11 @@ import {
   Clock,
 } from "lucide-react";
 import { toast } from "sonner";
-import { authFetch } from "@/lib/api-client";
+import { apiErrorDetail, authFetch } from "@/lib/api-client";
 
 interface Version {
   version_num: number;
   created_at: string;
-  storage_path?: string;
-  content_text?: string;
-  has_content: boolean;
-  has_file: boolean;
 }
 
 interface VersionHistoryProps {
@@ -56,12 +52,9 @@ export function VersionHistory({ slug }: VersionHistoryProps) {
   const fetchVersions = useCallback(async () => {
     try {
       const res = await authFetch(`/api/shares/${slug}/versions`);
-      if (!res.ok) {
-        const err = await res.json().catch(() => null);
-        throw new Error(err?.error || "Failed to load versions");
-      }
-      const data = await res.json();
-      setVersions(data.versions || data || []);
+      if (!res.ok) throw new Error(await apiErrorDetail(res, "Failed to load versions"));
+      const data = (await res.json()) as { versions: Version[] };
+      setVersions(data.versions);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load versions");
     } finally {
@@ -83,8 +76,8 @@ export function VersionHistory({ slug }: VersionHistoryProps) {
       const res = await authFetch(
         `/api/shares/${slug}/versions/${version.version_num}`
       );
-      if (!res.ok) throw new Error("Failed to load version");
-      const data = await res.json();
+      if (!res.ok) throw new Error(await apiErrorDetail(res, "Failed to load version"));
+      const data = (await res.json()) as { content_text: string | null };
       setPreviewContent(data.content_text || "(No text content for this version)");
     } catch {
       setPreviewContent("Failed to load version content.");
@@ -104,10 +97,7 @@ export function VersionHistory({ slug }: VersionHistoryProps) {
         method: "POST",
       });
 
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({ error: "Restore failed" }));
-        throw new Error(err.error || "Restore failed");
-      }
+      if (!res.ok) throw new Error(await apiErrorDetail(res, "Restore failed"));
 
       toast.success(`Restored to version ${versionNum}`);
       // Refresh version list

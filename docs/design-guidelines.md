@@ -112,7 +112,7 @@ Charts use vivid, distinct hues inspired by Clay's warmth:
 - **EditorPublishBar**: Title input, custom slug input, privacy toggle, publish button; sticky at bottom
 
 ### Dashboard / Auth Components
-- **DashboardShareCard**: Share card with title, slug, stats (views), edit/delete actions, password lock toggle
+- **DashboardShareList**: Dashboard list of shares with title, slug, stats (views), edit/delete actions
 - **ApiKeyManager**: Table of API keys (prefix, created_at, last_used_at); create/revoke actions
 - **BookmarkToggle**: Icon button; filled/outline state; optimistic update
 - **ProfileForm**: Display name + avatar URL inputs with save feedback
@@ -203,7 +203,7 @@ Tailwind breakpoints (mobile-first):
 | Copy to clipboard | `navigator.clipboard.writeText` with fallback |
 | Search | Debounced input → URL params → API call → results |
 | Theme toggle | Class-based `.dark` on `<html>` |
-| OAuth login | Button click → Supabase OAuth redirect → callback |
+| OAuth login | Button click → Firebase sign-in popup → session cookie minted |
 | Email authentication | Split-screen login with form validation and PKCE flow |
 | Team invite | Single invite with role selection, bulk invite, resend functionality |
 | Favorites toggle | `BookmarkToggle`; optimistic update; auth-gated |
@@ -220,5 +220,5 @@ Tailwind breakpoints (mobile-first):
 - **File validation**: Extension (`.html`/`.htm`/`.md`), size (≤ 50 MB) checks client-side; MIME validation server-side
 - **Image validation**: Extension + size (≤ 5 MB) client-side hint; full validation server-side
 - **Rate limiting**: 10 requests/minute per IP on write endpoints; 5 attempts/10 min for password unlock
-- **Password protection**: bcryptjs hash with HMAC-SHA256 access cookies; multi-layer access gates
-- **Team workspace isolation**: RLS policies ensure members only see their own workspace content
+- **Password protection**: verified by the API's unlock endpoint; the unlocked content renders in place (no access cookie)
+- **Team workspace isolation**: the API ensures members only see their own workspace content

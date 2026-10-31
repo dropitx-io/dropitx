@@ -2,7 +2,7 @@
 
 ## Overview
 
-DropItX is a Next.js 16 application (App Router) deployed on Vercel as a pure frontend. All API logic runs on a FastAPI backend (`dropitx-api.onrender.com`) with Supabase (PostgreSQL + Storage) and Upstash Redis (rate limiting). Features include team workspaces, analytics dashboard, password-protected shares, end-to-end encryption (AES-256-GCM), burn-after-reading, version history, multi-file support, comments, QR code generation, rich embedding via oEmbed, and programmatic access via REST API. Supports two auth models: JWT Bearer token (browser) and API key (programmatic). Latest design system: Clay (light-first, warm cream canvas, terracotta accent, organic radii).
+DropItX is a Next.js 16 application (App Router), a pure frontend with no database, storage or rate-limit credentials. All data logic runs on the FastAPI backend (`dropitx-api`, at `NEXT_PUBLIC_API_URL`); sign-in is Firebase Auth. Features include team workspaces, analytics dashboard, password-protected shares, burn-after-reading, version history, multi-file support, comments, QR code generation, rich embedding via oEmbed, and programmatic access via REST API. Two auth models reach the API: a Firebase token (browser ID token, or the session cookie forwarded by server components) and an API key (programmatic). End-to-end encrypted publishing and viewing is not available in the web app (planned). Latest design system: Clay (light-first, warm cream canvas, terracotta accent, organic radii).
 
 ## Architecture Diagram
 
@@ -17,37 +17,32 @@ DropItX is a Next.js 16 application (App Router) deployed on Vercel as a pure fr
         │             │           │               │
         ▼             ▼           ▼               ▼
 ┌──────────────────────────────────────────────────────────────┐
-│                     Next.js (Vercel)                         │
-│  Pure frontend — no API routes (except /api/og-image/[slug]) │
-│  Client components use authFetch() / fetch(getApiUrl())      │
-│  lib/api-client.ts: singleton Supabase client + 401 retry   │
-└──────────────────────────┬───────────────────────────────────┘
-                           │  JWT Bearer token
-                           ▼
-┌──────────────────────────────────────────────────────────────┐
-│                  FastAPI Backend (Render)                     │
-│  dropitx-api.onrender.com                                    │
-│                                                              │
-│  POST /api/upload     GET /api/search    POST /api/publish   │
-│  POST /api/images/upload                                   │
-│  GET/PATCH/DELETE /api/shares/{slug}                        │
-│  POST /api/shares/{slug}/unlock                              │
-│  POST /api/shares/{slug}/set-password                        │
-│  POST /api/analytics/track   GET /api/oembed                 │
-│  GET|POST /api/v1/keys    DELETE /api/v1/keys/{key_id}      │
-│  POST /api/v1/documents  GET /api/v1/documents              │
-│  CRUD /api/dashboard/teams, /api/dashboard/teams/{slug}/*   │
-│  POST /api/invite/accept   POST /api/invite/decline          │
-│                                                              │
-│  JWT validation via JWKS  ·  Rate limiting via Upstash       │
-└───────────┬──────────────────────────────────────────────────┘
-            │                      │
-            ▼                      ▼
-┌───────────────────┐  ┌──────────────────────┐
-│  Supabase         │  │  Upstash Redis       │
-│  PostgreSQL (RLS) │  │  Rate Limiting       │
-│  Storage (S3)     │  │  (10 req/min/IP)     │
-└───────────────────┘  └──────────────────────┘
+│                          Next.js                             │
+│  Own routes: /api/og-image/[slug], /api/auth/session-login,  │
+│  /api/auth/session-logout                                    │
+│  Browser code: authFetch() (lib/api-client.ts)               │
+│  Server components: serverApiFetch() (lib/server-api.ts)     │
+│  middleware.ts: /dashboard session-cookie gate + headers     │
+└───────────────┬──────────────────────────────┬───────────────┘
+                │ Firebase ID token /          │ sign-in, session
+                │ session cookie as Bearer     │ cookie mint+verify
+                ▼                              ▼
+┌───────────────────────────────────┐  ┌──────────────────────┐
+│         FastAPI Backend           │  │    Firebase Auth     │
+│  POST /api/upload  GET /api/search│  └──────────────────────┘
+│  POST /api/publish                │
+│  POST /api/images/upload          │
+│  GET/PATCH/DELETE /api/shares/{slug}
+│  GET  /api/shares/{slug}/content  │
+│  POST /api/shares/{slug}/unlock   │
+│  POST /api/analytics/track        │
+│  GET  /api/oembed                 │
+│  GET|POST /api/v1/keys, /api/v1/documents
+│  /api/dashboard/* (shares, analytics, teams)
+│  GET /api/invite/{token}, POST /api/invite/accept|decline
+│                                   │
+│  Postgres, object storage and rate limiting sit behind the API
+└───────────────────────────────────┘
 ```
 
 ## Component Hierarchy
@@ -55,6 +50,8 @@ DropItX is a Next.js 16 application (App Router) deployed on Vercel as a pure fr
 ```
 RootLayout (app/layout.tsx)
 ├── ThemeProvider
+├── AuthProvider (Firebase)
+├── ErrorBoundary
 ├── Toaster (sonner)
 └── Routes
     ├── (public)/ (PublicLayout)
@@ -76,7 +73,8 @@ RootLayout (app/layout.tsx)
     │   │       ├── EditorPreview (react-markdown + shiki)
     │   │       └── EditorPublishBar
     │   ├── /s/[slug] (SharePage)
-    │   │   ├── PasswordGate (when share has password)
+    │   │   ├── PasswordGate (when share has password; unlocks via the API and renders in place)
+    │   │   ├── RevealShareContent (burn-after-reading / one-time shares)
     │   │   ├── HtmlViewer (sandboxed iframe, .html files)
     │   │   ├── MarkdownViewerWrapper (lazy loaded, .md files)
     │   │   ├── BookmarkToggle
@@ -87,18 +85,17 @@ RootLayout (app/layout.tsx)
     │   ├── /auth/login → Email/password + OAuth
     │   ├── /auth/reset-password → Password reset form
     │   ├── /auth/update-password → Password update form
-    │   ├── /auth/confirm → Email confirmation
-    │   └── /invite/accept → InviteAcceptForm
+    │   └── /invite/[token] → InviteStatusCard + InviteActions (/invite/accept?token= redirects here)
     │
     └── (dashboard)/ (DashboardLayout)
         ├── DashboardSidebarNav (desktop)
         ├── DashboardMobileNav (mobile)
         ├── DashboardToolbar
         ├── /dashboard/page.tsx (share list + stats)
-        │   ├── DashboardShareCard
+        │   ├── DashboardShareList
         │   └── ApiKeyManager
         ├── /dashboard/profile → ProfileForm
-        ├── /dashboard/favorites → DashboardShareCard list
+        ├── /dashboard/favorites → DashboardShareList
         ├── /dashboard/analytics
         │   ├── AnalyticsStatsCards
         │   ├── AnalyticsViewChart, GeoChart, ReferrerChart
@@ -116,17 +113,16 @@ RootLayout (app/layout.tsx)
 
 ### Session Auth (Browser)
 ```
-User clicks OAuth → /auth/login
-  → supabase.auth.signInWithOAuth({ provider })
-  → Redirect to Google/GitHub
-  → /auth/callback → exchangeCodeForSession() + INSERT user_profiles
-  → Redirect to /dashboard
+User clicks Google/GitHub or submits email/password → /auth/login
+  → Firebase SDK signs in (lib/firebase/auth.ts)
+  → AuthProvider posts the ID token to POST /api/auth/session-login
+  → Server mints an httpOnly `session` cookie (14 days, SameSite=Lax)
+  → Redirect to /dashboard (or the ?next= path)
 
-Email/Password Auth → /auth/login (split-screen)
-  → Email signup + validation flow
-  → Password reset flow (request → email → update)
-  → Email confirmation page
-  → PKCE flow for email authentication
+Sign-out → POST /api/auth/session-logout
+  → revoke refresh tokens + clear the cookie, then sign out the Firebase client
+
+Password reset → /auth/reset-password → Firebase email → /auth/update-password
 ```
 
 ### API Key Auth (Programmatic)
@@ -139,46 +135,46 @@ Requests: Authorization: Bearer shk_...
   → FastAPI: SHA-256 hash → SELECT from api_keys WHERE key_hash = ?
 ```
 
-### Share Access Cookie (Password-Protected)
+### Password-Protected Shares
 ```
-POST /api/shares/[slug]/unlock { password }
-  → FastAPI: bcryptjs.compare(password, shares.password_hash)
-  → On match: HMAC-SHA256 signed cookie (SHARE_ACCESS_SECRET)
-  → Set-Cookie: share_access_{slug}=<signed>; HttpOnly; SameSite=Lax; Max-Age=86400
+PasswordGate → POST {API}/api/shares/{slug}/unlock { password }
+  → API verifies the password and returns the content
+  → PasswordGate renders it in place; no cookie is set, a refresh asks again
+Owners read their own protected content from /content without the password.
 ```
 
-### Session Management & Cross-Tab Sync
+### Session Gate and Cross-Tab Behavior
 
-`middleware.ts` runs on every request to maintain session freshness and prevent cross-tab logouts:
-- Calls `updateSession()` to validate JWT and refresh expired access tokens
-- Rewrites rotated auth cookies to **both request and response** so the browser always receives them
-- This ensures tabs stay in sync; if one tab refreshes the token, all tabs see the new cookie
-- Returns the modified response (with refreshed headers) — critical to prevent stale token reuse
+`middleware.ts` runs on every request except static assets and `/api/og-image`:
+- Redirects `/dashboard/*` to `/auth/login?next=<path>` when the `session` cookie is absent (a presence check; server components verify it with `firebase-admin`)
+- Adds security headers (and HSTS in production)
+
+The cookie is shared by all tabs, so signing out in one tab ends the session in all of them.
 
 ### Auth Layers
 | Layer | Implementation |
 |-------|---------------|
-| Middleware | `/dashboard/*` redirect unauthenticated to `/auth/login` |
-| Session | Supabase SSR cookies, PKCE flow |
-| OAuth | Google, GitHub, and email/password via Supabase config |
-| API Key | SHA-256 hash lookup; soft-revoke via `revoked_at` |
-| Share access cookie | HMAC-SHA256 signed HttpOnly cookie; 24 h TTL |
-| RLS | Owner-only on `user_profiles`, `favorites`, `api_keys`; private share filter |
+| Middleware | `/dashboard/*` redirects when the `session` cookie is absent |
+| Session | Firebase session cookie, verified server-side with `firebase-admin` |
+| Sign-in | Google, GitHub and email/password via Firebase Auth |
+| API Key | SHA-256 hash lookup in the API; soft-revoke via `revoked_at` |
+| Share access | Password verified by the API per request; no frontend cookie |
+| Authorization | Enforced by the API (owner-only, private-share filter, team roles) |
 
-### Supabase Client Usage
-| Client | Export | Use Case |
-|--------|--------|----------|
-| Browser | `client.ts` | Client components |
-| Server (anon) | `server.ts → createClient()` | Server components, reads respecting RLS |
-| Admin | `server.ts → createAdminClient()` | Mutations, storage ops (bypasses RLS) |
+### Calling the API
+| Caller | Helper | Credentials |
+|--------|--------|-------------|
+| Client components | `authFetch()` (`lib/api-client.ts`) | Firebase ID token as Bearer; one forced refresh and retry on 401 |
+| Server components | `serverApiFetch()` (`lib/server-api.ts`) | `session` cookie as Bearer when present; forwards `cf-connecting-ip` |
+| OG image route | `fetch` to `GET /api/shares/{slug}` | none; metadata only |
 
 ## Data Flow
 
 ### Upload Flow
 ```
 User drops file → UploadDropzone (.html/.htm/.md, ≤50 MB)
-  → authFetch("/api/upload") → FastAPI: rate limit → validate → upload to Storage
-  → extract text → INSERT shares → on failure: compensating DELETE from storage
+  → authFetch("/api/upload") → FastAPI: rate limit → validate → store file
+  → create the share (cleaning up the stored file on failure)
   → Return { slug, shareUrl }
 ```
 
@@ -187,20 +183,23 @@ User drops file → UploadDropzone (.html/.htm/.md, ≤50 MB)
 EditorPane → useEditorAutoSave (localStorage draft)
   → EditorPublishBar: title, custom_slug, is_private
   → authFetch("/api/publish") { content, title, custom_slug, is_private }
-  → FastAPI: INSERT shares (source='editor') → redirect to /s/[slug]
+  → FastAPI creates the share (source='editor') → redirect to /s/[slug]
 ```
 
 ### Image Upload Flow
 ```
 Image dropped in EditorPane → authFetch("/api/images/upload") (≤5 MB)
-  → FastAPI: Upload to Storage (images/ prefix) → insert ![alt](url) at cursor
+  → FastAPI stores the image → insert ![alt](url) at cursor
 ```
 
 ### View Flow
 ```
-GET /s/[slug] → fetch share (anon client) → check expiration
-  → Access gate: owner bypass → private check → access cookie → password gate → auth gate
-  → Download from Storage → increment_view_count → render by mime_type
+GET /s/[slug] → getShareMeta (GET /api/shares/{slug}; never counts a view)
+  → missing / private-to-others / expired → not found
+  → password share (non-owner) → PasswordGate, content fetched after unlock
+  → burn-after-reading / one-time share → reveal state; /content is read on a click
+  → plain share, anonymous visitor → redirect to /auth/login?next=/s/[slug]
+  → otherwise getShareContent (GET /content; counts the view) → render by mime_type
 ```
 
 ### API Key Lifecycle
@@ -210,151 +209,23 @@ GET  /api/v1/keys        → list (prefix only, never hash)
 DELETE /api/v1/keys/[id]  → set revoked_at = NOW()
 ```
 
-## Database Schema
+## Data Model
 
-### `shares` table
-| Column | Type | Notes |
-|--------|------|-------|
-| `id` | UUID PK | auto-generated |
-| `slug` | VARCHAR(10) UNIQUE | nanoid, URL identifier |
-| `filename` | VARCHAR(255) | original filename |
-| `storage_path` | TEXT | path in Supabase Storage |
-| `content_text` | TEXT | extracted text for search |
-| `search_vec` | TSVECTOR (GENERATED) | weighted index (A: filename, B: content) |
-| `file_size` | INTEGER | bytes |
-| `mime_type` | VARCHAR(100) | default `text/html` |
-| `delete_token` | VARCHAR(32) | required for file-upload deletion |
-| `user_id` | UUID FK (nullable) | links to `auth.users` |
-| `title` | TEXT | display title |
-| `custom_slug` | VARCHAR(100) UNIQUE PARTIAL | `handle/slug` format |
-| `source` | TEXT | `'upload'` or `'editor'` |
-| `is_private` | BOOLEAN | hidden from search/listing |
-| `password_hash` | TEXT (nullable) | bcryptjs hash; never sent to client |
-| `updated_at` | TIMESTAMPTZ | trigger-updated |
-| `created_at` | TIMESTAMPTZ | auto-set |
-| `expires_at` | TIMESTAMPTZ | default NOW() + 30 days |
-| `view_count` | INTEGER | atomic increment via RPC |
-
-### `user_profiles` table
-| Column | Type | Notes |
-|--------|------|-------|
-| `id` | UUID PK FK → auth.users | |
-| `display_name` | TEXT | editable |
-| `avatar_url` | TEXT | editable |
-| `created_at` | TIMESTAMPTZ | |
-| `updated_at` | TIMESTAMPTZ | trigger-updated |
-
-### `favorites` table
-| Column | Type | Notes |
-|--------|------|-------|
-| `id` | UUID PK | |
-| `user_id` | UUID FK | |
-| `share_id` | UUID FK | |
-| `created_at` | TIMESTAMPTZ | UNIQUE(user_id, share_id) |
-
-### `api_keys` table
-| Column | Type | Notes |
-|--------|------|-------|
-| `id` | UUID PK | |
-| `user_id` | UUID FK | |
-| `name` | TEXT | user-supplied label |
-| `key_hash` | VARCHAR(64) | SHA-256 of full key |
-| `key_prefix` | VARCHAR(12) | display only (`shk_xxxxxx`) |
-| `last_used_at` | TIMESTAMPTZ | async update on auth |
-| `created_at` | TIMESTAMPTZ | |
-| `revoked_at` | TIMESTAMPTZ nullable | soft-delete |
-
-### `team_workspaces` table
-| Column | Type | Notes |
-|--------|------|-------|
-| `id` | UUID PK | auto-generated |
-| `name` | TEXT | workspace name |
-| `description` | TEXT | nullable |
-| `owner_id` | UUID FK → auth.users | workspace owner |
-| `created_at` | TIMESTAMPTZ | |
-| `updated_at` | TIMESTAMPTZ | trigger-updated |
-
-### `workspace_members` table
-| Column | Type | Notes |
-|--------|------|-------|
-| `id` | UUID PK | |
-| `workspace_id` | UUID FK → team_workspaces | |
-| `user_id` | UUID FK → auth.users | |
-| `role` | TEXT | `'owner'` or `'member'` |
-| `created_at` | TIMESTAMPTZ | UNIQUE(workspace_id, user_id) |
-
-### `workspace_shares` table
-| Column | Type | Notes |
-|--------|------|-------|
-| `id` | UUID PK | |
-| `workspace_id` | UUID FK → team_workspaces | |
-| `share_id` | UUID FK → shares | |
-| `user_id` | UUID FK → auth.users | |
-| `created_at` | TIMESTAMPTZ | UNIQUE(workspace_id, share_id) |
-
-### `analytics_events` table
-| Column | Type | Notes |
-|--------|------|-------|
-| `id` | UUID PK | auto-generated |
-| `event_type` | TEXT | `'page_view'`, `'search'`, `'upload'`, `'api_call'` |
-| `user_id` | UUID FK (nullable) | authenticated user |
-| `session_id` | UUID | anonymous session tracking |
-| `metadata` | JSONB | event-specific data |
-| `user_agent` | TEXT | browser/user agent string |
-| `ip_address` | INET | client IP |
-| `created_at` | TIMESTAMPTZ | auto-set |
-
-### RPCs
-- `search_shares(query, limit, offset)` — full-text search with ranking + highlighted snippets
-- `increment_view_count(slug)` — atomic view counter
-- `get_user_workspaces(user_id)` — list workspaces for a user
-- `is_user_in_workspace(user_id, workspace_id)` — check workspace access
-- `get_workspace_shares(workspace_id)` — list shares in a workspace
-
-## Storage
-
-- **Bucket**: `html-files` (public, 50 MB max)
-- **Uploaded files path**: `{uuid}.html` or `{uuid}.md`
-- **Editor images path**: `images/{uuid}.{ext}`
-- **Access**: Public read via Supabase CDN; admin-only write
-
-## Migrations
-
-| File | Creates |
-|------|---------|
-| `20260423000001_add_auth_tables.sql` | `user_profiles`, `favorites`, `shares.user_id`, `shares.title` |
-| `20260424000001_add_editor_columns.sql` | `shares.source`, `shares.custom_slug`, `shares.is_private`, `shares.updated_at` |
-| `20260424000002_add_api_keys.sql` | `api_keys` table + RLS |
-| `20260424000003_private_search_filter.sql` | Updates `search_shares` RPC to filter private shares |
-| `20260425000001_add_share_password.sql` | `shares.password_hash` |
-| `20260425045621_rate-limits-supabase.sql` | Rate limiting policies |
-| `20260426000001_share_views.sql` | Share view tracking |
-| `20260426000002_teams.sql` | `team_workspaces`, `workspace_members`, `workspace_shares` |
-| `20260428000001_fix_team_owner_trigger_rls.sql` | RLS fixes for team owner |
-| `20260428000002_fix_team_members_rls_recursion.sql` | Fix infinite recursion |
-| `20260428000003_fix_teams_insert_policy.sql` | Team member insert policy fixes |
-| `20260428000004_fix_rls_policies_use_anon_role.sql` | RLS policy anon role updates |
-| `20260428162629_fix_rls_policies_to_authenticated.sql` | RLS policies to authenticated role |
-| `20260429_team_lifecycle_redesign.sql` | Team lifecycle redesign with event sourcing |
-| `20260429180000_decline_team_invite.sql` | Decline invite RPC with email validation |
-| `20260430121500_fix_ambiguous_team_id_in_invite_policies.sql` | Fix ambiguous team_id in invite policies |
+The frontend has no database or storage access. Tables, RPCs, buckets and migrations belong to `dropitx-api` (`infra/init`); the frontend sees them as JSON the API returns, typed in `lib/api-types.ts` (generated with `npm run generate-types`) and `types/`. Team member roles the API allows are `owner`, `editor`, `viewer`, plus the legacy `member` and `admin` (`TeamMemberRole` in `types/team.ts`).
 
 ## Security Layers
 
+The frontend enforces the following itself; everything else on this list is enforced by the API.
+
 | Layer | Implementation |
 |-------|---------------|
-| File validation | Extension (.html/.htm/.md), MIME type, size ≤ 50 MB |
-| Image validation | MIME type (png/jpg/gif/webp), size ≤ 5 MB, auth required |
-| Rate limiting | Upstash sliding window: 10 req/min per IP (upload/API); 5 attempts/10 min per IP (password unlock) |
 | HtmlViewer sandbox | `sandbox="allow-scripts"` + CSP meta tag |
-| Delete protection | Random 32-char token (file-upload shares) |
-| Slug validation | Regex pattern check on API routes |
-| DB access | RLS for reads; service_role for writes |
-| API key auth | SHA-256 hash stored; `revoked_at` soft-delete |
-| Private shares | RLS + `search_shares` RPC filter non-owner |
-| Password protection | bcryptjs hash; HMAC-SHA256 signed HttpOnly access cookie (24 h) |
-| Compensating tx | Storage cleanup if DB insert fails |
-| Workspace access | RLS on `team_workspaces`, `workspace_members`, `workspace_shares` |
+| Security headers | `middleware.ts`: nosniff, `X-Frame-Options: DENY`, referrer policy, permissions policy, HSTS in production |
+| Session | httpOnly `session` cookie; `/dashboard/*` gated |
+| Metadata paths | `generateMetadata` and the OG route read only `GET /api/shares/{slug}`, never `/content` |
+| Token hygiene | Invite tokens and delete tokens are never rendered or logged except where the UI already shows a delete token to its owner; server error messages redact token path segments |
+
+API-side: file and image validation, rate limiting, slug validation, API key hashing and revocation, private-share filtering, password verification, team authorization.
 
 ## oEmbed Endpoint
 
@@ -366,9 +237,8 @@ Security: domain validation, rate limiting, CSP headers for embedded content.
 
 ## Analytics Tracking
 
-- **Page Views**: `GET /s/[slug]` captures view events
-- **Custom Tracking**: `lib/analytics-track.ts` + `lib/analytics.ts`
-- **Vercel Analytics**: `@vercel/analytics` integration
+- **Page Views**: `ShareAnalyticsTracker` posts slug, referrer and embed flag to `POST /api/analytics/track`; the API derives visitor, country and referrer source. Content reads count `view_count`.
+- **Product events**: `lib/analytics.ts` keeps `trackEvent` and the event names as a no-op; no third-party analytics sink is wired up, so no page path (including `/invite/<token>`) leaves the app.
 - **Dashboard**: `/dashboard/analytics` with charts (Recharts)
 - **Per-share**: `/dashboard/analytics/[slug]` for individual share metrics
 - **Components**: StatsCards, ViewChart, GeoChart, ReferrerChart, TopPerformers
@@ -377,13 +247,12 @@ Security: domain validation, rate limiting, CSP headers for embedded content.
 
 - **Creation**: Owner creates workspace, auto-added as member
 - **Members**: Owner invites via `/api/dashboard/teams/[slug]/invites`
-- **Content**: Members share content to workspace via `workspace_shares` junction
-- **RLS**: All workspace tables enforce membership-based access control
+- **Content**: Members share content to the workspace through the API
+- **Authorization**: the API enforces membership-based access control
 - **API**: CRUD under `/api/dashboard/teams/[slug]/` — members, invites, shares
 - **Enhanced Invite System**: 
   - Single invite with role selection and email validation
   - Bulk invite with multiple email addresses support
   - Invite resend functionality
-  - Invite accept flow with team join
-  - Team RPC client for type-safe server communication
-  - Token security utilities for invite token management
+  - Invite page `/invite/[token]` (accept or decline), linked from the API's `invite_url`
+  - Invite tokens reach the frontend only through that URL and are redacted from error messages

@@ -16,6 +16,7 @@ import {
   Upload,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { formatFileSize } from "@/lib/file-utils";
 
 interface Team {
   slug: string;
@@ -25,6 +26,8 @@ interface Team {
 interface DashboardShellProps {
   user: { displayName: string; email: string; initials: string };
   teams: Team[];
+  /** Total bytes across the caller's shares; null when the API could not report it. */
+  storageUsedBytes: number | null;
   children: React.ReactNode;
 }
 
@@ -39,7 +42,7 @@ const ACCOUNT_NAV = [
   { href: "/dashboard/profile", label: "Profile", icon: User },
 ];
 
-export function DashboardShell({ user, teams, children }: DashboardShellProps) {
+export function DashboardShell({ user, teams, storageUsedBytes, children }: DashboardShellProps) {
   const pathname = usePathname();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
@@ -154,23 +157,22 @@ export function DashboardShell({ user, teams, children }: DashboardShellProps) {
         })}
       </nav>
 
-      {/* Footer — storage meter + profile */}
+      {/* Footer — storage used + profile */}
       <div className="mt-3 rounded-[22px] bg-background p-4">
-        <div className="flex items-baseline justify-between font-mono text-[11px] tracking-[0.04em] text-muted-foreground">
-          <span>STORAGE</span>
-          <span><b className="font-bold text-foreground">2.4</b> / 5 GB</span>
-        </div>
-        <div className="mt-2.5 h-2 overflow-hidden rounded-full bg-surface-warm shadow-[inset_1px_1px_3px_rgba(128,92,70,0.18)]">
-          <div className="h-full w-[47%] rounded-full bg-primary" />
-        </div>
-        <div className="mt-4 flex items-center gap-3">
+        {storageUsedBytes !== null && (
+          <div className="mb-4 flex items-baseline justify-between font-mono text-[11px] tracking-[0.04em] text-muted-foreground">
+            <span>STORAGE USED</span>
+            <b className="font-bold text-foreground">{formatFileSize(storageUsedBytes)}</b>
+          </div>
+        )}
+        <div className="flex items-center gap-3">
           <span className="grid size-[38px] place-items-center rounded-full bg-background font-mono text-xs font-semibold text-primary clay-raised">
             {user.initials}
           </span>
           <div className="min-w-0 flex-1">
             <p className="truncate text-[13.5px] font-semibold">{user.displayName}</p>
-            <p className="font-mono text-[10px] uppercase tracking-[0.06em] text-muted-foreground">
-              Pro plan
+            <p className="truncate font-mono text-[10px] tracking-[0.02em] text-muted-foreground">
+              {user.email}
             </p>
           </div>
           <Link

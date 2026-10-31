@@ -36,7 +36,6 @@ interface CommentsResponse {
 }
 
 interface CommentsSectionProps {
-  shareId: string;
   slug: string;
   isAuthenticated: boolean;
 }
@@ -89,6 +88,12 @@ function buildCommentTree(comments: Comment[]): Comment[] {
   return roots;
 }
 
+/** The API's `detail` message when it is a string (validation errors send a list), else the fallback. */
+async function errorDetail(res: Response, fallback: string): Promise<string> {
+  const body = (await res.json().catch(() => null)) as { detail?: unknown } | null;
+  return typeof body?.detail === "string" ? body.detail : fallback;
+}
+
 /** Count all comments including nested replies */
 function countAllComments(comments: Comment[]): number {
   let count = 0;
@@ -105,7 +110,6 @@ interface CommentItemProps {
   comment: Comment;
   depth: number;
   isAuthenticated: boolean;
-  shareId: string;
   slug: string;
   onReplyPosted: (newComment: Comment) => void;
 }
@@ -114,7 +118,6 @@ function CommentItem({
   comment,
   depth,
   isAuthenticated,
-  shareId,
   slug,
   onReplyPosted,
 }: CommentItemProps) {
@@ -137,15 +140,14 @@ function CommentItem({
       };
       if (!isAuthenticated && replyName.trim()) body.author_name = replyName.trim();
 
-      const res = await fetch(getApiUrl(`/api/shares/${shareId}/comments`), {
+      const res = await fetch(getApiUrl(`/api/shares/${encodeURIComponent(slug)}/comments`), {
         method: "POST",
         headers: { ...authHeaders, "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
 
       if (!res.ok) {
-        const err = await res.json().catch(() => ({ error: "Failed to post reply" }));
-        throw new Error(err.error || "Failed to post reply");
+        throw new Error(await errorDetail(res, "Failed to post reply"));
       }
 
       const newComment: Comment = await res.json();
@@ -268,7 +270,6 @@ function CommentItem({
               comment={reply}
               depth={depth + 1}
               isAuthenticated={isAuthenticated}
-              shareId={shareId}
               slug={slug}
               onReplyPosted={onReplyPosted}
             />
@@ -279,7 +280,7 @@ function CommentItem({
   );
 }
 
-export function CommentsSection({ shareId, slug, isAuthenticated }: CommentsSectionProps) {
+export function CommentsSection({ slug, isAuthenticated }: CommentsSectionProps) {
   const [comments, setComments] = useState<Comment[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -296,7 +297,7 @@ export function CommentsSection({ shareId, slug, isAuthenticated }: CommentsSect
     async (pageNum: number, append = false) => {
       try {
         const authHeaders = await getAuthHeaders();
-        const url = getApiUrl(`/api/shares/${shareId}/comments?page=${pageNum}&per_page=${perPage}`);
+        const url = getApiUrl(`/api/shares/${encodeURIComponent(slug)}/comments?page=${pageNum}&per_page=${perPage}`);
         const res = await fetch(url, { headers: authHeaders });
 
         if (!res.ok) {
@@ -315,11 +316,12 @@ export function CommentsSection({ shareId, slug, isAuthenticated }: CommentsSect
         setLoadingMore(false);
       }
     },
-    [shareId]
+    [slug]
   );
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- canonical fetch-on-mount; setStates only run after await inside fetchComments
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- a new slug (group tab switch) must not show the previous file's comments while this one loads
+    setLoading(true);
     fetchComments(1);
   }, [fetchComments]);
 
@@ -333,15 +335,14 @@ export function CommentsSection({ shareId, slug, isAuthenticated }: CommentsSect
       const body: Record<string, string> = { content: content.trim() };
       if (!isAuthenticated && name.trim()) body.author_name = name.trim();
 
-      const res = await fetch(getApiUrl(`/api/shares/${shareId}/comments`), {
+      const res = await fetch(getApiUrl(`/api/shares/${encodeURIComponent(slug)}/comments`), {
         method: "POST",
         headers: { ...authHeaders, "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
 
       if (!res.ok) {
-        const err = await res.json().catch(() => ({ error: "Failed to post comment" }));
-        throw new Error(err.error || "Failed to post comment");
+        throw new Error(await errorDetail(res, "Failed to post comment"));
       }
 
       const newComment: Comment = await res.json();
@@ -432,7 +433,6 @@ export function CommentsSection({ shareId, slug, isAuthenticated }: CommentsSect
                 comment={comment}
                 depth={0}
                 isAuthenticated={isAuthenticated}
-                shareId={shareId}
                 slug={slug}
                 onReplyPosted={handleReplyPosted}
               />

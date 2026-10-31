@@ -5,7 +5,7 @@ import { Bell, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useAuthUser } from "@/lib/use-auth-user";
-import { authFetch } from "@/lib/api-client";
+import { apiErrorDetail, authFetch } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -20,9 +20,9 @@ interface Invite {
   role: string;
   token: string;
   created_at: string;
-  team_name: string;
-  team_slug: string;
-  inviter_name: string;
+  status: string;
+  teams: { name: string; slug: string };
+  user_profiles: { display_name: string | null } | null;
 }
 
 function formatTimeAgo(dateStr: string): string {
@@ -51,8 +51,10 @@ export function InviteNotificationBell() {
       try {
         const res = await authFetch("/api/dashboard/invitations");
         if (res.ok && !cancelled) {
-          const data = await res.json();
-          setInvites(data.invites ?? []);
+          // The API lists every invite addressed to the user's email, whatever its status.
+          // The embedded team is null when its row is gone; there is nothing to join then.
+          const rows = (await res.json()) as Invite[];
+          setInvites(rows.filter((invite) => invite.status === "pending" && invite.teams));
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -87,8 +89,7 @@ export function InviteNotificationBell() {
         setInvites((prev) => prev.filter((i) => i.token !== token));
         router.push(`/dashboard/teams/${teamSlug}`);
       } else {
-        const { error } = await res.json();
-        toast.error(error || "Failed to accept");
+        toast.error(await apiErrorDetail(res, "Failed to accept"));
       }
     } finally {
       setLoadingAction(null);
@@ -107,8 +108,7 @@ export function InviteNotificationBell() {
         toast.success("Invite declined");
         setInvites((prev) => prev.filter((i) => i.token !== token));
       } else {
-        const { error } = await res.json();
-        toast.error(error || "Failed to decline");
+        toast.error(await apiErrorDetail(res, "Failed to decline"));
       }
     } finally {
       setLoadingAction(null);
@@ -147,9 +147,9 @@ export function InviteNotificationBell() {
             <div key={invite.id} className="rounded-md border p-2.5">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
-                  <p className="font-medium text-sm truncate">{invite.team_name}</p>
+                  <p className="font-medium text-sm truncate">{invite.teams.name}</p>
                   <p className="text-xs text-muted-foreground">
-                    from {invite.inviter_name} · {invite.role} · {formatTimeAgo(invite.created_at)}
+                    from {invite.user_profiles?.display_name ?? "a teammate"} · {invite.role} · {formatTimeAgo(invite.created_at)}
                   </p>
                 </div>
               </div>
@@ -158,7 +158,7 @@ export function InviteNotificationBell() {
                   size="sm"
                   className="flex-1 h-7 text-xs"
                   disabled={!!loadingAction}
-                  onClick={() => handleAccept(invite.token, invite.team_slug)}
+                  onClick={() => handleAccept(invite.token, invite.teams.slug)}
                 >
                   {loadingAction === `accept:${invite.token}` && <Loader2 className="size-3 animate-spin" />}
                   Accept

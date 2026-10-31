@@ -1,255 +1,89 @@
 # Deployment Guide
 
+This guide covers deploying the DropItX frontend. The frontend holds no database, storage or rate-limit credentials: it talks to the FastAPI backend (`dropitx-api`) for every read and write, and to Firebase for sign-in. The backend's own deployment (Postgres, MinIO, Kubernetes manifests) is documented in that repository.
+
 ## Prerequisites
 
-- Node.js 20+, npm 8+
-- Supabase project (hosted or local via CLI)
-- Upstash Redis instance
-- Vercel account (or compatible hosting)
+- Node.js 20+ and npm (for local runs), or Docker (for the image)
+- A reachable `dropitx-api` instance whose `ALLOWED_ORIGINS` includes the frontend origin
+- A Firebase project (web app config and a service-account key)
 
 ## Environment Variables
 
-| Variable | Description |
-|----------|-------------|
-| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
-| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Supabase anon/public key |
-| `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key (server-only) |
-| `UPSTASH_REDIS_REST_URL` | Upstash Redis REST endpoint |
-| `UPSTASH_REDIS_REST_TOKEN` | Upstash Redis auth token |
-| `SHARE_ACCESS_SECRET` | 32+ char secret for HMAC cookie signing (password protection) |
-| `NEXT_PUBLIC_API_URL` | FastAPI backend URL (e.g. `https://dropitx-api.onrender.com`) |
+| Variable | Kind | Description |
+|----------|------|-------------|
+| `NEXT_PUBLIC_API_URL` | build arg | FastAPI backend base URL. Required. |
+| `NEXT_PUBLIC_FIREBASE_API_KEY`, `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`, `NEXT_PUBLIC_FIREBASE_PROJECT_ID`, `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`, `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID`, `NEXT_PUBLIC_FIREBASE_APP_ID` | build args | Firebase web SDK config. Required. |
+| `FIREBASE_ADMIN_PROJECT_ID`, `FIREBASE_ADMIN_CLIENT_EMAIL`, `FIREBASE_ADMIN_PRIVATE_KEY` | runtime | Firebase Admin credentials used to mint and verify the `session` cookie. Required; server-only. |
+| `API_INTERNAL_URL` | runtime (optional) | Address the Next.js server uses to reach the API when it differs from the public one (internal service name, `host.docker.internal`). Defaults to `NEXT_PUBLIC_API_URL`. Never a build arg. |
+| `NEXT_PUBLIC_APP_URL` | build arg | Canonical site origin for absolute share, embed and QR links. Defaults to `https://dropitx.com`. |
+| `NEXT_PUBLIC_APP_HOST` | build arg | App host without scheme. Declared in the Dockerfile; no code reads it today. |
 
-No additional env vars are needed for API key hashing — it uses Node.js built-in `crypto`.
+`NEXT_PUBLIC_*` values are inlined into the client bundle when the image is built, so changing one requires a rebuild. The full reference is in [CONFIGURATION.md](./CONFIGURATION.md).
 
-## Supabase Setup
+## Docker Image
 
-### 1. Create Project
-
-Via [Supabase Dashboard](https://app.supabase.com) or CLI:
+The `Dockerfile` installs dependencies, runs `npm run build` (Next.js standalone output) and serves it with `node server.js` on port 3000.
 
 ```bash
-supabase login
-supabase init
+docker image build \
+  --build-arg NEXT_PUBLIC_API_URL=https://api.example.com \
+  --build-arg NEXT_PUBLIC_FIREBASE_API_KEY=... \
+  --build-arg NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=... \
+  --build-arg NEXT_PUBLIC_FIREBASE_PROJECT_ID=... \
+  --build-arg NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=... \
+  --build-arg NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=... \
+  --build-arg NEXT_PUBLIC_FIREBASE_APP_ID=... \
+  --build-arg NEXT_PUBLIC_APP_URL=https://dropitx.com \
+  --build-arg NEXT_PUBLIC_APP_HOST=dropitx.com \
+  -t dropitx-fe .
+
+docker run --rm -p 3000:3000 \
+  -e FIREBASE_ADMIN_PROJECT_ID=... \
+  -e FIREBASE_ADMIN_CLIENT_EMAIL=... \
+  -e FIREBASE_ADMIN_PRIVATE_KEY=... \
+  -e API_INTERNAL_URL=http://api.internal:8000 \
+  dropitx-fe
 ```
 
-### 2. Apply Schema and Migrations
+The compile fetches Google Fonts (`next/font/google`), so the image build needs outbound network access. The compile does not validate environment variables; a green build does not prove they are set.
 
-`supabase/schema.sql` contains the base shares table only. Auth/dashboard/editor/API-key tables live in `supabase/migrations/`.
+Server components call the API directly, from inside the container. `NEXT_PUBLIC_API_URL` is also what the container uses unless `API_INTERNAL_URL` is set, and `localhost` inside a container means the container itself. When the public URL is not reachable from the container, pass an internal address at run time, for example `-e API_INTERNAL_URL=http://host.docker.internal:8000` (add `--add-host=host.docker.internal:host-gateway` on Linux). Browsers keep using the public URL.
 
-**Recommended (CLI):**
+In production, set `API_INTERNAL_URL` to an address that does not traverse Cloudflare, such as the in-cluster service name. Cloudflare overwrites `CF-Connecting-IP`, and the API keys its rate limits on that header, so server-side calls routed through Cloudflare would all appear to come from Cloudflare's addresses and share one rate-limit bucket instead of the visitor's.
 
-```bash
-supabase link --project-ref <your-project-ref>
-supabase db push
-```
+## Other Hosts
 
-**Manual (SQL editor):** Run in this order:
-1. `supabase/schema.sql`
-2. `supabase/migrations/20260423000001_add_auth_tables.sql`
-3. `supabase/migrations/20260424000001_add_editor_columns.sql`
-4. `supabase/migrations/20260424000002_add_api_keys.sql`
-5. `supabase/migrations/20260424000003_private_search_filter.sql`
-6. `supabase/migrations/20260425000001_add_share_password.sql`
-7. `supabase/migrations/20260425045621_rate-limits-supabase.sql`
-8. `supabase/migrations/20260426000001_share_views.sql`
-9. `supabase/migrations/20260426000002_teams.sql`
-10. All RLS fix migrations from 20260428000001 to 20260428162629 (apply in timestamp order)
-
-**What each migration creates:**
-
-| File | Creates |
-|------|---------|
-| `schema.sql` | `shares` table, GIN index, `search_shares` + `increment_view_count` RPCs |
-| `20260423000001_add_auth_tables.sql` | `user_profiles`, `favorites`, `shares.user_id`, `shares.title` |
-| `20260424000001_add_editor_columns.sql` | `shares.source`, `shares.custom_slug`, `shares.is_private`, `shares.updated_at` |
-| `20260424000002_add_api_keys.sql` | `api_keys` table + RLS policies |
-| `20260424000003_private_search_filter.sql` | Updates `search_shares` RPC to filter private shares by owner |
-| `20260425000001_add_share_password.sql` | `shares.password_hash` (nullable TEXT) for password protection |
-| `20260425045621_rate-limits-supabase.sql` | Rate limiting policies and procedures |
-| `20260426000001_share_views.sql` | Share view tracking system |
-| `20260426000002_teams.sql` | `team_workspaces`, `workspace_members`, `workspace_shares` tables |
-| `20260428000001-05` | RLS fixes for team workspaces and infinite recursion bugs |
-| `20260428162629` | RLS policies changed to authenticated role |
-| `20260429000001_add_team_invite_enhancements.sql` | Enhanced team invite system with token security and bulk operations |
-| `20260429_team_lifecycle_redesign.sql` | Team lifecycle redesign with event sourcing |
-| `20260429180000_decline_team_invite.sql` | Decline invite RPC with email validation |
-| `20260430121500_fix_ambiguous_team_id_in_invite_policies.sql` | Fix ambiguous team_id in invite policies |
-
-### 2a. Recovery for Already-Provisioned Projects
-
-If profile reads fail with `PGRST205` / `Could not find the table 'public.user_profiles'`, the auth migration is missing.
-
-1. Apply `supabase/migrations/20260423000001_add_auth_tables.sql`
-2. Backfill existing users:
-
-```sql
-INSERT INTO public.user_profiles (id, display_name, avatar_url)
-SELECT
-  u.id,
-  NULLIF(LEFT(TRIM(REGEXP_REPLACE(
-    COALESCE(u.raw_user_meta_data->>'full_name', u.raw_user_meta_data->>'name',
-             u.raw_user_meta_data->>'user_name', u.raw_user_meta_data->>'preferred_username', ''),
-    '<[^>]+>', '', 'g')), 100), '') AS display_name,
-  CASE
-    WHEN COALESCE(u.raw_user_meta_data->>'avatar_url', '') LIKE 'https://%'
-      THEN u.raw_user_meta_data->>'avatar_url'
-    WHEN COALESCE(u.raw_user_meta_data->>'picture', '') LIKE 'https://%'
-      THEN u.raw_user_meta_data->>'picture'
-    ELSE NULL
-  END AS avatar_url
-FROM auth.users u
-LEFT JOIN public.user_profiles p ON p.id = u.id
-WHERE p.id IS NULL;
-```
-
-3. Verify by loading `/dashboard/profile`.
-
-### 3. Storage Bucket
-
-Create `html-files` bucket via Dashboard:
-- **Public**: true
-- **File size limit**: 50 MB
-- **Allowed MIME types**: `text/html`, `text/markdown`, `image/png`, `image/jpeg`, `image/gif`, `image/webp`
-
-No storage policies needed — server uses the `service_role` client which bypasses RLS.
-
-### 4. Get Keys
-
-Dashboard > Settings > API:
-- **Project URL** → `NEXT_PUBLIC_SUPABASE_URL`
-- **anon/public** key → `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
-- **service_role** key → `SUPABASE_SERVICE_ROLE_KEY`
-
-## Upstash Setup
-
-1. Create Redis database at [console.upstash.com](https://console.upstash.com)
-2. Copy **REST URL** and **REST Token** to env vars
-3. Rate limit config: 10 requests/minute sliding window per IP (`lib/rate-limit.ts`)
+Any host that runs a Next.js 16 server works if it provides the same variables: the `NEXT_PUBLIC_*` ones at build time and the `FIREBASE_ADMIN_*` ones at run time. Run `npm run build` then `npm start`.
 
 ## Local Development
 
 ```bash
 npm install
-cp .env.example .env.local  # fill in env vars
+cp .env.example .env.local   # fill in env vars
 npm run dev                  # http://localhost:3000
 ```
 
-## CLI Tool Setup
+## CLI Tool
 
-The CLI lives in `packages/cli/` and is a separate TypeScript ESM package.
+The CLI is the separate `dropitx-cli` repository (Python, published to PyPI as `dropitx`). It talks to the same backend with an API key generated from `/dashboard`.
 
 ```bash
-cd packages/cli
-npm install
-npm run build          # compiles to dist/
-npm link               # makes `dropitx` available globally
-
-# Configure with your API key (generated from /dashboard)
+pip install dropitx
 dropitx login
 dropitx publish my-file.md -t "My Doc"
-dropitx publish my-file.md -t "My Doc" -P password  # with password protection
-dropitx list
 ```
-
-Config is stored at `~/.dropitx/config.json` (mode 0600). Never commit this file.
-
-## Backend Deployment (FastAPI on Render)
-
-**Note**: The FastAPI backend (`dropitx-api`) is a separate repository. All business logic (uploads, shares, teams, analytics) runs on Render, not Next.js.
-
-### Render Setup
-
-1. Connect GitHub repo (`phuongddx/dropitx-api`) to Render
-2. Create new Web Service from repository
-3. **Build Command**: `pip install -r requirements.txt`
-4. **Start Command**: `gunicorn -w 4 -b 0.0.0.0:8000 main:app`
-5. Add all environment variables (see `.env.example` in dropitx-api)
-6. Deploy
-
-### Environment Variables (Render)
-
-| Variable | Value |
-|----------|-------|
-| `SUPABASE_URL` | Your Supabase project URL |
-| `SUPABASE_KEY` | Service role key |
-| `DATABASE_URL` | PostgreSQL connection string |
-| `UPSTASH_REDIS_REST_URL` | Redis endpoint |
-| `UPSTASH_REDIS_REST_TOKEN` | Redis auth token |
-| `JWKS_URL` | `https://xxx.supabase.co/auth/v1/jwks` |
-
-### Deployment
-
-Every push to `dropitx-api` main branch auto-deploys if webhook configured. Or manually trigger in Render dashboard.
-
----
-
-## Frontend Deployment (Next.js on Vercel)
-
-### CLI
-
-```bash
-npx vercel login
-npx vercel --prod
-```
-
-### Dashboard
-
-1. Import GitHub repo at vercel.com/new
-2. Framework preset: Next.js (auto-detected)
-3. Add all 7 environment variables in Settings > Environment Variables
-4. Deploy
-
-### Environment Variables (Vercel)
-
-| Variable | Value |
-|----------|-------|
-| `NEXT_PUBLIC_SUPABASE_URL` | Your Supabase project URL |
-| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Anon/public key |
-| `SUPABASE_SERVICE_ROLE_KEY` | Service role key (server-only) |
-| `UPSTASH_REDIS_REST_URL` | Redis endpoint |
-| `UPSTASH_REDIS_REST_TOKEN` | Redis auth token |
-| `SHARE_ACCESS_SECRET` | 32+ char random string for HMAC signing |
-| `NEXT_PUBLIC_API_URL` | `https://dropitx-api.onrender.com` (or your Render URL) |
-
-### Build Config
-
-No custom `vercel.json` needed. Next.js 16 is auto-detected.
 
 ## Production Checklist
 
-- [ ] All 7 env vars set in Vercel (including SHARE_ACCESS_SECRET and NEXT_PUBLIC_API_URL)
-- [ ] Supabase schema + all 14 migrations applied (including teams and analytics)
-- [ ] Storage bucket `html-files` created (public, 50 MB, correct MIME types)
-- [ ] Upstash Redis connected
-- [ ] `npm run build` passes
-- [ ] Upload, view, search, delete flows tested
-- [ ] OAuth redirect URLs configured in Supabase Dashboard (Google + GitHub)
-- [ ] Editor publish and API key flows tested
-- [ ] Password protection and team workspace flows tested
-- [ ] Team invite system tested (single invite, bulk invite, resend, accept flow)
-- [ ] Email authentication flows tested (signup, login, reset, confirmation)
-- [ ] oEmbed embedding and analytics dashboard functional
+- [ ] `NEXT_PUBLIC_API_URL`, the six `NEXT_PUBLIC_FIREBASE_*` values and `NEXT_PUBLIC_APP_URL` passed as build args
+- [ ] `FIREBASE_ADMIN_*` set on the running container, and `API_INTERNAL_URL` if the container cannot reach `NEXT_PUBLIC_API_URL`
+- [ ] The API's `ALLOWED_ORIGINS` includes the site origin, and `FRONTEND_URL` matches it
+- [ ] The site's domain is an authorized domain in the Firebase console (Authentication settings)
+- [ ] `npm run check:hygiene` and `npm run build` pass
+- [ ] Anonymous flows checked: a public share, a password share (gate and unlock), a burn-after-reading share (reveal state), an embed, an unknown invite link
+- [ ] Signed-in flows checked: dashboard, favorites, profile save, analytics, teams, invites, editor publish and edit
 
 ## Maintenance
 
-### Expired Share Cleanup
-
-No automatic cleanup. Manual process:
-
-```sql
--- 1. Identify expired shares
-SELECT id, storage_path FROM shares WHERE expires_at < NOW();
-
--- 2. Delete storage objects (via Supabase Dashboard or Storage API)
-
--- 3. Delete database records
-DELETE FROM shares WHERE expires_at < NOW();
-```
-
-Consider automating via Supabase Edge Function or `pg_cron`.
-
-### Monitoring
-
-- **Vercel**: Built-in analytics, function logs, error tracking
-- **Supabase**: Dashboard for DB stats, storage usage, query performance
-- **Upstash**: Dashboard for Redis metrics and rate limit hit rates
+Data retention, expired-share cleanup, storage and rate limiting are owned by the API; see the `dropitx-api` repository. The frontend has no scheduled jobs.

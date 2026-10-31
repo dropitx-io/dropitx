@@ -34,7 +34,7 @@ interface AnalyticsViewChartProps {
 
 function formatDateLabel(dateStr: string): string {
   const d = new Date(dateStr);
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
 }
 
 function CustomTooltip({ active, payload, label }: {

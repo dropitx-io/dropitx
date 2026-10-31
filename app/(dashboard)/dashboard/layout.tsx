@@ -1,7 +1,8 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { createAdminClient } from "@/utils/supabase/server";
 import { getSessionUser } from "@/lib/firebase/server";
+import { AccountNotProvisionedError, getShareTotals, getTeams } from "@/lib/dashboard-data";
+import { AccountSetupState } from "@/components/account-setup-state";
 import { DashboardShell } from "@/components/dashboard-shell";
 
 export default async function DashboardLayout({
@@ -23,25 +24,31 @@ export default async function DashboardLayout({
     .join("")
     .toUpperCase();
 
-  const admin = createAdminClient();
-  const { data: memberships } = await admin
-    .from("team_members")
-    .select("teams(slug, name)")
-    .eq("user_id", user.uid);
-
-  // Typed by the Database generic — the teams embed is a many-to-one join object.
-  const teams = (memberships ?? []).map((m) => {
-    const t = m.teams;
-    return { slug: t?.slug ?? "", name: t?.name ?? "" };
-  });
+  let teams: { slug: string; name: string }[] = [];
+  let storageUsedBytes: number | null = null;
+  let content: React.ReactNode = children;
+  try {
+    const memberships = await getTeams();
+    teams = memberships.flatMap((m) =>
+      m.teams ? [{ slug: m.teams.slug, name: m.teams.name }] : [],
+    );
+    try {
+      storageUsedBytes = (await getShareTotals()).total_size;
+    } catch (err) {
+      console.error("dashboard layout: storage total unavailable", err);
+    }
+  } catch (err) {
+    if (!(err instanceof AccountNotProvisionedError)) throw err;
+    content = <AccountSetupState />;
+  }
 
   return (
     <DashboardShell
       user={{ displayName, email, initials }}
       teams={teams}
+      storageUsedBytes={storageUsedBytes}
     >
-      {children}
+      {content}
     </DashboardShell>
   );
 }
-

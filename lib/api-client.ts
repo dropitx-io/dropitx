@@ -2,12 +2,28 @@ import { auth } from "@/lib/firebase/client";
 
 const envApiUrl = process.env.NEXT_PUBLIC_API_URL;
 if (!envApiUrl) {
-  throw new Error("NEXT_PUBLIC_API_URL is required. Set it in Vercel Project Settings → Environment Variables and redeploy.");
+  throw new Error("NEXT_PUBLIC_API_URL is required. Set it as a build arg (or in .env.local for development) and rebuild.");
 }
 const API_URL = envApiUrl;
 
 export function getApiUrl(path: string): string {
   return `${API_URL.trim()}${path}`;
+}
+
+/**
+ * The API's `detail` as one message: a string as is, a FastAPI validation list joined by its `msg` fields,
+ * anything else the fallback.
+ */
+export async function apiErrorDetail(res: Response, fallback: string): Promise<string> {
+  const body = (await res.json().catch(() => null)) as { detail?: unknown } | null;
+  const detail = body?.detail;
+  if (typeof detail === "string") return detail;
+  if (Array.isArray(detail)) {
+    const messages = detail.map((d) => (d && typeof (d as { msg?: unknown }).msg === "string" ? (d as { msg: string }).msg : null));
+    const joined = messages.filter(Boolean).join("; ");
+    if (joined) return joined;
+  }
+  return fallback;
 }
 
 export async function getAuthHeaders(): Promise<Record<string, string>> {
