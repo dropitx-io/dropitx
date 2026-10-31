@@ -56,8 +56,7 @@ The (public) and (dashboard) route groups are Next.js route groups (parenthesize
 `middleware.ts` runs on all routes except static assets and `api/og-image`. It:
 
 1. Redirects `/dashboard/*` to `/auth/login?next=<path>` when the `session` cookie is absent. This is a presence check only; server components verify the cookie with `getSessionUser()` (`lib/firebase/server.ts`, `firebase-admin`).
-2. Forwards the dashboard path to server components in an `x-dashboard-path` header, so an expired session can be sent to sign-in with a way back.
-3. Decorates the response with security headers (`x-content-type-options`, `x-frame-options: DENY`, `x-xss-protection`, `referrer-policy`, `permissions-policy`) and HSTS in production.
+2. Decorates the response with security headers (`x-content-type-options`, `x-frame-options: DENY`, `x-xss-protection`, `referrer-policy`, `permissions-policy`) and HSTS in production.
 
 The `session` cookie is minted by `POST /api/auth/session-login` from a Firebase ID token (httpOnly, `SameSite=Lax`, 14 days) and cleared by `POST /api/auth/session-logout`.
 

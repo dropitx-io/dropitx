@@ -22,12 +22,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // Server components cannot read the request path; dashboard data calls need it to
-  // send an expired session back to sign in with a way to return.
-  const forwarded = new Headers(request.headers);
-  if (pathname.startsWith("/dashboard")) forwarded.set("x-dashboard-path", pathname + search);
-  else forwarded.delete("x-dashboard-path");
-  const response = NextResponse.next({ request: { headers: forwarded } });
+  const response = NextResponse.next();
   for (const [key, value] of Object.entries(securityHeaders)) {
     response.headers.set(key, value);
   }

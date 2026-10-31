@@ -147,7 +147,6 @@ Owners read their own protected content from /content without the password.
 
 `middleware.ts` runs on every request except static assets and `/api/og-image`:
 - Redirects `/dashboard/*` to `/auth/login?next=<path>` when the `session` cookie is absent (a presence check; server components verify it with `firebase-admin`)
-- Forwards the dashboard path to server components in `x-dashboard-path`
 - Adds security headers (and HSTS in production)
 
 The cookie is shared by all tabs, so signing out in one tab ends the session in all of them.

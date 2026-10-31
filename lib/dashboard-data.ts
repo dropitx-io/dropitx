@@ -1,7 +1,5 @@
 import "server-only";
 import { cache } from "react";
-import { headers } from "next/headers";
-import { redirect } from "next/navigation";
 import type { components } from "@/lib/api-types";
 import { collectPages } from "@/lib/collect-pages";
 import { ApiError, serverApiFetch, serverApiFetchOrNull } from "@/lib/server-api";
@@ -38,17 +36,13 @@ function isNotProvisioned(detail: unknown): boolean {
   return (inner as { code?: unknown } | null | undefined)?.code === "user_not_provisioned";
 }
 
-async function loginRedirectPath(): Promise<string> {
-  const current = (await headers()).get("x-dashboard-path");
-  const safe = current && current.startsWith("/dashboard") && !current.startsWith("//") ? current : null;
-  return safe ? `/auth/login?next=${encodeURIComponent(safe)}` : "/auth/login";
-}
-
 /**
  * Runs a dashboard API call. A 401 with `user_not_provisioned` throws
  * `AccountNotProvisionedError` so the layout and pages can render the setup
- * state; any other 401 means the session is gone, so the visitor is sent to sign
- * in again. Every other failure propagates to the error boundary.
+ * state; any other 401 throws a descriptive error. The frontend has already verified
+ * the session cookie, so that 401 means the API and the frontend disagree about
+ * the session, and a redirect to sign-in would loop silently. Every other
+ * failure propagates to the error boundary.
  */
 async function dashboardCall<T>(call: () => Promise<T>): Promise<T> {
   try {
@@ -56,7 +50,9 @@ async function dashboardCall<T>(call: () => Promise<T>): Promise<T> {
   } catch (err) {
     if (err instanceof ApiError && err.status === 401) {
       if (isNotProvisioned(err.detail)) throw new AccountNotProvisionedError();
-      redirect(await loginRedirectPath());
+      throw new Error(
+        "The API rejected the signed-in session. Check that the API's FIREBASE_PROJECT_ID matches the frontend's Firebase project and that the API can fetch Google's signing certificates.",
+      );
     }
     throw err;
   }

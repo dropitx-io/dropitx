@@ -65,7 +65,7 @@ Flat-config ESLint extending `eslint-config-next/core-web-vitals` and `eslint-co
 
 ### `middleware.ts`
 
-Next.js middleware redirects `/dashboard/*` to `/auth/login?next=...` when the `session` cookie is absent (a presence check only; server components verify the cookie with `firebase-admin`), forwards the dashboard path to server components in an `x-dashboard-path` header, and applies security headers on every response except static assets and `/api/og-image`. HSTS is added only when `NODE_ENV === "production"`. Matchers: `/((?!_next/static|_next/image|favicon.ico|api/og-image).*)`.
+Next.js middleware redirects `/dashboard/*` to `/auth/login?next=...` when the `session` cookie is absent (a presence check only; server components verify the cookie with `firebase-admin`), and applies security headers on every response except static assets and `/api/og-image`. HSTS is added only when `NODE_ENV === "production"`. Matchers: `/((?!_next/static|_next/image|favicon.ico|api/og-image).*)`.
 
 ### `.vercelignore`
 
