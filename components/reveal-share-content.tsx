@@ -38,6 +38,7 @@ type RevealState =
   | { status: "loading" }
   | { status: "unavailable" }
   | { status: "wrong-password" }
+  | { status: "protected" }
   | { status: "failed" }
   | { status: "revealed"; content: string };
 
@@ -71,7 +72,11 @@ export function RevealShareContent({ slug, isMarkdown, variant = "page", onRevea
       }
       const res = await authFetch(`/api/shares/${encodeURIComponent(slug)}/content`);
       if (res.ok) {
-        const data = (await res.json()) as { content?: string };
+        const data = (await res.json()) as { content?: string; password_protected?: boolean };
+        if (data.password_protected && !data.content) {
+          setState({ status: "protected" });
+          return;
+        }
         const content = data.content ?? "";
         setState({ status: "revealed", content });
         onRevealed?.(content);
@@ -111,6 +116,8 @@ export function RevealShareContent({ slug, isMarkdown, variant = "page", onRevea
     <div className="flex flex-col items-center justify-center gap-3 px-4 py-16 text-center">
       {state.status === "unavailable" ? (
         <p className="text-sm text-muted-foreground">This content is no longer available.</p>
+      ) : state.status === "protected" ? (
+        <p className="text-sm text-muted-foreground">This file is password protected.</p>
       ) : state.status === "wrong-password" ? (
         <p className="text-sm text-muted-foreground">This file has a different password.</p>
       ) : (

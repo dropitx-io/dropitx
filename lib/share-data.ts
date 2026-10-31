@@ -14,12 +14,13 @@ export interface ShareContent {
 /**
  * Metadata and access state for a share, deduplicated per request so
  * `generateMetadata` and the page share one call. Missing, private-to-others
- * (404) and expired (410) shares all resolve to `null`; other failures throw.
+ * (404), expired (410) and burned shares all resolve to `null`; other failures throw.
  * Never reads content, so it never counts a view or burns a share.
  */
 export const getShareMeta = cache(async (slug: string): Promise<ShareMeta | null> => {
   try {
-    return await serverApiFetchOrNull<ShareMeta>(`/api/shares/${encodeURIComponent(slug)}`);
+    const meta = await serverApiFetchOrNull<ShareMeta>(`/api/shares/${encodeURIComponent(slug)}`);
+    return meta?.burned ? null : meta;
   } catch (err) {
     if (err instanceof ApiError && err.status === 410) return null;
     throw err;

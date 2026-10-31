@@ -10,6 +10,7 @@ import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { apiErrorDetail, authFetch } from "@/lib/api-client";
+import { useAuth } from "@/components/auth-provider";
 
 interface InviteActionsProps {
   /** Where to go after accepting; the team list when the API did not name the team. */
@@ -19,6 +20,7 @@ interface InviteActionsProps {
 export function InviteActions({ teamSlug }: InviteActionsProps) {
   const router = useRouter();
   const { token } = useParams<{ token: string }>();
+  const { loading: authLoading } = useAuth();
   const [pending, setPending] = useState<"accept" | "decline" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, startRefresh] = useTransition();
@@ -59,14 +61,14 @@ export function InviteActions({ teamSlug }: InviteActionsProps) {
           {error}
         </p>
       )}
-      <Button onClick={() => respond("accept")} disabled={pending !== null || refreshing} className="w-full">
+      <Button onClick={() => respond("accept")} disabled={pending !== null || refreshing || authLoading} className="w-full">
         {pending === "accept" && <Loader2 className="mr-2 size-4 animate-spin" />}
         {pending === "accept" ? "Accepting..." : "Accept Invite"}
       </Button>
       <Button
         variant="outline"
         onClick={() => respond("decline")}
-        disabled={pending !== null || refreshing}
+        disabled={pending !== null || refreshing || authLoading}
         className="w-full"
       >
         {pending === "decline" && <Loader2 className="mr-2 size-4 animate-spin" />}

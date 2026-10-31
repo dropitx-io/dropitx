@@ -297,13 +297,15 @@ export function DashboardShareList({
                           >
                             <Copy className="size-4" />
                           </button>
-                          <Link
-                            href={`/dashboard/analytics/${r.slug}`}
-                            className="grid size-[38px] place-items-center rounded-[14px] text-muted-foreground transition-colors hover:bg-background hover:text-primary"
-                            aria-label="View analytics"
-                          >
-                            <MoreHorizontal className="size-4" />
-                          </Link>
+                          {filter === "personal" && (
+                            <Link
+                              href={`/dashboard/analytics/${r.slug}`}
+                              className="grid size-[38px] place-items-center rounded-[14px] text-muted-foreground transition-colors hover:bg-background hover:text-primary"
+                              aria-label="View analytics"
+                            >
+                              <MoreHorizontal className="size-4" />
+                            </Link>
+                          )}
                           {filter === "personal" && (
                             <button
                               type="button"
