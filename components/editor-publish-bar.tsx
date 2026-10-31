@@ -274,7 +274,7 @@ export function EditorPublishBar({
               <Loader2 className="size-3 animate-spin" />
             </Button>
           ) : !user ? (
-            <a href="/auth/login?redirect=/editor">
+            <a href="/auth/login?next=/editor">
               <Button size="sm" className="gap-1.5">
                 <Sparkles className="size-3.5" />
                 Sign in to publish
