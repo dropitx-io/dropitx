@@ -6,7 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Check, Copy, Loader2, Lock, Unlock, FileEdit, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { trackEvent, AnalyticsEvent } from "@/lib/analytics";
-import { authFetch, getAuthHeaders } from "@/lib/api-client";
+import { apiErrorDetail, authFetch, getAuthHeaders } from "@/lib/api-client";
+import type { components } from "@/lib/api-types";
 import { Input } from "@/components/ui/input";
 import { ExpirationSelect } from "@/components/expiration-select";
 import { EncryptionToggle, type EncryptionState } from "@/components/encryption-toggle";
@@ -23,6 +24,9 @@ interface EditorPublishBarProps {
   onClearDraft?: () => void;
   draftSavedAt?: Date | null;
 }
+
+type PublishBody = components["schemas"]["PublishRequest"];
+type UpdateBody = components["schemas"]["UpdatePublishRequest"];
 
 function countWords(text: string): number {
   return text.trim().split(/\s+/).filter(Boolean).length;
@@ -75,12 +79,13 @@ export function EditorPublishBar({
         isEncrypted = true;
       }
 
-      const body: Record<string, unknown> = {
+      const body: PublishBody = {
         content: publishContent,
         is_private: isPrivate,
         expires_in: expiresIn,
         burn_after_reading: burnAfterReading,
-        is_encrypted: isEncrypted,
+        one_time_download: false,
+        encrypted: isEncrypted,
       };
       if (maxDownloads) body.max_downloads = parseInt(maxDownloads, 10);
 
@@ -90,8 +95,7 @@ export function EditorPublishBar({
       });
 
       if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Publishing failed");
+        throw new Error(await apiErrorDetail(res, "Publishing failed"));
       }
 
       const data = await res.json();
@@ -129,23 +133,21 @@ export function EditorPublishBar({
         isEncrypted = true;
       }
 
-      const body: Record<string, unknown> = {
+      const body: UpdateBody = {
         content: publishContent,
         is_private: isPrivate,
-        is_encrypted: isEncrypted,
-        burn_after_reading: burnAfterReading,
+        encrypted: isEncrypted,
+        expires_in: expiresIn,
       };
       if (maxDownloads) body.max_downloads = parseInt(maxDownloads, 10);
-      body.expires_in = expiresIn;
 
-      const res = await authFetch(`/api/shares/${editSlug}`, {
-        method: "PATCH",
+      const res = await authFetch(`/api/publish/${encodeURIComponent(editSlug)}`, {
+        method: "PUT",
         body: JSON.stringify(body),
       });
 
       if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Update failed");
+        throw new Error(await apiErrorDetail(res, "Update failed"));
       }
 
       const data = await res.json();
@@ -156,7 +158,7 @@ export function EditorPublishBar({
     } finally {
       setPublishing(false);
     }
-  }, [editSlug, content, isPrivate, maxDownloads, expiresIn, burnAfterReading, encryptionState, onPublished]);
+  }, [editSlug, content, isPrivate, maxDownloads, expiresIn, encryptionState, onPublished]);
 
   const copyUrl = useCallback(async () => {
     if (!publishedUrl) return;

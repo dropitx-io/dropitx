@@ -10,6 +10,12 @@ export function getApiUrl(path: string): string {
   return `${API_URL.trim()}${path}`;
 }
 
+/** The API's `detail` message when it is a string (validation errors send a list), else the fallback. */
+export async function apiErrorDetail(res: Response, fallback: string): Promise<string> {
+  const body = (await res.json().catch(() => null)) as { detail?: unknown } | null;
+  return typeof body?.detail === "string" ? body.detail : fallback;
+}
+
 export async function getAuthHeaders(): Promise<Record<string, string>> {
   const user = auth.currentUser;
   if (!user) return {};

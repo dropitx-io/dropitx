@@ -18,8 +18,9 @@ import {
 import { VersionHistory } from "@/components/version-history";
 import { nanoid } from "nanoid";
 import { toast } from "sonner";
-import { authFetch } from "@/lib/api-client";
-import { History, X } from "lucide-react";
+import { apiErrorDetail, authFetch } from "@/lib/api-client";
+import type { components } from "@/lib/api-types";
+import { Flame, History, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const EditorPane = dynamic(
@@ -29,6 +30,12 @@ const EditorPane = dynamic(
 );
 
 type TabMode = "write" | "preview";
+type ShareMeta = components["schemas"]["ShareMeta"];
+
+/** Opening a share that deletes itself on its first read would destroy it, so the editor never reads its content. */
+function consumedOnRead(meta: ShareMeta): boolean {
+  return meta.burn_after_reading || meta.one_time_download;
+}
 
 /** No-op subscription for useSyncExternalStore hydration detection. */
 const emptySubscribe = () => () => {};
@@ -51,6 +58,9 @@ export function EditorShell() {
   const editorPaneRef = useRef<EditorPaneRef>(null);
   const previewContainerRef = useRef<HTMLDivElement>(null);
   const [initialContent, setInitialContent] = useState<string | null>(null);
+  const [notEditable, setNotEditable] = useState(false);
+  // Reading content counts a view, so a re-run of the load effect must not read it twice.
+  const loadStartedFor = useRef<string | null>(null);
   const isDirty = content.length > 0 && content !== (initialContent ?? "");
 
   const { hasDraft, restoreDraft, clearDraft } = useEditorAutoSave(content);
@@ -65,19 +75,28 @@ export function EditorShell() {
     if (initialContent !== null) return;
 
     if (editSlug) {
-      authFetch(`/api/shares/${editSlug}`)
-        .then((res) => {
-          if (!res.ok) throw new Error("Not found");
-          return res.json();
-        })
-        .then((data) => {
-          setContent(data.content || "");
-          setEditTitle(data.title || data.filename);
-          setInitialContent(data.content || "");
-        })
-        .catch(() => {
+      if (loadStartedFor.current === editSlug) return;
+      loadStartedFor.current = editSlug;
+      const path = `/api/shares/${encodeURIComponent(editSlug)}`;
+      (async () => {
+        const metaRes = await authFetch(path);
+        if (!metaRes.ok) throw new Error(await apiErrorDetail(metaRes, "Could not load this document."));
+        const meta = (await metaRes.json()) as ShareMeta;
+        setEditTitle(meta.title || meta.filename || undefined);
+        if (consumedOnRead(meta)) {
+          setNotEditable(true);
           setInitialContent("");
-        });
+          return;
+        }
+        const contentRes = await authFetch(`${path}/content`);
+        if (!contentRes.ok) throw new Error(await apiErrorDetail(contentRes, "Could not load this document."));
+        const data = (await contentRes.json()) as { content?: string };
+        setContent(data.content || "");
+        setInitialContent(data.content || "");
+      })().catch((err) => {
+        toast.error(err instanceof Error ? err.message : "Could not load this document.");
+        setInitialContent("");
+      });
       return;
     }
 
@@ -158,8 +177,7 @@ export function EditorShell() {
         body: formData,
       });
       if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Upload failed");
+        throw new Error(await apiErrorDetail(res, "Upload failed"));
       }
       const { url, filename } = await res.json();
 
@@ -194,6 +212,26 @@ export function EditorShell() {
             <div className="size-3 rounded-sm bg-primary" />
           </div>
           <p className="text-muted-foreground font-mono text-sm">Loading editor...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (notEditable) {
+    return (
+      <div className="flex h-[calc(100vh-3rem)] items-center justify-center bg-background px-4">
+        <div className="flex max-w-sm flex-col items-center gap-3 text-center">
+          <Flame className="size-6 text-orange-500" />
+          <p className="font-medium">This document cannot be edited.</p>
+          <p className="text-sm text-muted-foreground">
+            {editTitle ? `"${editTitle}" is` : "It is"} set to delete itself the first time its content is read, so
+            opening it in the editor would destroy it.
+          </p>
+          <a href="/editor">
+            <Button variant="outline" size="sm">
+              Start a new document
+            </Button>
+          </a>
         </div>
       </div>
     );
