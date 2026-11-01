@@ -2,6 +2,7 @@ import "server-only";
 import { cache } from "react";
 import type { components } from "@/lib/api-types";
 import { collectPages } from "@/lib/collect-pages";
+import { readSessionProfile } from "@/lib/session-profile";
 import { ApiError, serverApiFetch, serverApiFetchOrNull } from "@/lib/server-api";
 import type { ShareAnalyticsResponse, ShareTotals, TopSharesResponse } from "@/types/analytics";
 import type { ShareListItem } from "@/types/share";
@@ -236,16 +237,18 @@ export interface DashboardProfile {
   avatarUrl: string;
   /** Null until the API has assigned one. */
   username: string | null;
+  isPublic: boolean;
 }
 
 /** Signed-in profile from the session endpoint (which also provisions the user row on first call). */
 export async function getProfile(): Promise<DashboardProfile> {
   const session = await dashboardCall(() => serverApiFetch<SessionProfile>("/api/auth/session"));
-  const { display_name, avatar_url, username } = session.profile;
+  const profile = readSessionProfile(session);
   return {
     email: session.email ?? "",
-    displayName: typeof display_name === "string" ? display_name : "",
-    avatarUrl: typeof avatar_url === "string" ? avatar_url : "",
-    username: typeof username === "string" && username ? username : null,
+    displayName: profile.display_name ?? "",
+    avatarUrl: profile.avatar_url ?? "",
+    username: profile.username,
+    isPublic: profile.is_public,
   };
 }

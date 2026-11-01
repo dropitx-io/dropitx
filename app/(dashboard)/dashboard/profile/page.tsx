@@ -35,6 +35,7 @@ export default async function ProfilePage() {
           displayName={profile.displayName}
           avatarUrl={profile.avatarUrl}
           username={profile.username}
+          isPublic={profile.isPublic}
           email={profile.email || user.email || ""}
           providers={providers}
         />

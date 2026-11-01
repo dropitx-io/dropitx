@@ -3,20 +3,22 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/auth-provider";
-import { apiErrorDetail, authFetch } from "@/lib/api-client";
+import { apiErrorDetail } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { User, LogOut, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { ProfileUsernameField } from "@/components/profile-username-field";
+import { ProfilePublicSection, type ProfileSaveResult } from "@/components/profile-public-section";
+import { putProfile, type ProfileResponseBody } from "@/lib/profile-api";
 
 interface ProfileFormProps {
   userId: string;
   displayName: string;
   avatarUrl: string;
   username: string | null;
+  isPublic: boolean;
   email: string;
   providers: string[];
 }
@@ -24,7 +26,8 @@ interface ProfileFormProps {
 export function ProfileForm({
   displayName,
   avatarUrl,
-  username,
+  username: initialUsername,
+  isPublic: initialIsPublic,
   email,
   providers,
 }: ProfileFormProps) {
@@ -36,6 +39,34 @@ export function ProfileForm({
 
   const initial = (name || email || "U")[0].toUpperCase();
 
+  // What the server last confirmed. Every save sends the display name (the API requires it) and only changes the
+  // fields it names, so saving one field never resets another.
+  const [saved, setSaved] = useState({ displayName, username: initialUsername, isPublic: initialIsPublic });
+
+  async function saveProfile(patch: { displayName?: string; username?: string; isPublic?: boolean }): Promise<ProfileSaveResult> {
+    const displayNameToSend = patch.displayName ?? (saved.displayName.trim() || email.split("@")[0] || "User");
+    try {
+      const res = await putProfile({
+        displayName: displayNameToSend,
+        username: patch.username,
+        isPublic: patch.isPublic ?? saved.isPublic,
+      });
+      if (!res.ok) {
+        return { ok: false, status: res.status, message: await apiErrorDetail(res, "Failed to update profile") };
+      }
+      const body = (await res.json().catch(() => null)) as ProfileResponseBody | null;
+      setSaved((prev) => ({
+        displayName: typeof body?.display_name === "string" ? body.display_name : displayNameToSend,
+        username: typeof body?.username === "string" && body.username ? body.username : (patch.username ?? prev.username),
+        isPublic: typeof body?.is_public === "boolean" ? body.is_public : (patch.isPublic ?? prev.isPublic),
+      }));
+      router.refresh();
+      return { ok: true };
+    } catch {
+      return { ok: false, status: 0, message: "Something went wrong. Please try again." };
+    }
+  }
+
   async function handleSave() {
     const trimmed = name.trim().slice(0, 100);
     if (!trimmed) {
@@ -43,19 +74,13 @@ export function ProfileForm({
       return;
     }
     setSaving(true);
-    try {
-      const res = await authFetch("/api/v1/profile", {
-        method: "PUT",
-        body: JSON.stringify({ display_name: trimmed }),
-      });
-      if (!res.ok) throw new Error(await apiErrorDetail(res, "Failed to update profile"));
+    const result = await saveProfile({ displayName: trimmed });
+    setSaving(false);
+    if (result.ok) {
       setName(trimmed);
       toast.success("Profile updated");
-      router.refresh();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to update profile");
-    } finally {
-      setSaving(false);
+    } else {
+      toast.error(result.message);
     }
   }
 
@@ -121,7 +146,7 @@ export function ProfileForm({
             </div>
           </div>
 
-          <ProfileUsernameField displayName={displayName} initialUsername={username} />
+          <ProfilePublicSection username={saved.username} isPublic={saved.isPublic} save={saveProfile} />
 
           {/* Connected providers */}
           {providers.length > 0 && (
