@@ -81,11 +81,12 @@ export function formatEventDescription(
     case "invite.expired":
       return `Invite for ${metadata.email ?? "someone"} expired`;
     case "member.joined":
-      return `${metadata.email ?? "Someone"} joined the team as ${metadata.role ?? "member"}`;
+      return `${metadata.email ?? "Someone"} joined the team${metadata.role ? ` as ${metadata.role}` : ""}`;
     case "member.left":
       return `${metadata.role ?? "Member"} left the team`;
     case "member.role_changed":
-      return `Changed role from ${metadata.old_role ?? "?"} to ${metadata.new_role ?? "?"}`;
+      // The API records the new role as `role` and the old one as `previous_role`.
+      return `Changed role from ${metadata.previous_role ?? metadata.old_role ?? "?"} to ${metadata.role ?? metadata.new_role ?? "?"}`;
     case "member.removed":
       return `Removed ${metadata.role ?? "member"} from the team`;
     case "share.added":
