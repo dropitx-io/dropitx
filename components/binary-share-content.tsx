@@ -1,9 +1,13 @@
 "use client";
 
-import { useEffect, useReducer } from "react";
+import Image from "next/image";
+import { useMemo } from "react";
 import { Download, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useBlobUrl } from "@/hooks/use-blob-url";
 import { canPreview } from "@/lib/file-utils";
+
+const EMPTY_BYTES = new Uint8Array();
 
 interface BinaryShareContentProps {
   content: string;
@@ -22,56 +26,24 @@ function decodeBase64(content: string): Uint8Array<ArrayBuffer> {
   return bytes;
 }
 
-interface BinaryResourceState {
-  objectUrl: string | null;
-  error: string | null;
-}
-
-type BinaryResourceAction =
-  | { type: "loaded"; objectUrl: string }
-  | { type: "failed" };
-
-function binaryResourceReducer(
-  _: BinaryResourceState,
-  action: BinaryResourceAction
-): BinaryResourceState {
-  if (action.type === "loaded") return { objectUrl: action.objectUrl, error: null };
-  return { objectUrl: null, error: "Could not decode this file." };
-}
-
-/**
- * Renders a base64 share as its original bytes. The object URL belongs to this
- * component instance and is revoked whenever the content changes or it unmounts.
- */
 export function BinaryShareContent({ content, filename, mimeType }: BinaryShareContentProps) {
-  const [{ objectUrl, error }, dispatch] = useReducer(binaryResourceReducer, {
-    objectUrl: null,
-    error: null,
-  });
   const type = mimeType?.toLowerCase() ?? "";
   const displayName = filename?.trim() || "shared file";
   const downloadName = filename?.trim() || "download";
-
-  useEffect(() => {
-    let url: string | null = null;
-
+  const bytes = useMemo(() => {
     try {
-      const bytes = decodeBase64(content);
-      url = URL.createObjectURL(new Blob([bytes], { type: type || "application/octet-stream" }));
-      dispatch({ type: "loaded", objectUrl: url });
+      return decodeBase64(content);
     } catch {
-      dispatch({ type: "failed" });
+      return null;
     }
+  }, [content]);
+  const failed = bytes === null;
+  const { objectUrl } = useBlobUrl(bytes ?? EMPTY_BYTES, type || "application/octet-stream");
 
-    return () => {
-      if (url) URL.revokeObjectURL(url);
-    };
-  }, [content, type]);
-
-  if (error) {
+  if (failed) {
     return (
       <div className="flex h-[80vh] items-center justify-center rounded-lg border border-destructive/30 bg-destructive/5">
-        <p className="text-sm text-destructive">{error}</p>
+        <p className="text-sm text-destructive">Could not decode this file.</p>
       </div>
     );
   }
@@ -93,9 +65,15 @@ export function BinaryShareContent({ content, filename, mimeType }: BinaryShareC
 
   if (previewable && isImage) {
     return (
-      <div className="flex h-[80vh] items-center justify-center rounded-lg border border-border bg-muted/20 p-2">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={objectUrl} alt={displayName} className="max-h-full max-w-full object-contain" />
+      <div className="relative h-[80vh] w-full overflow-hidden rounded-lg border border-border bg-muted/20 p-2">
+        <Image
+          src={objectUrl}
+          alt={displayName}
+          fill
+          unoptimized
+          sizes="100%"
+          className="object-contain p-2"
+        />
       </div>
     );
   }

@@ -8,7 +8,7 @@ import { OnceOnlyNotice } from "@/components/reveal-share-content";
 import { ShareContentArea } from "@/components/share-content-area";
 import { unlockShare } from "@/lib/share-unlock";
 import type { GroupShare } from "@/types/share";
-import type { ShareFileContent } from "@/types/share-content";
+import type { ShareFilePayload } from "@/types/share-content";
 
 interface PasswordGateProps {
   slug: string;
@@ -21,7 +21,7 @@ interface PasswordGateProps {
 }
 
 interface Unlocked {
-  content: ShareFileContent;
+  content: ShareFilePayload;
   password: string;
 }
 

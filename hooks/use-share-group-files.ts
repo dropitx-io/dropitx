@@ -4,12 +4,12 @@ import { useCallback, useRef, useState } from "react";
 import { authFetch } from "@/lib/api-client";
 import { unlockShare } from "@/lib/share-unlock";
 import type { GroupShare } from "@/types/share";
-import type { ShareFileContent } from "@/types/share-content";
+import type { ShareFilePayload } from "@/types/share-content";
 
 interface UseShareGroupFilesOptions {
   groupFiles: GroupShare[];
   initialSlug: string;
-  initialContent: ShareFileContent;
+  initialContent: ShareFilePayload;
   password?: string;
 }
 
@@ -32,7 +32,6 @@ function protectedNotice(result: Awaited<ReturnType<typeof unlockShare>>): strin
   return "Could not load this file.";
 }
 
-/** Loads and caches content for each file in a share group. */
 export function useShareGroupFiles({
   groupFiles,
   initialSlug,
@@ -40,7 +39,7 @@ export function useShareGroupFiles({
   password,
 }: UseShareGroupFilesOptions) {
   const [activeSlug, setActiveSlug] = useState(initialSlug);
-  const [fileContents, setFileContents] = useState<Record<string, ShareFileContent>>({
+  const [fileContents, setFileContents] = useState<Record<string, ShareFilePayload>>({
     [initialSlug]: initialContent,
   });
   const inFlight = useRef(new Set<string>());
@@ -66,7 +65,7 @@ export function useShareGroupFiles({
     setNotices((prev) => ({ ...prev, [slug]: DIFFERENT_PASSWORD }));
   }, []);
 
-  const handleRevealed = useCallback((slug: string, content: ShareFileContent) => {
+  const handleRevealed = useCallback((slug: string, content: ShareFilePayload) => {
     setFileContents((prev) => ({ ...prev, [slug]: content }));
   }, []);
 
@@ -107,7 +106,7 @@ export function useShareGroupFiles({
         if (res.ok) {
           const data = (await res.json()) as {
             content?: string;
-            encoding?: ShareFileContent["encoding"];
+            encoding?: ShareFilePayload["encoding"];
             password_protected?: boolean;
           };
           if (data.password_protected && !data.content) {

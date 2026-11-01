@@ -6,14 +6,14 @@ import { Button } from "@/components/ui/button";
 import { ShareFileContent } from "@/components/share-file-content";
 import { authFetch } from "@/lib/api-client";
 import { unlockShare } from "@/lib/share-unlock";
-import type { ShareFileContent as ShareFileContentValue } from "@/types/share-content";
+import type { ShareFilePayload } from "@/types/share-content";
 
 interface RevealShareContentProps {
   slug: string;
   filename?: string | null;
   mimeType?: string | null;
   /** Called once with the content after a successful reveal. */
-  onRevealed?: (content: ShareFileContentValue) => void;
+  onRevealed?: (content: ShareFilePayload) => void;
   /** Password of a protected file the visitor already unlocked: the reveal goes through the unlock endpoint with it. */
   password?: string;
   /** Called when the unlock refuses `password`, so the caller can remember it and show its own notice. */
@@ -39,7 +39,7 @@ type RevealState =
   | { status: "wrong-password" }
   | { status: "protected" }
   | { status: "failed" }
-  | { status: "revealed"; content: ShareFileContentValue };
+  | { status: "revealed"; content: ShareFilePayload };
 
 /**
  * Reveal gate for a share that deletes itself on its first content read
@@ -81,7 +81,7 @@ export function RevealShareContent({
       if (res.ok) {
       const data = (await res.json()) as {
         content?: string;
-        encoding?: ShareFileContentValue["encoding"];
+        encoding?: ShareFilePayload["encoding"];
         password_protected?: boolean;
       };
         if (data.password_protected && !data.content) {

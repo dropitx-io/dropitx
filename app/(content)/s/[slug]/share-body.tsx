@@ -4,7 +4,7 @@ import { ShareContentArea } from "@/components/share-content-area";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getShareContent, type ShareMeta } from "@/lib/share-data";
-import type { ShareFileContent } from "@/types/share-content";
+import type { ShareFilePayload } from "@/types/share-content";
 
 interface ShareBodyProps {
   slug: string;
@@ -52,7 +52,7 @@ export async function ShareBody({
     );
   }
 
-  let content: ShareFileContent | null = null;
+  let content: ShareFilePayload | null = null;
   if (!needsReveal) {
     const body = await getShareContent(slug);
     if (!body) notFound();

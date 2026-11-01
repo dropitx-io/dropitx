@@ -8,13 +8,13 @@ import { ShareFileContent } from "@/components/share-file-content";
 import { Loader2 } from "lucide-react";
 import { useShareGroupFiles } from "@/hooks/use-share-group-files";
 import type { GroupShare } from "@/types/share";
-import type { ShareFileContent as ShareFileContentValue } from "@/types/share-content";
+import type { ShareFilePayload } from "@/types/share-content";
 
 interface SharePageClientProps {
   groupFiles: GroupShare[];
   initialSlug: string;
   /** Content of the initial file, already read by the server. */
-  initialContent: ShareFileContentValue;
+  initialContent: ShareFilePayload;
   isAuthenticated: boolean;
   /** Password the visitor unlocked this group with, held in memory only; used to open protected siblings. */
   password?: string;

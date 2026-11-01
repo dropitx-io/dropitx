@@ -8,12 +8,12 @@ import { SharePageClient } from "@/components/share-page-client";
 import { ShareAnalyticsTracker } from "@/components/share-analytics-tracker";
 import { ShareViewedTracker } from "@/components/share-viewed-tracker";
 import type { GroupShare } from "@/types/share";
-import type { ShareFileContent as ShareFileContentValue } from "@/types/share-content";
+import type { ShareFilePayload } from "@/types/share-content";
 
 interface ShareContentAreaProps {
   slug: string;
   /** The share's content, or null when the visitor reveals it with a click (self-deleting share). */
-  content: ShareFileContentValue | null;
+  content: ShareFilePayload | null;
   filename?: string | null;
   mimeType?: string | null;
   groupFiles: GroupShare[];
