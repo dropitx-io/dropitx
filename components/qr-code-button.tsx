@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { QrCode, Download, Copy, Check, Loader2 } from "lucide-react";
 import { getApiUrl } from "@/lib/api-client";
+import { SITE_URL } from "@/lib/site-url";
 
 interface QrCodeButtonProps {
   slug: string;
@@ -29,7 +30,7 @@ export function QrCodeButton({
   const [loading, setLoading] = useState(true);
 
   const qrUrl = getApiUrl(`/api/qr/${slug}`);
-  const shareUrl = `${process.env.NEXT_PUBLIC_APP_URL || "https://dropitx.com"}/s/${slug}`;
+  const shareUrl = `${SITE_URL}/s/${slug}`;
 
   const handleCopy = async () => {
     try {

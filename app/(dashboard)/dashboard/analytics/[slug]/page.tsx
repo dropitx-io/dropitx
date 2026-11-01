@@ -13,6 +13,7 @@ import { ArrowLeft, Link as LinkIcon, Copy } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { ShareAnalyticsResponse } from "@/types/analytics";
+import { SITE_URL } from "@/lib/site-url";
 
 interface PerShareAnalyticsPageProps {
   params: Promise<{ slug: string }>;
@@ -39,7 +40,7 @@ export default async function PerShareAnalyticsPage({ params }: PerShareAnalytic
 
   const { share, summary, timeseries, referrers, geo, days } = data;
   const title = share.title ?? share.filename ?? share.slug;
-  const shareUrl = `${process.env.NEXT_PUBLIC_APP_URL || "https://dropitx.com"}/s/${share.slug}`;
+  const shareUrl = `${SITE_URL}/s/${share.slug}`;
   const hasData = summary.total_views > 0;
 
   return (

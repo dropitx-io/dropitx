@@ -11,8 +11,8 @@ import { QrCodeButton } from "@/components/qr-code-button";
 import { FileCode, FileText, Eye, Clock, Calendar } from "lucide-react";
 import { getShareMeta } from "@/lib/share-data";
 import { ShareBody, ShareBodySkeleton } from "./share-body";
+import { SITE_URL } from "@/lib/site-url";
 
-const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://dropitx.com";
 
 interface SharePageProps {
   params: Promise<{ slug: string }>;
