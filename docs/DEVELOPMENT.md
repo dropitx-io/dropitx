@@ -185,7 +185,7 @@ Firebase Auth owns identity. The client signs in through `lib/firebase/auth.ts`;
 
 - `middleware.ts` redirects `/dashboard/*` to `/auth/login?next=...` when the `session` cookie is absent. It is a presence check; it does not load `firebase-admin`.
 - Server components verify identity with `getSessionUser(cookieStore)` from `lib/firebase/server.ts`.
-- The same middleware applies security headers (HSTS in production, `X-Frame-Options: DENY`) and skips `_next/static`, `_next/image`, `favicon.ico`, and `api/og-image`.
+- The same middleware applies security headers (HSTS in production, `X-Frame-Options: DENY`, except `/embed/*`, which sends `Content-Security-Policy: frame-ancestors *`) and skips `_next/static`, `_next/image`, `favicon.ico`, and `api/og-image`.
 
 ## Styling
 

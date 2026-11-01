@@ -1,4 +1,4 @@
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { getSessionUser } from "@/lib/firebase/server";
@@ -107,17 +107,14 @@ export default async function SharePage({ params }: SharePageProps) {
   if (!share) notFound();
 
   // --- ACCESS GATE ---
+  // A session only decides which affordances the page offers (guest comment form,
+  // sign-in prompts); it never gates viewing.
   const sessionUser = await getSessionUser(await cookies());
-  const isOwner = share.is_owner;
   // Private shares never reach here: the API answers 404 for everyone but the owner.
   // A password-protected share shows its header and a password gate, for anonymous and
   // signed-in non-owners alike; its content is fetched by the gate after an unlock.
-  const gated = !isOwner && share.has_password;
-
-  // No password, no session: redirect to login
-  if (!isOwner && !gated && !sessionUser) {
-    redirect(`/auth/login?next=/s/${slug}`);
-  }
+  // Every other share is public and renders for any visitor, signed in or not.
+  const gated = !share.is_owner && share.has_password;
   // --- END ACCESS GATE ---
 
   // A share that deletes itself on its first content read is never read here:

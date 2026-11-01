@@ -10,6 +10,16 @@ const securityHeaders: Record<string, string> = {
 
 const SESSION_COOKIE = "session";
 
+// Embed pages exist to be framed by third-party sites, so they drop X-Frame-Options
+// (which cannot name an allowed origin) and allow any frame ancestor instead.
+const EMBED_FRAMING_HEADERS: Record<string, string> = {
+  "content-security-policy": "frame-ancestors *",
+};
+
+function isEmbedPath(pathname: string): boolean {
+  return pathname.startsWith("/embed/");
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
 
@@ -25,6 +35,12 @@ export async function middleware(request: NextRequest) {
   const response = NextResponse.next();
   for (const [key, value] of Object.entries(securityHeaders)) {
     response.headers.set(key, value);
+  }
+  if (isEmbedPath(pathname)) {
+    response.headers.delete("x-frame-options");
+    for (const [key, value] of Object.entries(EMBED_FRAMING_HEADERS)) {
+      response.headers.set(key, value);
+    }
   }
   if (process.env.NODE_ENV === "production") {
     response.headers.set(

@@ -198,8 +198,7 @@ GET /s/[slug] → getShareMeta (GET /api/shares/{slug}; never counts a view)
   → missing / private-to-others / expired → not found
   → password share (non-owner) → PasswordGate, content fetched after unlock
   → burn-after-reading / one-time share → reveal state; /content is read on a click
-  → plain share, anonymous visitor → redirect to /auth/login?next=/s/[slug]
-  → otherwise getShareContent (GET /content; counts the view) → render by mime_type
+  → otherwise (plain share, signed in or anonymous) getShareContent (GET /content; counts the view) → render by mime_type
 ```
 
 ### API Key Lifecycle
@@ -220,7 +219,7 @@ The frontend enforces the following itself; everything else on this list is enfo
 | Layer | Implementation |
 |-------|---------------|
 | HtmlViewer sandbox | `sandbox="allow-scripts"` + CSP meta tag |
-| Security headers | `middleware.ts`: nosniff, `X-Frame-Options: DENY`, referrer policy, permissions policy, HSTS in production |
+| Security headers | `middleware.ts`: nosniff, `X-Frame-Options: DENY` (`/embed/*` sends `Content-Security-Policy: frame-ancestors *` instead), referrer policy, permissions policy, HSTS in production |
 | Session | httpOnly `session` cookie; `/dashboard/*` gated |
 | Metadata paths | `generateMetadata` and the OG route read only `GET /api/shares/{slug}`, never `/content` |
 | Token hygiene | Invite tokens and delete tokens are never rendered or logged except where the UI already shows a delete token to its owner; server error messages redact token path segments |
