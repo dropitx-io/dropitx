@@ -1,16 +1,16 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
+import { Suspense } from "react";
 import { getSessionUser } from "@/lib/firebase/server";
-import { PasswordGate } from "@/components/password-gate";
-import { ShareContentArea } from "@/components/share-content-area";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmbedSnippet } from "@/components/embed-snippet";
 import { Badge } from "@/components/ui/badge";
 import { BookmarkToggle } from "@/components/bookmark-toggle";
 import { QrCodeButton } from "@/components/qr-code-button";
 import { FileCode, FileText, Eye, Clock, Calendar } from "lucide-react";
-import { getShareContent, getShareMeta } from "@/lib/share-data";
+import { getShareMeta } from "@/lib/share-data";
+import { ShareBody, ShareBodySkeleton } from "./share-body";
 
 const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://dropitx.com";
 
@@ -121,17 +121,9 @@ export default async function SharePage({ params }: SharePageProps) {
   // the visitor reveals it with an explicit click.
   const needsReveal = share.burn_after_reading || share.one_time_download;
 
-  let fileContent: string | null = null;
-  if (!gated && !needsReveal) {
-    const body = await getShareContent(slug);
-    if (!body) notFound();
-    fileContent = body.content;
-  }
-
   const isMarkdown = share.mime_type === "text/markdown";
-  const groupFiles = share.group_files;
-  // The content read above is what counts this visit; the metadata predates it.
-  const viewCount = fileContent === null ? share.view_count : share.view_count + 1;
+  // The content read below is what counts this visit; the metadata predates it.
+  const viewCount = !gated && !needsReveal ? share.view_count + 1 : share.view_count;
   const displayName = share.filename ?? share.title ?? slug;
 
   return (
@@ -186,24 +178,18 @@ export default async function SharePage({ params }: SharePageProps) {
         </CardHeader>
       </Card>
 
-      {gated ? (
-        <PasswordGate
-          key={slug}
+      {/* Everything above is resolved before the first byte, so a missing share answers 404.
+          The content read streams in behind the skeleton. */}
+      <Suspense fallback={<ShareBodySkeleton />}>
+        <ShareBody
           slug={slug}
           isMarkdown={isMarkdown}
-          groupFiles={groupFiles}
-          isAuthenticated={!!sessionUser}
-          selfDeleting={needsReveal}
-        />
-      ) : (
-        <ShareContentArea
-          slug={slug}
-          isMarkdown={isMarkdown}
-          content={fileContent}
-          groupFiles={groupFiles}
+          groupFiles={share.group_files}
+          gated={gated}
+          needsReveal={needsReveal}
           isAuthenticated={!!sessionUser}
         />
-      )}
+      </Suspense>
     </div>
   );
 }
