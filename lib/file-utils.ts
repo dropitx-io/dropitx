@@ -99,6 +99,24 @@ export function getFileTypeLabel(filename: string, mimeType?: string): string {
   return "File";
 }
 
+export function getShortFileTypeLabel(filename?: string | null, mimeType?: string | null): string {
+  const dot = filename?.lastIndexOf(".") ?? -1;
+  const ext = dot > 0 ? filename!.slice(dot + 1).toLowerCase() : "";
+  if (ext === "md" || ext === "markdown") return "Markdown";
+  if (ext === "html" || ext === "htm") return "HTML";
+  if (ext === "txt") return "Text";
+  if (ext) return ext.toUpperCase();
+
+  const mime = mimeType?.toLowerCase() ?? "";
+  if (!mime || mime === "application/octet-stream") return "File";
+  if (mime === "text/markdown") return "Markdown";
+  if (mime === "text/html") return "HTML";
+  if (mime === "text/plain") return "Text";
+
+  const subtype = mime.split("/")[1]?.split("+")[0];
+  return subtype ? subtype.toUpperCase() : "File";
+}
+
 /**
  * Get a color class for the file type badge
  */

@@ -8,10 +8,12 @@ import { OnceOnlyNotice } from "@/components/reveal-share-content";
 import { ShareContentArea } from "@/components/share-content-area";
 import { unlockShare } from "@/lib/share-unlock";
 import type { GroupShare } from "@/types/share";
+import type { ShareFilePayload } from "@/types/share-content";
 
 interface PasswordGateProps {
   slug: string;
-  isMarkdown: boolean;
+  filename?: string | null;
+  mimeType?: string | null;
   groupFiles: GroupShare[];
   isAuthenticated: boolean;
   /** The share deletes itself on its first read, which the unlock performs. */
@@ -19,7 +21,7 @@ interface PasswordGateProps {
 }
 
 interface Unlocked {
-  content: string;
+  content: ShareFilePayload;
   password: string;
 }
 
@@ -29,7 +31,14 @@ interface Unlocked {
  * only in this component's state: nothing is written to storage, cookies or the
  * URL, so a refresh asks for the password again.
  */
-export function PasswordGate({ slug, isMarkdown, groupFiles, isAuthenticated, selfDeleting }: PasswordGateProps) {
+export function PasswordGate({
+  slug,
+  filename,
+  mimeType,
+  groupFiles,
+  isAuthenticated,
+  selfDeleting,
+}: PasswordGateProps) {
   const [password, setPassword] = useState("");
   const [unlocked, setUnlocked] = useState<Unlocked | null>(null);
   const [loading, setLoading] = useState(false);
@@ -51,7 +60,7 @@ export function PasswordGate({ slug, isMarkdown, groupFiles, isAuthenticated, se
     switch (result.status) {
       case "ok":
         if (result.content) {
-          setUnlocked({ content: result.content, password });
+          setUnlocked({ content: { content: result.content, encoding: result.encoding }, password });
           setPassword("");
         } else {
           // A one-time or burn share another visitor already opened unlocks to nothing.
@@ -77,7 +86,8 @@ export function PasswordGate({ slug, isMarkdown, groupFiles, isAuthenticated, se
     return (
       <ShareContentArea
         slug={slug}
-        isMarkdown={isMarkdown}
+        filename={filename}
+        mimeType={mimeType}
         content={unlocked.content}
         groupFiles={groupFiles}
         isAuthenticated={isAuthenticated}

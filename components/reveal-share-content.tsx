@@ -3,16 +3,17 @@
 import { useRef, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { HtmlViewer } from "@/components/html-viewer";
-import { MarkdownViewerWrapper } from "@/components/markdown-viewer-wrapper";
+import { ShareFileContent } from "@/components/share-file-content";
 import { authFetch } from "@/lib/api-client";
 import { unlockShare } from "@/lib/share-unlock";
+import type { ShareFilePayload } from "@/types/share-content";
 
 interface RevealShareContentProps {
   slug: string;
-  isMarkdown: boolean;
+  filename?: string | null;
+  mimeType?: string | null;
   /** Called once with the content after a successful reveal. */
-  onRevealed?: (content: string) => void;
+  onRevealed?: (content: ShareFilePayload) => void;
   /** Password of a protected file the visitor already unlocked: the reveal goes through the unlock endpoint with it. */
   password?: string;
   /** Called when the unlock refuses `password`, so the caller can remember it and show its own notice. */
@@ -38,14 +39,21 @@ type RevealState =
   | { status: "wrong-password" }
   | { status: "protected" }
   | { status: "failed" }
-  | { status: "revealed"; content: string };
+  | { status: "revealed"; content: ShareFilePayload };
 
 /**
  * Reveal gate for a share that deletes itself on its first content read
  * (burn after reading, one-time download). The content is fetched only when the
  * visitor asks for it, so a link preview or prefetch never consumes the share.
  */
-export function RevealShareContent({ slug, isMarkdown, onRevealed, password, onWrongPassword }: RevealShareContentProps) {
+export function RevealShareContent({
+  slug,
+  filename,
+  mimeType,
+  onRevealed,
+  password,
+  onWrongPassword,
+}: RevealShareContentProps) {
   const [state, setState] = useState<RevealState>({ status: "idle" });
   // A ref, not state: two clicks in one frame both see the same stale state.
   const inFlight = useRef(false);
@@ -58,8 +66,9 @@ export function RevealShareContent({ slug, isMarkdown, onRevealed, password, onW
       if (password !== undefined) {
         const result = await unlockShare(slug, password);
         if (result.status === "ok" && result.content) {
-          setState({ status: "revealed", content: result.content });
-          onRevealed?.(result.content);
+          const revealed = { content: result.content, encoding: result.encoding };
+          setState({ status: "revealed", content: revealed });
+          onRevealed?.(revealed);
         } else if (result.status === "wrong") {
           setState({ status: "wrong-password" });
           onWrongPassword?.();
@@ -70,12 +79,16 @@ export function RevealShareContent({ slug, isMarkdown, onRevealed, password, onW
       }
       const res = await authFetch(`/api/shares/${encodeURIComponent(slug)}/content`);
       if (res.ok) {
-        const data = (await res.json()) as { content?: string; password_protected?: boolean };
+      const data = (await res.json()) as {
+        content?: string;
+        encoding?: ShareFilePayload["encoding"];
+        password_protected?: boolean;
+      };
         if (data.password_protected && !data.content) {
           setState({ status: "protected" });
           return;
         }
-        const content = data.content ?? "";
+        const content = { content: data.content ?? "", encoding: data.encoding ?? "utf8" };
         setState({ status: "revealed", content });
         onRevealed?.(content);
       } else if (res.status === 404 || res.status === 410) {
@@ -91,7 +104,7 @@ export function RevealShareContent({ slug, isMarkdown, onRevealed, password, onW
   };
 
   if (state.status === "revealed") {
-    return isMarkdown ? <MarkdownViewerWrapper content={state.content} /> : <HtmlViewer htmlContent={state.content} />;
+    return <ShareFileContent content={state.content} filename={filename} mimeType={mimeType} />;
   }
 
   return (

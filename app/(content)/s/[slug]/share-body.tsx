@@ -4,10 +4,12 @@ import { ShareContentArea } from "@/components/share-content-area";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getShareContent, type ShareMeta } from "@/lib/share-data";
+import type { ShareFilePayload } from "@/types/share-content";
 
 interface ShareBodyProps {
   slug: string;
-  isMarkdown: boolean;
+  filename?: string | null;
+  mimeType?: string | null;
   groupFiles: ShareMeta["group_files"];
   /** Password-protected for a non-owner: the gate fetches content itself after an unlock. */
   gated: boolean;
@@ -29,7 +31,8 @@ export function ShareBodySkeleton() {
 /** The share's content area. Reads the content (counting a view) only when the share may be shown outright. */
 export async function ShareBody({
   slug,
-  isMarkdown,
+  filename,
+  mimeType,
   groupFiles,
   gated,
   needsReveal,
@@ -40,7 +43,8 @@ export async function ShareBody({
       <PasswordGate
         key={slug}
         slug={slug}
-        isMarkdown={isMarkdown}
+        filename={filename}
+        mimeType={mimeType}
         groupFiles={groupFiles}
         isAuthenticated={isAuthenticated}
         selfDeleting={needsReveal}
@@ -48,17 +52,18 @@ export async function ShareBody({
     );
   }
 
-  let content: string | null = null;
+  let content: ShareFilePayload | null = null;
   if (!needsReveal) {
     const body = await getShareContent(slug);
     if (!body) notFound();
-    content = body.content;
+    content = body;
   }
 
   return (
     <ShareContentArea
       slug={slug}
-      isMarkdown={isMarkdown}
+      filename={filename}
+      mimeType={mimeType}
       content={content}
       groupFiles={groupFiles}
       isAuthenticated={isAuthenticated}
