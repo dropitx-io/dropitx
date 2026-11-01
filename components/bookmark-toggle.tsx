@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useAuth } from "@/components/auth-provider";
 import { authFetch } from "@/lib/api-client";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Heart } from "lucide-react";
 
 interface BookmarkToggleProps {
@@ -21,7 +21,6 @@ export function BookmarkToggle({ shareId, slug }: BookmarkToggleProps) {
   // favorites check is in flight. No user after auth → interactive.
   const loading = authLoading || (user ? fetchLoading : false);
   const toggling = useRef(false);
-  const router = useRouter();
 
   useEffect(() => {
     if (authLoading) return;
@@ -45,10 +44,7 @@ export function BookmarkToggle({ shareId, slug }: BookmarkToggleProps) {
 
   const toggle = useCallback(async () => {
     if (toggling.current) return;
-    if (!user) {
-      router.push(`/auth/login?next=/s/${slug}`);
-      return;
-    }
+    if (!user) return;
 
     toggling.current = true;
     const prev = isFavorited;
@@ -64,7 +60,21 @@ export function BookmarkToggle({ shareId, slug }: BookmarkToggleProps) {
     } finally {
       toggling.current = false;
     }
-  }, [isFavorited, shareId, slug, user, router]);
+  }, [isFavorited, shareId, user]);
+
+  // An anonymous visitor cannot favorite: offer sign-in instead of a button that does nothing.
+  if (!authLoading && !user) {
+    return (
+      <Link
+        href={`/auth/login?next=/s/${slug}`}
+        className={buttonVariants({ variant: "ghost", size: "icon-sm" })}
+        aria-label="Sign in to add to favorites"
+        title="Sign in to add to favorites"
+      >
+        <Heart className="size-4" />
+      </Link>
+    );
+  }
 
   return (
     <Button

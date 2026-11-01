@@ -194,7 +194,7 @@ public/                       # Static assets (favicon, icons, images)
 
 ### Share Access (Password-Protected)
 - **Unlock Flow**: `PasswordGate` posts the password to the API's `/api/shares/{slug}/unlock` and renders the returned content in place
-- **Gate Order**: private (API 404 unless owner) → owner sees content → password gate for non-owners → login redirect for anonymous visitors of plain shares
+- **Gate Order**: private (API 404 unless owner) → owner sees content → password gate for non-owners → everything else is public and renders for anonymous visitors too
 
 ## Database
 

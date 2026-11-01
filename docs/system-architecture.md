@@ -198,8 +198,7 @@ GET /s/[slug] → getShareMeta (GET /api/shares/{slug}; never counts a view)
   → missing / private-to-others / expired → not found
   → password share (non-owner) → PasswordGate, content fetched after unlock
   → burn-after-reading / one-time share → reveal state; /content is read on a click
-  → plain share, anonymous visitor → redirect to /auth/login?next=/s/[slug]
-  → otherwise getShareContent (GET /content; counts the view) → render by mime_type
+  → otherwise (plain share, signed in or anonymous) getShareContent (GET /content; counts the view) → render by mime_type
 ```
 
 ### API Key Lifecycle
