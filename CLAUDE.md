@@ -50,7 +50,7 @@ No test framework is currently configured. Verify changes manually by running `n
 3. Server components verify identity via `getSessionUser(cookieStore)` from `lib/firebase/server.ts` (`verifySessionCookie`), then read user-scoped data through the service-role `createAdminClient()` from `utils/supabase/server.ts`, filtered by `user.uid`. Supabase RLS is disabled (`auth.uid()` returns NULL by design — see backend migration 007), so all access is service-role.
 4. Sign-out calls `POST /api/auth/session-logout` (revokes refresh tokens + clears the cookie), then signs out the Firebase client.
 
-**Security headers** applied in middleware: `X-Content-Type-Options`, `X-Frame-Options: DENY`, `Referrer-Policy`, `Permissions-Policy`, and HSTS (production only). The matcher excludes `_next/static`, `_next/image`, `favicon.ico`, and `api/og-image`.
+**Security headers** applied in middleware: `X-Content-Type-Options`, `X-Frame-Options: DENY` (except `/embed/*`, which sends `Content-Security-Policy: frame-ancestors *` so third-party sites can frame it), `Referrer-Policy`, `Permissions-Policy`, and HSTS (production only). The matcher excludes `_next/static`, `_next/image`, `favicon.ico`, and `api/og-image`.
 
 **Required env:** client SDK `NEXT_PUBLIC_FIREBASE_API_KEY`, `_AUTH_DOMAIN`, `_PROJECT_ID`, `_STORAGE_BUCKET`, `_MESSAGING_SENDER_ID`, `_APP_ID`; server Admin `FIREBASE_ADMIN_PROJECT_ID`, `FIREBASE_ADMIN_CLIENT_EMAIL`, `FIREBASE_ADMIN_PRIVATE_KEY`. Keep `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` (the admin client still backs Postgres/Storage reads).
 
