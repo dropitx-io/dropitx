@@ -11,8 +11,6 @@ import { unlockShare } from "@/lib/share-unlock";
 interface RevealShareContentProps {
   slug: string;
   isMarkdown: boolean;
-  /** "embed" fills the frame and renders HTML without the page chrome. */
-  variant?: "page" | "embed";
   /** Called once with the content after a successful reveal. */
   onRevealed?: (content: string) => void;
   /** Password of a protected file the visitor already unlocked: the reveal goes through the unlock endpoint with it. */
@@ -47,7 +45,7 @@ type RevealState =
  * (burn after reading, one-time download). The content is fetched only when the
  * visitor asks for it, so a link preview or prefetch never consumes the share.
  */
-export function RevealShareContent({ slug, isMarkdown, variant = "page", onRevealed, password, onWrongPassword }: RevealShareContentProps) {
+export function RevealShareContent({ slug, isMarkdown, onRevealed, password, onWrongPassword }: RevealShareContentProps) {
   const [state, setState] = useState<RevealState>({ status: "idle" });
   // A ref, not state: two clicks in one frame both see the same stale state.
   const inFlight = useRef(false);
@@ -93,23 +91,7 @@ export function RevealShareContent({ slug, isMarkdown, variant = "page", onRevea
   };
 
   if (state.status === "revealed") {
-    if (isMarkdown) {
-      return (
-        <div className={variant === "embed" ? "p-4" : undefined}>
-          <MarkdownViewerWrapper content={state.content} />
-        </div>
-      );
-    }
-    return variant === "embed" ? (
-      <iframe
-        srcDoc={state.content}
-        style={{ width: "100%", height: "100vh", border: "none" }}
-        sandbox="allow-scripts"
-        title="Shared content"
-      />
-    ) : (
-      <HtmlViewer htmlContent={state.content} />
-    );
+    return isMarkdown ? <MarkdownViewerWrapper content={state.content} /> : <HtmlViewer htmlContent={state.content} />;
   }
 
   return (

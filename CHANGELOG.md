@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Public shares (no password, not private) are viewable without signing in; the `/s/[slug]` page no longer redirects anonymous visitors to the login page
 - The favorite heart on a share page links anonymous visitors to sign-in ("Sign in to add to favorites")
+- `/embed/[slug]` renders public shares for anonymous visitors, including shares that have an owner. A password share shows a "password protected" notice and a burn-after-reading or one-time share shows an "open it on DropItX" link; neither has its content read by the embed
 
 ## [1.4.1] - 2026-04-26
 
