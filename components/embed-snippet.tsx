@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Code, Copy, Check } from "lucide-react";
+import { SITE_URL } from "@/lib/site-url";
 
-const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://dropitx.com";
 
 interface EmbedSnippetProps {
   slug: string;
