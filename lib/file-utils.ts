@@ -99,11 +99,12 @@ export function getFileTypeLabel(filename: string, mimeType?: string): string {
   return "File";
 }
 
-/**
- * Get a compact badge label, preferring the original filename extension.
- */
 export function getShortFileTypeLabel(filename?: string | null, mimeType?: string | null): string {
-  const ext = filename?.split(".").pop()?.toLowerCase() ?? "";
+  const dot = filename?.lastIndexOf(".") ?? -1;
+  const ext = dot > 0 ? filename!.slice(dot + 1).toLowerCase() : "";
+  if (ext === "md" || ext === "markdown") return "Markdown";
+  if (ext === "html" || ext === "htm") return "HTML";
+  if (ext === "txt") return "Text";
   if (ext) return ext.toUpperCase();
 
   const mime = mimeType?.toLowerCase() ?? "";
