@@ -10,11 +10,13 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { User, LogOut, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { ProfileUsernameField } from "@/components/profile-username-field";
 
 interface ProfileFormProps {
   userId: string;
   displayName: string;
   avatarUrl: string;
+  username: string | null;
   email: string;
   providers: string[];
 }
@@ -22,6 +24,7 @@ interface ProfileFormProps {
 export function ProfileForm({
   displayName,
   avatarUrl,
+  username,
   email,
   providers,
 }: ProfileFormProps) {
@@ -117,6 +120,8 @@ export function ProfileForm({
               </Button>
             </div>
           </div>
+
+          <ProfileUsernameField displayName={displayName} initialUsername={username} />
 
           {/* Connected providers */}
           {providers.length > 0 && (

@@ -234,15 +234,18 @@ export interface DashboardProfile {
   email: string;
   displayName: string;
   avatarUrl: string;
+  /** Null until the API has assigned one. */
+  username: string | null;
 }
 
 /** Signed-in profile from the session endpoint (which also provisions the user row on first call). */
 export async function getProfile(): Promise<DashboardProfile> {
   const session = await dashboardCall(() => serverApiFetch<SessionProfile>("/api/auth/session"));
-  const { display_name, avatar_url } = session.profile;
+  const { display_name, avatar_url, username } = session.profile;
   return {
     email: session.email ?? "",
     displayName: typeof display_name === "string" ? display_name : "",
     avatarUrl: typeof avatar_url === "string" ? avatar_url : "",
+    username: typeof username === "string" && username ? username : null,
   };
 }
