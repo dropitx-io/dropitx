@@ -21,7 +21,8 @@ interface EditorPublishBarProps {
   editTitle?: string;
   /** Privacy of the share being edited, so an update never changes it unless the user does. */
   initialIsPrivate?: boolean;
-  onPublished?: (slug: string, url: string) => void;
+  /** Called after a successful publish or update, with the exact content that was saved. */
+  onPublished?: (slug: string, url: string, publishedContent: string) => void;
   onClearDraft?: () => void;
   draftSavedAt?: Date | null;
 }
@@ -90,7 +91,7 @@ export function EditorPublishBar({
       setPublishedUrl(url);
       toast.success("Published successfully!");
       trackEvent(AnalyticsEvent.CONTENT_PUBLISHED, { is_private: isPrivate, encrypted: false, burn: burnAfterReading });
-      onPublished?.(data.slug, url);
+      onPublished?.(data.slug, url, content);
       onClearDraft?.();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Publishing failed");
@@ -127,7 +128,7 @@ export function EditorPublishBar({
       toast.success("Updated successfully!");
       // The expiry was applied; a later update keeps it unless the user picks another.
       setExpiresIn("");
-      onPublished?.(editSlug, data.url);
+      onPublished?.(editSlug, data.url, content);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Update failed");
     } finally {

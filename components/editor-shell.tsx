@@ -77,7 +77,9 @@ export function EditorShell() {
   // Reading content counts a view, so a re-run of the load effect must not read it twice. Set only once the
   // session has been restored: before that the requests carry no credentials and would be refused or misread.
   const loadStartedFor = useRef<string | null>(null);
-  const isDirty = content.length > 0 && content !== (initialContent ?? "");
+  // The content last saved by a successful publish or update; edits since then are what the unload warning protects.
+  const [publishedContent, setPublishedContent] = useState<string | null>(null);
+  const isDirty = content.length > 0 && content !== (publishedContent ?? initialContent ?? "");
 
   const { hasDraft, restoreDraft, clearDraft } = useEditorAutoSave(content);
   const autoSave = useAutoSave(content, {
@@ -415,6 +417,7 @@ export function EditorShell() {
         editSlug={editSlug || undefined}
         editTitle={editTitle}
         initialIsPrivate={loadedIsPrivate}
+        onPublished={(_slug, _url, saved) => setPublishedContent(saved)}
         draftSavedAt={autoSave.savedAt}
         onClearDraft={() => {
           clearDraft();
