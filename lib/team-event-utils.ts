@@ -10,6 +10,8 @@ import {
   UserMinus,
   Shield,
   UserX,
+  FilePlus,
+  FileMinus,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -17,6 +19,7 @@ import type { LucideIcon } from "lucide-react";
 export function getEventIcon(eventType: string): LucideIcon {
   const iconMap: Record<TeamEventType, LucideIcon> = {
     "invite.created": Mail,
+    "invite.sent": Mail,
     "invite.accepted": MailCheck,
     "invite.declined": MailX,
     "invite.revoked": MailMinus,
@@ -25,6 +28,8 @@ export function getEventIcon(eventType: string): LucideIcon {
     "member.left": UserMinus,
     "member.role_changed": Shield,
     "member.removed": UserX,
+    "share.added": FilePlus,
+    "share.removed": FileMinus,
   };
   return iconMap[eventType as TeamEventType] ?? Activity;
 }
@@ -33,6 +38,7 @@ export function getEventIcon(eventType: string): LucideIcon {
 export function getEventColor(eventType: string): string {
   const colorMap: Record<TeamEventType, string> = {
     "invite.created": "text-blue-500",
+    "invite.sent": "text-blue-500",
     "invite.accepted": "text-success",
     "invite.declined": "text-yellow-500",
     "invite.revoked": "text-red-500",
@@ -41,8 +47,19 @@ export function getEventColor(eventType: string): string {
     "member.left": "text-yellow-500",
     "member.role_changed": "text-blue-500",
     "member.removed": "text-red-500",
+    "share.added": "text-success",
+    "share.removed": "text-red-500",
   };
   return colorMap[eventType as TeamEventType] ?? "text-muted-foreground";
+}
+
+/** What a share event's payload names the share by: title, then filename, then slug. */
+function shareLabel(metadata: Record<string, unknown>): string {
+  for (const key of ["title", "filename", "slug"]) {
+    const value = metadata[key];
+    if (typeof value === "string" && value) return `"${value}"`;
+  }
+  return "a share";
 }
 
 /** Human-readable description for a team event. */
@@ -53,6 +70,7 @@ export function formatEventDescription(
   const metadata = payload ?? {};
   switch (eventType) {
     case "invite.created":
+    case "invite.sent":
       return `Invited ${metadata.email ?? "someone"} as ${metadata.role ?? "viewer"}`;
     case "invite.accepted":
       return `${metadata.email ?? "Someone"} accepted the invite`;
@@ -70,6 +88,10 @@ export function formatEventDescription(
       return `Changed role from ${metadata.old_role ?? "?"} to ${metadata.new_role ?? "?"}`;
     case "member.removed":
       return `Removed ${metadata.role ?? "member"} from the team`;
+    case "share.added":
+      return `Added ${shareLabel(metadata)} to the team`;
+    case "share.removed":
+      return `Removed ${shareLabel(metadata)} from the team`;
     default:
       return eventType;
   }

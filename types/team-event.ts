@@ -1,6 +1,7 @@
 /** Event types the activity feed knows how to describe. */
 export type TeamEventType =
   | "invite.created"
+  | "invite.sent"
   | "invite.accepted"
   | "invite.declined"
   | "invite.revoked"
@@ -8,7 +9,9 @@ export type TeamEventType =
   | "member.joined"
   | "member.left"
   | "member.role_changed"
-  | "member.removed";
+  | "member.removed"
+  | "share.added"
+  | "share.removed";
 
 /**
  * One row of `GET /api/dashboard/teams/{slug}/events`. `event_type` is free text in
