@@ -2,19 +2,20 @@
 
 import { Card, CardContent } from "@/components/ui/card";
 import { CommentsSection } from "@/components/comments-section";
-import { HtmlViewer } from "@/components/html-viewer";
-import { MarkdownViewerWrapper } from "@/components/markdown-viewer-wrapper";
 import { RevealShareContent } from "@/components/reveal-share-content";
+import { ShareFileContent } from "@/components/share-file-content";
 import { SharePageClient } from "@/components/share-page-client";
 import { ShareAnalyticsTracker } from "@/components/share-analytics-tracker";
 import { ShareViewedTracker } from "@/components/share-viewed-tracker";
 import type { GroupShare } from "@/types/share";
+import type { ShareFileContent as ShareFileContentValue } from "@/types/share-content";
 
 interface ShareContentAreaProps {
   slug: string;
-  isMarkdown: boolean;
   /** The share's content, or null when the visitor reveals it with a click (self-deleting share). */
-  content: string | null;
+  content: ShareFileContentValue | null;
+  filename?: string | null;
+  mimeType?: string | null;
   groupFiles: GroupShare[];
   isAuthenticated: boolean;
   /** Password the visitor unlocked the share with, held in memory only; opens protected group siblings. */
@@ -29,12 +30,15 @@ interface ShareContentAreaProps {
  */
 export function ShareContentArea({
   slug,
-  isMarkdown,
   content,
+  filename,
+  mimeType,
   groupFiles,
   isAuthenticated,
   password,
 }: ShareContentAreaProps) {
+  const isMarkdown = mimeType === "text/markdown";
+
   return (
     <>
       <ShareViewedTracker />
@@ -50,13 +54,11 @@ export function ShareContentArea({
       ) : (
         <>
           <Card>
-            <CardContent className={isMarkdown ? "p-4 md:p-6" : "p-2"}>
+            <CardContent className={isMarkdown && content?.encoding !== "base64" ? "p-4 md:p-6" : "p-2"}>
               {content === null ? (
-                <RevealShareContent slug={slug} isMarkdown={isMarkdown} />
-              ) : isMarkdown ? (
-                <MarkdownViewerWrapper content={content} />
+                <RevealShareContent slug={slug} filename={filename} mimeType={mimeType} />
               ) : (
-                <HtmlViewer htmlContent={content} />
+                <ShareFileContent content={content} filename={filename} mimeType={mimeType} />
               )}
             </CardContent>
           </Card>

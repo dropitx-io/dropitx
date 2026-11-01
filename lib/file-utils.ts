@@ -100,6 +100,23 @@ export function getFileTypeLabel(filename: string, mimeType?: string): string {
 }
 
 /**
+ * Get a compact badge label, preferring the original filename extension.
+ */
+export function getShortFileTypeLabel(filename?: string | null, mimeType?: string | null): string {
+  const ext = filename?.split(".").pop()?.toLowerCase() ?? "";
+  if (ext) return ext.toUpperCase();
+
+  const mime = mimeType?.toLowerCase() ?? "";
+  if (!mime || mime === "application/octet-stream") return "File";
+  if (mime === "text/markdown") return "Markdown";
+  if (mime === "text/html") return "HTML";
+  if (mime === "text/plain") return "Text";
+
+  const subtype = mime.split("/")[1]?.split("+")[0];
+  return subtype ? subtype.toUpperCase() : "File";
+}
+
+/**
  * Get a color class for the file type badge
  */
 export function getFileTypeColor(filename: string, mimeType?: string): string {

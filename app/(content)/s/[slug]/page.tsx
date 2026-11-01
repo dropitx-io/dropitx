@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { BookmarkToggle } from "@/components/bookmark-toggle";
 import { QrCodeButton } from "@/components/qr-code-button";
 import { FileCode, FileText, Eye, Clock, Calendar } from "lucide-react";
+import { getShortFileTypeLabel } from "@/lib/file-utils";
 import { getShareMeta } from "@/lib/share-data";
 import { ShareBody, ShareBodySkeleton } from "./share-body";
 import { SITE_URL } from "@/lib/site-url";
@@ -121,10 +122,10 @@ export default async function SharePage({ params }: SharePageProps) {
   // the visitor reveals it with an explicit click.
   const needsReveal = share.burn_after_reading || share.one_time_download;
 
-  const isMarkdown = share.mime_type === "text/markdown";
   // The content read below is what counts this visit; the metadata predates it.
   const viewCount = !gated && !needsReveal ? share.view_count + 1 : share.view_count;
   const displayName = share.filename ?? share.title ?? slug;
+  const isMarkdown = share.mime_type === "text/markdown";
 
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 md:p-6 max-w-[1200px] mx-auto w-full animate-fade-in">
@@ -144,7 +145,7 @@ export default async function SharePage({ params }: SharePageProps) {
             </div>
             <div className="flex items-center gap-2 shrink-0">
               <Badge variant="outline">
-                {isMarkdown ? "Markdown" : "HTML"}
+                {getShortFileTypeLabel(share.filename, share.mime_type)}
               </Badge>
               <BookmarkToggle shareId={share.id} slug={share.slug} />
               <QrCodeButton slug={share.slug} />
@@ -183,7 +184,8 @@ export default async function SharePage({ params }: SharePageProps) {
       <Suspense fallback={<ShareBodySkeleton />}>
         <ShareBody
           slug={slug}
-          isMarkdown={isMarkdown}
+          filename={share.filename}
+          mimeType={share.mime_type}
           groupFiles={share.group_files}
           gated={gated}
           needsReveal={needsReveal}

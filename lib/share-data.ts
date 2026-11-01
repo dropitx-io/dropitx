@@ -2,12 +2,14 @@ import "server-only";
 import { cache } from "react";
 import type { components } from "@/lib/api-types";
 import { ApiError, serverApiFetch, serverApiFetchOrNull } from "@/lib/server-api";
+import type { ShareContentEncoding } from "@/types/share-content";
 
 export type ShareMeta = components["schemas"]["ShareMeta"];
 
 /** The part of `GET /api/shares/{slug}/content` the page reads. */
 export interface ShareContent {
   content: string;
+  encoding: ShareContentEncoding;
   password_protected: boolean;
 }
 

@@ -1,7 +1,8 @@
 import { getApiUrl } from "@/lib/api-client";
+import type { ShareContentEncoding } from "@/types/share-content";
 
 export type UnlockResult =
-  | { status: "ok"; content: string }
+  | { status: "ok"; content: string; encoding: ShareContentEncoding }
   | { status: "wrong" }
   | { status: "limited"; message: string }
   | { status: "gone" }
@@ -34,8 +35,8 @@ export async function unlockShare(slug: string, password: string): Promise<Unloc
       body: JSON.stringify({ password }),
     });
     if (res.ok) {
-      const data = (await res.json()) as { content?: string };
-      return { status: "ok", content: data.content ?? "" };
+      const data = (await res.json()) as { content?: string; encoding?: ShareContentEncoding };
+      return { status: "ok", content: data.content ?? "", encoding: data.encoding ?? "utf8" };
     }
     if (res.status === 401) return { status: "wrong" };
     if (res.status === 429) return { status: "limited", message: describeWait(res.headers.get("Retry-After")) };
