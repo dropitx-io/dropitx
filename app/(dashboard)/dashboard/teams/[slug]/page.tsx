@@ -104,19 +104,17 @@ export default async function TeamOverviewPage({
       </div>
 
       {/* Recent Activity */}
-      {events.length > 0 && (
-        <Card className="border border-border rounded-[var(--radius-card)] shadow-[var(--shadow)]">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Activity className="size-5" />
-              Recent Activity
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <TeamActivityFeed events={events} />
-          </CardContent>
-        </Card>
-      )}
+      <Card className="border border-border rounded-[var(--radius-card)] shadow-[var(--shadow)]">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Activity className="size-5" />
+            Recent Activity
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <TeamActivityFeed events={events} />
+        </CardContent>
+      </Card>
 
       {/* Shares list */}
       {validShares.length === 0 ? (

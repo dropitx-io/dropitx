@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatFileSize } from "@/lib/file-utils";
+import { InviteNotificationBell } from "@/components/invite-notification-bell";
 
 interface Team {
   slug: string;
@@ -253,6 +254,9 @@ export function DashboardShell({ user, teams, storageUsedBytes, children }: Dash
             <Plus className="size-3.5" strokeWidth={2.4} />
             New share
           </Link>
+
+          {/* Pending team invitations (GET /api/dashboard/invitations) */}
+          <InviteNotificationBell />
         </header>
 
         <div className="w-full max-w-[1180px] flex-1 px-10 pb-14 pt-5 max-[640px]:px-4">

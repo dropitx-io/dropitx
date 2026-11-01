@@ -2,15 +2,14 @@
 
 import { useState } from "react";
 import { Check, Copy } from "lucide-react";
-
-const INSTALL_COMMAND = "pip install dropitx";
+import { CLI_INSTALL_COMMAND } from "@/lib/cli-install";
 
 export function CopyInstallButton() {
   const [copied, setCopied] = useState(false);
 
   async function handleCopy() {
     try {
-      await navigator.clipboard.writeText(INSTALL_COMMAND);
+      await navigator.clipboard.writeText(CLI_INSTALL_COMMAND);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {

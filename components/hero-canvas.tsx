@@ -25,7 +25,7 @@ export function HeroCanvas({ onUploadSuccess }: HeroCanvasProps) {
         {/* URL bar */}
         <div className="flex-1 flex items-center justify-center">
           <span className="rounded-full bg-fg-soft px-4 py-1 text-xs font-mono text-muted-foreground">
-            dropitx.com
+            dropitx.site
           </span>
         </div>
 

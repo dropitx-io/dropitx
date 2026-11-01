@@ -1,5 +1,6 @@
 import { LandingFooter } from "@/components/landing-footer";
 import { CopyInstallButton } from "@/components/copy-install-button";
+import { CLI_INSTALL_COMMAND, CLI_NPX_COMMAND, MCP_CLIENT_CONFIG } from "@/lib/cli-install";
 import {
   Upload,
   FileText,
@@ -26,8 +27,8 @@ const COMMANDS = [
   {
     icon: Settings,
     name: "config",
-    command: "$ dropitx config set-key sk_...",
-    body: "Set your API key and defaults once.",
+    command: "$ dropitx config set-key shk_...",
+    body: "Set your API key and defaults once. Keys start with shk_ (personal) or sht_ (team).",
   },
   {
     icon: QrCode,
@@ -54,10 +55,14 @@ export function DevelopersPage() {
         </p>
         <div className="mt-6.5 flex flex-wrap items-center justify-center gap-3">
           <span className="inline-flex items-center gap-2 rounded-full bg-card px-4 py-2 font-mono text-[13px] clay-raised">
-            $ pip install dropitx
+            $ {CLI_INSTALL_COMMAND}
           </span>
           <CopyInstallButton />
         </div>
+        <p className="mt-4 text-sm text-muted-foreground">
+          Or run it without installing:{" "}
+          <code className="rounded-md bg-card px-1.5 py-0.5 font-mono text-[13px]">{CLI_NPX_COMMAND}</code>
+        </p>
       </header>
 
       {/* Commands grid */}
@@ -98,7 +103,7 @@ export function DevelopersPage() {
               <p className="text-muted-foreground">&gt; &quot;share this plan&quot;</p>
               <p>$ dropitx skill install</p>
               <p className="text-muted-foreground">agent runs: dropitx upload plan.md --expires 30d</p>
-              <p className="text-primary">→ dropitx.com/s/plan-k3mx</p>
+              <p className="text-primary">→ dropitx.site/s/plan-k3mx</p>
             </div>
             <p className="mt-2.5 text-sm leading-[1.55] text-muted-foreground">
               Installs a Claude Code skill so agents can share plans and reports as links for you.
@@ -107,17 +112,30 @@ export function DevelopersPage() {
         </div>
       </section>
 
-      {/* Page footer: PyPI + GitHub, then the shared landing footer */}
+      {/* MCP server */}
+      <section className="mx-auto max-w-[1120px] px-8 pb-16 max-[640px]:px-4">
+        <div className="rounded-[22px] bg-card p-6.5 clay-raised">
+          <h2 className="font-display text-lg font-bold tracking-[-0.01em]">Use it from an MCP client</h2>
+          <p className="mt-2.5 text-sm leading-[1.55] text-muted-foreground">
+            Add this to your MCP client config (Claude Desktop, Cursor, and others) so agents can share links through DropItX.
+          </p>
+          <pre className="mt-3.5 overflow-x-auto rounded-[11px] bg-background px-4 py-3 font-mono text-[13px] leading-[1.6]">
+            <code>{MCP_CLIENT_CONFIG}</code>
+          </pre>
+        </div>
+      </section>
+
+      {/* Page footer: npm + GitHub, then the shared landing footer */}
       <section className="mx-auto max-w-[1120px] px-8 pb-16 max-[640px]:px-4">
         <div className="flex flex-wrap items-center justify-center gap-3">
           <a
-            href="https://pypi.org/project/dropitx/"
+            href="https://www.npmjs.com/package/dropitx"
             target="_blank"
             rel="noreferrer"
             className="inline-flex h-10 items-center gap-2 rounded-full bg-card px-4.5 text-sm font-semibold clay-raised transition-transform hover:-translate-y-px"
           >
             <Package className="size-4" />
-            PyPI
+            npm
           </a>
           <a
             href="https://github.com/phuongddx/dropitx-cli"

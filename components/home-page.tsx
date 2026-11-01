@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { LandingFooter } from "@/components/landing-footer";
 import { cn } from "@/lib/utils";
+import { CLI_INSTALL_COMMAND } from "@/lib/cli-install";
 import {
   Zap,
   Lock,
@@ -281,7 +282,7 @@ export function HomePage() {
             </p>
             <div className="mt-5.5 flex flex-wrap items-center gap-3 max-[860px]:justify-center">
               <span className="inline-flex items-center gap-2 rounded-full bg-card px-3.5 py-1.5 font-mono text-[13px] clay-raised">
-                $ pip install dropitx
+                $ {CLI_INSTALL_COMMAND}
               </span>
             </div>
             <div className="mt-6.5 max-[860px]:flex max-[860px]:justify-center">
@@ -305,7 +306,7 @@ export function HomePage() {
             <div className="flex flex-col gap-2 font-mono text-[13px] leading-[1.6]" aria-hidden="true">
               <p>$ dropitx upload notes.md</p>
               <p className="text-muted-foreground">uploading 45.2 KB…</p>
-              <p className="text-primary">→ dropitx.com/s/notes-9fh2</p>
+              <p className="text-primary">→ dropitx.site/s/notes-9fh2</p>
             </div>
           </div>
         </div>

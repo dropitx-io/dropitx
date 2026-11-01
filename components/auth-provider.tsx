@@ -22,11 +22,13 @@ import {
 } from "@/lib/firebase/auth";
 import { auth } from "@/lib/firebase/client";
 import { authFetch } from "@/lib/api-client";
+import { readSessionProfile } from "@/lib/session-profile";
 
 export interface UserProfile {
   display_name: string | null;
   avatar_url: string | null;
   username: string | null;
+  is_public: boolean;
 }
 
 interface AuthContextValue {
@@ -83,7 +85,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const res = await authFetch("/api/auth/session");
       if (res.ok) {
-        setProfile((await res.json()) as UserProfile);
+        setProfile(readSessionProfile(await res.json()));
       } else {
         const detail = await res.text().catch(() => "");
         console.error(`Account provisioning failed: GET /api/auth/session returned ${res.status}`, detail);

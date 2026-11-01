@@ -15,6 +15,7 @@ import { getSessionUser } from "@/lib/firebase/server";
 import { ApiError, serverApiFetch } from "@/lib/server-api";
 import { InviteStatusCard } from "@/components/invite-status-card";
 import { InviteActions } from "./invite-actions";
+import { SwitchAccountButton } from "./switch-account-button";
 
 type InviteLookup = components["schemas"]["InviteLookup"];
 
@@ -109,8 +110,9 @@ export default async function InvitePage({ params }: Props) {
         variant="email_mismatch"
         message="This invite was sent to a different email address, or your email address is not verified."
         currentUserEmail={user?.email ?? undefined}
-        loginUrl={`/auth/login?next=${next}`}
-      />
+      >
+        <SwitchAccountButton loginUrl={`/auth/login?next=${next}`} />
+      </InviteStatusCard>
     );
   }
 
