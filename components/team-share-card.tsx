@@ -32,7 +32,7 @@ export function TeamShareCard({ share, sharedByName, teamName }: TeamShareCardPr
   const isMarkdown = share.mime_type === "text/markdown";
 
   return (
-    <Card className="rounded-[var(--radius-card)] shadow-[var(--shadow)]">
+    <Card className="rounded-[var(--radius-card)]">
       <CardContent className="flex items-center gap-4 p-4">
         <div className="shrink-0">
           {isMarkdown ? (

@@ -41,7 +41,7 @@ export function UploadProgress({
       <div className="relative h-2 w-full overflow-hidden rounded-full bg-muted">
         <div
           className={cn(
-            "h-full rounded-full transition-all duration-500 ease-out",
+            "h-full rounded-full transition-[color,background-color,border-color,opacity,transform] duration-500 ease-out",
             isComplete
               ? "bg-success"
               : "bg-primary"
@@ -61,13 +61,13 @@ export function UploadProgress({
 
       {/* Stats row */}
       <div className="flex items-center justify-between text-xs text-muted-foreground">
-        <span className="font-mono">{Math.round(percentage)}%</span>
+        <span className="tabular-nums">{Math.round(percentage)}%</span>
         <div className="flex items-center gap-3">
           {speed !== undefined && speed > 0 && (
-            <span className="font-mono">{formatSpeed(speed)}</span>
+            <span className="tabular-nums">{formatSpeed(speed)}</span>
           )}
           {eta !== undefined && eta > 0 && !isComplete && (
-            <span className="font-mono">{formatEta(eta)} remaining</span>
+            <span className="tabular-nums">{formatEta(eta)} remaining</span>
           )}
           {isComplete && (
             <span className="text-success font-medium">Complete</span>

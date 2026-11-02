@@ -22,7 +22,7 @@ export function CopyInstallButton() {
       type="button"
       onClick={handleCopy}
       aria-label={copied ? "Copied" : "Copy install command"}
-      className="inline-flex h-11 items-center gap-2 rounded-full bg-card px-4.5 text-sm font-semibold clay-raised transition-transform hover:-translate-y-px"
+      className="inline-flex h-11 items-center gap-2 rounded-full bg-card px-4.5 text-sm font-semibold transition-transform hover:-translate-y-px"
     >
       {copied ? (
         <Check className="size-4 text-success" strokeWidth={2.4} />

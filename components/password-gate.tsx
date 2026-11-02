@@ -100,7 +100,7 @@ export function PasswordGate({
     <div className="flex items-center justify-center p-4 py-10">
       <div className="w-full max-w-sm border border-border rounded-lg p-8">
         <div className="flex flex-col items-center gap-5">
-          <p className="font-mono text-2xl font-semibold tracking-tight">
+          <p className="tabular-nums text-2xl font-semibold tracking-tight">
             {">"} unlock
           </p>
 

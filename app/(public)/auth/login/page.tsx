@@ -215,7 +215,7 @@ function LoginContent() {
                   key={tab}
                   type="button"
                   onClick={() => { setMode(tab); resetMessages(); }}
-                  className={`rounded-md px-4 py-1.5 text-sm font-medium transition-all ${
+                  className={`rounded-md px-4 py-1.5 text-sm font-medium transition-[color,background-color,border-color,opacity,transform] ${
                     mode === tab
                       ? "bg-background text-foreground shadow-sm"
                       : "text-muted-foreground hover:text-foreground"
@@ -392,7 +392,7 @@ function LoginContent() {
         <div className="relative z-10 max-w-md space-y-10">
           {/* Geometric decoration */}
           <div className="relative h-28 w-28">
-            <div className="absolute left-0 top-0 size-14 rotate-12 rounded-2xl border border-primary/20 bg-primary/5 backdrop-blur-sm" />
+            <div className="absolute left-0 top-0 size-14 rotate-12 rounded-2xl border border-primary/20 bg-primary/5" />
             <div className="absolute bottom-0 right-0 size-10 rounded-full border border-primary/15 bg-primary/10" />
             <div className="absolute bottom-6 left-4 size-6 rounded-lg bg-primary/20" />
             <div className="absolute right-2 top-4 size-3 rounded-full bg-primary/40" />
@@ -415,7 +415,7 @@ function LoginContent() {
             {["Instant links", "Password protect", "Team workspaces", "Analytics"].map((feature) => (
               <span
                 key={feature}
-                className="rounded-full border border-border bg-background/60 px-3.5 py-1.5 text-xs font-medium text-muted-foreground backdrop-blur-sm"
+                className="rounded-full border border-border bg-background/60 px-3.5 py-1.5 text-xs font-medium text-muted-foreground"
               >
                 {feature}
               </span>

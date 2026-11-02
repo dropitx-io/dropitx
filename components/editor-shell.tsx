@@ -247,7 +247,7 @@ export function EditorShell() {
           <div className="size-8 rounded-xl bg-primary/10 flex items-center justify-center animate-pulse">
             <div className="size-3 rounded-sm bg-primary" />
           </div>
-          <p className="text-muted-foreground font-mono text-sm">Loading editor...</p>
+          <p className="text-muted-foreground tabular-nums text-sm">Loading editor...</p>
         </div>
       </div>
     );
@@ -256,7 +256,7 @@ export function EditorShell() {
   if (gate.status === "loading") {
     return (
       <div className="flex h-[calc(100vh-3rem)] items-center justify-center bg-background">
-        <p className="text-muted-foreground font-mono text-sm">Loading document...</p>
+        <p className="text-muted-foreground tabular-nums text-sm">Loading document...</p>
       </div>
     );
   }
@@ -309,7 +309,7 @@ export function EditorShell() {
       <div className="flex border-b border-border/60 md:hidden bg-surface/30">
         <button
           onClick={() => setTab("write")}
-          className={`flex-1 py-2.5 text-center text-sm font-medium transition-all duration-200 ${
+          className={`flex-1 py-2.5 text-center text-sm font-medium transition-[color,background-color,border-color,opacity,transform] duration-200 ${
             tab === "write"
               ? "border-b-2 border-primary text-primary bg-primary/5"
               : "text-muted-foreground hover:text-foreground"
@@ -319,7 +319,7 @@ export function EditorShell() {
         </button>
         <button
           onClick={() => setTab("preview")}
-          className={`flex-1 py-2.5 text-center text-sm font-medium transition-all duration-200 ${
+          className={`flex-1 py-2.5 text-center text-sm font-medium transition-[color,background-color,border-color,opacity,transform] duration-200 ${
             tab === "preview"
               ? "border-b-2 border-primary text-primary bg-primary/5"
               : "text-muted-foreground hover:text-foreground"
@@ -330,7 +330,7 @@ export function EditorShell() {
         {editSlug && (
           <button
             onClick={() => setShowVersionHistory(!showVersionHistory)}
-            className={`flex-1 py-2.5 text-center text-sm font-medium transition-all duration-200 ${
+            className={`flex-1 py-2.5 text-center text-sm font-medium transition-[color,background-color,border-color,opacity,transform] duration-200 ${
               showVersionHistory
                 ? "border-b-2 border-primary text-primary bg-primary/5"
                 : "text-muted-foreground hover:text-foreground"

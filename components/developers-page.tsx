@@ -43,7 +43,7 @@ export function DevelopersPage() {
     <>
       {/* Hero */}
       <header className="mx-auto max-w-[1120px] px-8 pb-14 pt-18 text-center max-[640px]:px-4">
-        <span className="mb-5.5 inline-flex items-center gap-2 rounded-full bg-card px-3.5 py-1.5 font-mono text-[11px] uppercase tracking-[0.08em] text-meta clay-raised">
+        <span className="mb-5.5 inline-flex items-center gap-2 rounded-full bg-card px-3.5 py-1.5 font-mono text-[11px] uppercase tracking-[0.08em] text-meta">
           <span className="size-[7px] rounded-full bg-success" />
           Command-line sharing
         </span>
@@ -54,7 +54,7 @@ export function DevelopersPage() {
           Upload, share, and manage links without leaving your terminal — works standalone or piped from stdin.
         </p>
         <div className="mt-6.5 flex flex-wrap items-center justify-center gap-3">
-          <span className="inline-flex items-center gap-2 rounded-full bg-card px-4 py-2 font-mono text-[13px] clay-raised">
+          <span className="inline-flex items-center gap-2 rounded-full bg-card px-4 py-2 font-mono text-[13px]">
             $ {CLI_INSTALL_COMMAND}
           </span>
           <CopyInstallButton />
@@ -69,8 +69,8 @@ export function DevelopersPage() {
       <section className="mx-auto max-w-[1120px] px-8 pb-16 max-[640px]:px-4">
         <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
           {COMMANDS.map((c) => (
-            <div key={c.name} className="rounded-[22px] bg-card p-6.5 clay-raised">
-              <div className="mb-4 grid size-[46px] place-items-center rounded-[14px] bg-primary/16 text-primary clay-raised">
+            <div key={c.name} className="rounded-[22px] bg-card p-6.5">
+              <div className="mb-4 grid size-[46px] place-items-center rounded-[14px] bg-primary/16 text-primary">
                 <c.icon className="size-[22px]" />
               </div>
               <h3 className="font-display text-lg font-bold tracking-[-0.01em]">
@@ -84,9 +84,9 @@ export function DevelopersPage() {
           ))}
 
           {/* skill install — walkthrough demo, same card footprint as the other 4 */}
-          <div className="rounded-[22px] bg-card p-6.5 clay-raised">
+          <div className="rounded-[22px] bg-card p-6.5">
             <div className="mb-4 flex items-center justify-between">
-              <div className="grid size-[46px] place-items-center rounded-[14px] bg-primary/16 text-primary clay-raised">
+              <div className="grid size-[46px] place-items-center rounded-[14px] bg-primary/16 text-primary">
                 <Terminal className="size-[22px]" />
               </div>
               <span className="inline-flex items-center rounded-full bg-primary/16 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.05em] text-primary">
@@ -114,7 +114,7 @@ export function DevelopersPage() {
 
       {/* MCP server */}
       <section className="mx-auto max-w-[1120px] px-8 pb-16 max-[640px]:px-4">
-        <div className="rounded-[22px] bg-card p-6.5 clay-raised">
+        <div className="rounded-[22px] bg-card p-6.5">
           <h2 className="font-display text-lg font-bold tracking-[-0.01em]">Use it from an MCP client</h2>
           <p className="mt-2.5 text-sm leading-[1.55] text-muted-foreground">
             Add this to your MCP client config (Claude Desktop, Cursor, and others) so agents can share links through DropItX.
@@ -132,7 +132,7 @@ export function DevelopersPage() {
             href="https://www.npmjs.com/package/dropitx"
             target="_blank"
             rel="noreferrer"
-            className="inline-flex h-10 items-center gap-2 rounded-full bg-card px-4.5 text-sm font-semibold clay-raised transition-transform hover:-translate-y-px"
+            className="inline-flex h-10 items-center gap-2 rounded-full bg-card px-4.5 text-sm font-semibold transition-transform hover:-translate-y-px"
           >
             <Package className="size-4" />
             npm
@@ -141,7 +141,7 @@ export function DevelopersPage() {
             href="https://github.com/phuongddx/dropitx-cli"
             target="_blank"
             rel="noreferrer"
-            className="inline-flex h-10 items-center gap-2 rounded-full bg-card px-4.5 text-sm font-semibold clay-raised transition-transform hover:-translate-y-px"
+            className="inline-flex h-10 items-center gap-2 rounded-full bg-card px-4.5 text-sm font-semibold transition-transform hover:-translate-y-px"
           >
             <Code2 className="size-4" />
             GitHub

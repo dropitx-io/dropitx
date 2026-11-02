@@ -148,7 +148,7 @@ export function EditorPublishBar({
   const readingTime = wordCount > 0 ? Math.ceil(wordCount / 200) : 0;
 
   return (
-    <div className="sticky bottom-0 z-20 border-t border-border/60 bg-surface/80 backdrop-blur-sm">
+    <div className="sticky bottom-0 z-20 border-t border-border/60 bg-surface/80">
       {/* Options panel */}
       {showOptions && (
         <div className="space-y-3 px-4 py-3 border-b border-border/30">
@@ -190,13 +190,13 @@ export function EditorPublishBar({
       {/* Main bar */}
       <div className="flex items-center justify-between px-4 py-2">
         <div className="flex items-center gap-3 text-xs text-muted-foreground">
-          <span className="font-mono">{charCount.toLocaleString()} chars</span>
+          <span className="tabular-nums">{charCount.toLocaleString()} chars</span>
           <span className="text-border">&middot;</span>
-          <span className="font-mono">{wordCount.toLocaleString()} words</span>
+          <span className="tabular-nums">{wordCount.toLocaleString()} words</span>
           {readingTime > 0 && (
             <>
               <span className="text-border">&middot;</span>
-              <span className="font-mono">{readingTime} min read</span>
+              <span className="tabular-nums">{readingTime} min read</span>
             </>
           )}
           {isDirty && !publishedUrl && (
@@ -225,8 +225,8 @@ export function EditorPublishBar({
           )}
           {/* Status indicators */}
           {burnAfterReading && (
-            <Badge variant="outline" className="text-xs gap-1 text-orange-600 border-orange-500/30">
-              🔥
+            <Badge variant="outline" className="text-xs">
+              Burns after first read
             </Badge>
           )}
         </div>

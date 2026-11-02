@@ -39,8 +39,8 @@ export default async function FavoritesPage() {
       </div>
 
       {shares.length === 0 ? (
-        <div className="grid place-items-center rounded-[34px] border-2 border-dashed border-border bg-card py-16 text-center clay-raised">
-          <span className="mb-4 grid size-12 place-items-center rounded-[22px] bg-primary/9 text-primary clay-raised">
+        <div className="grid place-items-center rounded-[34px] border-2 border-dashed border-border bg-card py-16 text-center">
+          <span className="mb-4 grid size-12 place-items-center rounded-[22px] bg-primary/9 text-primary">
             <Heart className="size-5" />
           </span>
           <p className="font-display text-lg font-bold">No favorites yet</p>
@@ -53,7 +53,7 @@ export default async function FavoritesPage() {
           {shares.map((share) => (
             <div
               key={share.id}
-              className="flex flex-col rounded-[22px] bg-card p-5 clay-raised"
+              className="flex flex-col rounded-[22px] bg-card p-5"
             >
               <div className="mb-3 grid h-24 place-items-center rounded-[14px] border border-dashed border-border bg-background">
                 <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground/70">[ thumb ]</span>
@@ -73,13 +73,13 @@ export default async function FavoritesPage() {
               <div className="mt-3.5 flex items-center gap-1.5 border-t border-border-soft pt-3">
                 <Link
                   href={`/s/${share.slug}`}
-                  className="rounded-full bg-background px-3 py-1.5 text-xs font-semibold clay-raised transition-transform hover:-translate-y-px"
+                  className="rounded-full bg-background px-3 py-1.5 text-xs font-semibold transition-transform hover:-translate-y-px"
                 >
                   Open
                 </Link>
                 <button
                   type="button"
-                  className="flex items-center gap-1 rounded-full bg-background px-3 py-1.5 text-xs font-semibold clay-raised transition-transform hover:-translate-y-px"
+                  className="flex items-center gap-1 rounded-full bg-background px-3 py-1.5 text-xs font-semibold transition-transform hover:-translate-y-px"
                 >
                   <Copy className="size-3" /> Copy
                 </button>

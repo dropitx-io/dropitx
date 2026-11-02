@@ -12,7 +12,7 @@ export function StatCard({ icon: Icon, value, label, className }: StatCardProps)
   return (
     <div
       className={cn(
-        "group flex items-center gap-4 rounded-[var(--radius-card)] border border-border/60 bg-card px-5 py-4 transition-all duration-300 hover:border-primary/20 hover:shadow-md hover:-translate-y-0.5",
+        "group flex items-center gap-4 rounded-[var(--radius-card)] border border-border/60 bg-card px-5 py-4 transition-[color,background-color,border-color,opacity,transform] duration-300 hover:border-primary/20 hover:shadow-md hover:-translate-y-0.5",
         className
       )}
     >
@@ -20,7 +20,7 @@ export function StatCard({ icon: Icon, value, label, className }: StatCardProps)
         <Icon className="size-5" />
       </div>
       <div className="min-w-0">
-        <p className="font-mono text-2xl font-bold tabular-nums tracking-tight">{value}</p>
+        <p className="tabular-nums text-2xl font-bold tabular-nums tracking-tight">{value}</p>
         <p className="text-xs text-muted-foreground truncate">{label}</p>
       </div>
     </div>

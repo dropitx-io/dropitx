@@ -39,7 +39,7 @@ export default async function GlobalAnalyticsPage() {
             Track how your shares are performing.
           </p>
         </div>
-        <span className="rounded-full bg-card px-3 py-1.5 text-xs font-semibold text-muted-foreground clay-raised">
+        <span className="rounded-full bg-card px-3 py-1.5 text-xs font-semibold text-muted-foreground">
           Last 30 days
         </span>
       </div>
@@ -52,7 +52,7 @@ export default async function GlobalAnalyticsPage() {
       </div>
 
       {/* Views-over-time placeholder */}
-      <div className="rounded-[22px] bg-card p-5 clay-raised">
+      <div className="rounded-[22px] bg-card p-5">
         <p className="mb-3 font-mono text-[11px] font-medium uppercase tracking-[0.07em] text-muted-foreground">
           Views over time
         </p>
@@ -67,7 +67,7 @@ export default async function GlobalAnalyticsPage() {
           <AnalyticsTopPerformers shares={top} />
         </div>
       ) : (
-        <div className="grid place-items-center rounded-[34px] border-2 border-dashed border-border bg-card py-16 text-center clay-raised">
+        <div className="grid place-items-center rounded-[34px] border-2 border-dashed border-border bg-card py-16 text-center">
           <p className="font-display text-lg font-bold">
             {totals.total_views > 0 ? "No views in the last 30 days" : "No data yet"}
           </p>
@@ -94,7 +94,7 @@ function StatTile({
   accent?: boolean;
 }) {
   return (
-    <div className="rounded-[22px] bg-card p-5 clay-raised">
+    <div className="rounded-[22px] bg-card p-5">
       <p className="font-mono text-[10px] uppercase tracking-[0.06em] text-muted-foreground">{label}</p>
       <p className={cn(
         "mt-3.5 font-display text-[32px] font-extrabold leading-none tracking-[-0.03em]",

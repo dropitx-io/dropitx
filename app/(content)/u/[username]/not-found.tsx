@@ -11,7 +11,7 @@ export default function ProfileNotFound() {
           <div className="size-14 rounded-md bg-destructive/10 flex items-center justify-center">
             <UserX className="size-7 text-destructive" />
           </div>
-          <CardTitle className="font-mono text-2xl">&gt; 404</CardTitle>
+          <CardTitle className="tabular-nums text-2xl">Link not found</CardTitle>
           <CardDescription>No user with that username exists, or their profile is not public.</CardDescription>
         </CardHeader>
         <CardContent className="justify-center">

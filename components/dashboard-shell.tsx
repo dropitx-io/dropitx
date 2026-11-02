@@ -72,7 +72,7 @@ export function DashboardShell({ user, teams, storageUsedBytes, children }: Dash
     <>
       {/* Brand */}
       <div className="flex items-center gap-3 px-3.5 py-3 pb-4">
-        <span className="grid size-10 place-items-center rounded-[14px] bg-primary text-primary-foreground clay-raised">
+        <span className="grid size-10 place-items-center rounded-[14px] bg-primary text-primary-foreground">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M12 3v12" />
             <path d="m7 10 5 5 5-5" />
@@ -97,9 +97,9 @@ export function DashboardShell({ user, teams, storageUsedBytes, children }: Dash
               href={n.href}
               aria-current={active ? "page" : undefined}
               className={cn(
-                "flex items-center gap-3.5 rounded-[22px] px-3.5 py-2.5 text-[14.5px] font-medium transition-all duration-200",
+                "flex items-center gap-3.5 rounded-[22px] px-3.5 py-2.5 text-[14.5px] font-medium transition-[color,background-color,border-color,opacity,transform] duration-200",
                 active
-                  ? "bg-background text-primary font-semibold clay-raised"
+                  ? "bg-background text-primary font-semibold"
                   : "text-fg-soft hover:bg-background hover:text-foreground"
               )}
             >
@@ -121,9 +121,9 @@ export function DashboardShell({ user, teams, storageUsedBytes, children }: Dash
                   key={t.slug}
                   href={`/dashboard/teams/${t.slug}`}
                   className={cn(
-                    "flex items-center gap-3.5 rounded-[22px] px-3.5 py-2.5 text-[14.5px] font-medium transition-all duration-200",
+                    "flex items-center gap-3.5 rounded-[22px] px-3.5 py-2.5 text-[14.5px] font-medium transition-[color,background-color,border-color,opacity,transform] duration-200",
                     active
-                      ? "bg-background text-primary font-semibold clay-raised"
+                      ? "bg-background text-primary font-semibold"
                       : "text-fg-soft hover:bg-background hover:text-foreground"
                   )}
                 >
@@ -145,9 +145,9 @@ export function DashboardShell({ user, teams, storageUsedBytes, children }: Dash
               key={n.href}
               href={n.href}
               className={cn(
-                "flex items-center gap-3.5 rounded-[22px] px-3.5 py-2.5 text-[14.5px] font-medium transition-all duration-200",
+                "flex items-center gap-3.5 rounded-[22px] px-3.5 py-2.5 text-[14.5px] font-medium transition-[color,background-color,border-color,opacity,transform] duration-200",
                 active
-                  ? "bg-background text-primary font-semibold clay-raised"
+                  ? "bg-background text-primary font-semibold"
                   : "text-fg-soft hover:bg-background hover:text-foreground"
               )}
             >
@@ -167,7 +167,7 @@ export function DashboardShell({ user, teams, storageUsedBytes, children }: Dash
           </div>
         )}
         <div className="flex items-center gap-3">
-          <span className="grid size-[38px] place-items-center rounded-full bg-background font-mono text-xs font-semibold text-primary clay-raised">
+          <span className="grid size-[38px] place-items-center rounded-full bg-background font-mono text-xs font-semibold text-primary">
             {user.initials}
           </span>
           <div className="min-w-0 flex-1">
@@ -199,7 +199,7 @@ export function DashboardShell({ user, teams, storageUsedBytes, children }: Dash
       {mobileNavOpen && (
         <div className="fixed inset-0 z-50 md:hidden">
           <div
-            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/40"
             onClick={() => setMobileNavOpen(false)}
           />
           <aside className="absolute left-0 top-0 flex h-full w-[264px] flex-col gap-3 bg-sidebar p-4">
@@ -210,7 +210,7 @@ export function DashboardShell({ user, teams, storageUsedBytes, children }: Dash
 
       <main className="flex min-w-0 flex-col">
         {/* Topbar */}
-        <header className="sticky top-0 z-20 flex items-center gap-4 bg-background/88 px-10 py-5 backdrop-blur-[10px] max-[640px]:px-4 max-[640px]:py-4">
+        <header className="sticky top-0 z-20 flex items-center gap-4 bg-background/88 px-10 py-5 max-[640px]:px-4 max-[640px]:py-4">
           <button
             type="button"
             onClick={() => setMobileNavOpen(true)}
@@ -242,7 +242,7 @@ export function DashboardShell({ user, teams, storageUsedBytes, children }: Dash
 
           <Link
             href="/dashboard#upload"
-            className="inline-flex h-[38px] items-center gap-2 rounded-full bg-background px-4 text-[13px] font-semibold clay-raised transition-transform hover:-translate-y-px max-[640px]:hidden"
+            className="inline-flex h-[38px] items-center gap-2 rounded-full bg-background px-4 text-[13px] font-semibold transition-transform hover:-translate-y-px max-[640px]:hidden"
           >
             <Upload className="size-3.5" />
             Upload

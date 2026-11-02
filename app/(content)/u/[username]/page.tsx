@@ -55,7 +55,7 @@ export default async function ProfilePage({ params, searchParams }: ProfilePageP
         )}
         <div className="min-w-0">
           <h1 className="truncate font-display text-2xl font-bold">{name}</h1>
-          <p className="font-mono text-sm text-muted-foreground">@{profile.username}</p>
+          <p className="tabular-nums text-sm text-muted-foreground">@{profile.username}</p>
           {profile.bio && <p className="mt-2 text-sm">{profile.bio}</p>}
         </div>
       </header>

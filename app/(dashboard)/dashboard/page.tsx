@@ -119,7 +119,7 @@ function StatCard({
   delta?: React.ReactNode;
 }) {
   return (
-    <div className="rounded-[22px] bg-card p-5 px-5.5 clay-raised">
+    <div className="rounded-[22px] bg-card p-5 px-5.5">
       <div className="mb-3.5 flex items-center gap-2 text-muted-foreground">
         {icon}
         <span className="font-mono text-[10px] uppercase tracking-[0.06em]">{label}</span>

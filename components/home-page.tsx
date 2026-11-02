@@ -80,10 +80,10 @@ export function HomePage() {
   return (
     <div className="flex flex-col bg-background">
       {/* Nav */}
-      <nav className="sticky top-0 z-10 bg-background/86 backdrop-blur-[12px]">
+      <nav className="sticky top-0 z-10 bg-background/86">
         <div className="mx-auto flex max-w-[1120px] items-center gap-5 px-8 py-4 max-[640px]:px-4">
           <Link href="/" className="flex items-center gap-3 font-extrabold tracking-[-0.02em]">
-            <span className="grid size-[34px] place-items-center rounded-[14px] bg-primary text-primary-foreground clay-raised">
+            <span className="grid size-[34px] place-items-center rounded-[14px] bg-primary text-primary-foreground">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M12 3v12" />
                 <path d="m7 10 5 5 5-5" />
@@ -101,7 +101,7 @@ export function HomePage() {
           <div className="ml-auto flex items-center gap-2.5">
             <Link
               href="/auth/login"
-              className="inline-flex h-10 items-center rounded-full bg-card px-4.5 text-sm font-semibold clay-raised transition-transform hover:-translate-y-px"
+              className="inline-flex h-10 items-center rounded-full bg-card px-4.5 text-sm font-semibold transition-transform hover:-translate-y-px"
             >
               Sign in
             </Link>
@@ -118,7 +118,7 @@ export function HomePage() {
       {/* Hero */}
       <header className="mx-auto grid max-w-[1120px] grid-cols-[1.05fr_0.95fr] gap-12 px-8 py-18 max-[860px]:grid-cols-1 max-[860px]:gap-8 max-[640px]:px-4">
         <div className="max-[860px]:text-center">
-          <span className="inline-flex items-center gap-2 rounded-full bg-card px-3.5 py-1.5 font-mono text-[11px] uppercase tracking-[0.08em] text-meta clay-raised mb-5.5">
+          <span className="inline-flex items-center gap-2 rounded-full bg-card px-3.5 py-1.5 font-mono text-[11px] uppercase tracking-[0.08em] text-meta mb-5.5">
             <span className="size-[7px] rounded-full bg-success" />
             Markdown &amp; HTML sharing
           </span>
@@ -139,7 +139,7 @@ export function HomePage() {
             </Link>
             <Link
               href="/editor"
-              className="inline-flex h-12 items-center gap-2.5 rounded-full bg-card px-6.5 text-[15px] font-bold clay-raised transition-transform hover:-translate-y-px"
+              className="inline-flex h-12 items-center gap-2.5 rounded-full bg-card px-6.5 text-[15px] font-bold transition-transform hover:-translate-y-px"
             >
               Open editor
             </Link>
@@ -152,15 +152,15 @@ export function HomePage() {
         </div>
 
         {/* Hero drop card */}
-        <div className="rounded-[34px] bg-card p-6.5 clay-raised">
+        <div className="rounded-[34px] bg-card p-6.5">
           <div className="rounded-[22px] border-2 border-dashed border-border bg-background p-8.5 text-center">
-            <div className="mx-auto mb-3.5 grid size-14 place-items-center rounded-[22px] bg-primary/16 text-primary clay-raised">
+            <div className="mx-auto mb-3.5 grid size-14 place-items-center rounded-[22px] bg-primary/16 text-primary">
               <Upload className="size-6.5" />
             </div>
             <p className="text-base font-bold">Drop a file to share</p>
             <p className="mt-1 text-[13px] text-muted-foreground">.md · .markdown · .html — up to 50 MB</p>
           </div>
-          <div className="mt-3 flex items-center gap-3 rounded-[14px] bg-background p-3 clay-raised">
+          <div className="mt-3 flex items-center gap-3 rounded-[14px] bg-background p-3">
             <span className="grid size-8.5 shrink-0 place-items-center rounded-[11px] bg-primary/9 text-primary">
               <Upload className="size-4" />
             </span>
@@ -186,8 +186,8 @@ export function HomePage() {
         </div>
         <div className="grid grid-cols-3 gap-5 max-[860px]:grid-cols-1">
           {FEATURES.map((f) => (
-            <div key={f.title} className="rounded-[22px] bg-card p-6.5 clay-raised">
-              <div className="mb-4 grid size-[46px] place-items-center rounded-[14px] bg-primary/16 text-primary clay-raised">
+            <div key={f.title} className="rounded-[22px] bg-card p-6.5">
+              <div className="mb-4 grid size-[46px] place-items-center rounded-[14px] bg-primary/16 text-primary">
                 <f.icon className="size-[22px]" />
               </div>
               <h3 className="font-display text-lg font-bold tracking-[-0.01em]">{f.title}</h3>
@@ -207,7 +207,7 @@ export function HomePage() {
         </div>
         <div className="grid grid-cols-3 gap-5 max-[860px]:grid-cols-1">
           {STEPS.map((s) => (
-            <div key={s.num} className="rounded-[22px] bg-card p-6 clay-raised">
+            <div key={s.num} className="rounded-[22px] bg-card p-6">
               <div className="mb-3.5 grid size-7.5 place-items-center rounded-full bg-primary font-mono text-xs font-bold text-primary-foreground">
                 {s.num}
               </div>
@@ -231,7 +231,7 @@ export function HomePage() {
             <div
               key={p.name}
               className={cn(
-                "flex flex-col gap-1.5 rounded-[34px] bg-card p-7.5 px-6.5 clay-raised",
+                "flex flex-col gap-1.5 rounded-[34px] bg-card p-7.5 px-6.5",
                 p.featured && "outline-2 outline-offset-[-2px] outline-primary"
               )}
             >
@@ -259,7 +259,7 @@ export function HomePage() {
                   "inline-flex h-10 items-center justify-center rounded-full px-5 text-sm font-bold transition-transform hover:-translate-y-px",
                   p.featured
                     ? "bg-primary text-primary-foreground"
-                    : "bg-card text-foreground clay-raised"
+                    : "bg-card text-foreground"
                 )}
               >
                 {p.cta}
@@ -281,7 +281,7 @@ export function HomePage() {
               Upload, share, and manage links straight from the terminal — works standalone or piped from stdin.
             </p>
             <div className="mt-5.5 flex flex-wrap items-center gap-3 max-[860px]:justify-center">
-              <span className="inline-flex items-center gap-2 rounded-full bg-card px-3.5 py-1.5 font-mono text-[13px] clay-raised">
+              <span className="inline-flex items-center gap-2 rounded-full bg-card px-3.5 py-1.5 font-mono text-[13px]">
                 $ {CLI_INSTALL_COMMAND}
               </span>
             </div>
@@ -297,7 +297,7 @@ export function HomePage() {
           </div>
 
           {/* Terminal mock */}
-          <div className="rounded-[22px] bg-card p-6.5 clay-raised">
+          <div className="rounded-[22px] bg-card p-6.5">
             <div className="mb-4 flex items-center gap-2" aria-hidden="true">
               <span className="size-2.5 rounded-full bg-destructive/60" />
               <span className="size-2.5 rounded-full bg-warning/60" />
@@ -314,7 +314,7 @@ export function HomePage() {
 
       {/* CTA */}
       <section className="mx-auto max-w-[1120px] px-8 py-9 max-[640px]:px-4">
-        <div className="rounded-[34px] bg-primary px-10 py-14 text-center text-primary-foreground clay-raised">
+        <div className="rounded-[34px] bg-primary px-10 py-14 text-center text-primary-foreground">
           <h2 className="font-display text-[clamp(26px,4vw,38px)] font-extrabold tracking-[-0.03em]">
             Your next link is one drop away.
           </h2>

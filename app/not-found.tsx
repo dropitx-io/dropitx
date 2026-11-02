@@ -11,7 +11,7 @@ export default function NotFound() {
           <div className="size-14 rounded-md bg-destructive/10 flex items-center justify-center">
             <FileX className="size-7 text-destructive" />
           </div>
-          <CardTitle className="font-mono text-2xl">&gt; 404</CardTitle>
+          <CardTitle className="tabular-nums text-2xl">Link not found</CardTitle>
           <CardDescription>
             This link doesn&apos;t exist or has expired
           </CardDescription>

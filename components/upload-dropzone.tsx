@@ -121,9 +121,9 @@ export function UploadDropzone({ onUploadSuccess }: UploadDropzoneProps) {
   };
 
   const cardClasses = [
-    "cursor-pointer transition-all duration-200 rounded-[34px] border-2",
+    "cursor-pointer transition-[color,background-color,border-color,opacity,transform] duration-200 rounded-[34px] border-2",
     state === "idle" && !dragActive
-      ? "border-dashed border-border bg-card hover:border-primary/50 hover:bg-primary/[0.04] clay-raised"
+      ? "border-dashed border-border bg-card hover:border-primary/50 hover:bg-primary/[0.04]"
       : "",
     dragActive
       ? "border-solid border-primary bg-primary/[0.04]"
@@ -146,7 +146,7 @@ export function UploadDropzone({ onUploadSuccess }: UploadDropzoneProps) {
       <div {...getRootProps()} className={cardClasses}>
         <div className="flex items-center gap-5 p-6 max-[640px]:flex-col max-[640px]:items-start">
           {/* Icon tile */}
-          <div className="grid size-13 shrink-0 place-items-center rounded-[22px] bg-primary/16 text-primary clay-raised">
+          <div className="grid size-13 shrink-0 place-items-center rounded-[22px] bg-primary/16 text-primary">
             {state === "uploading" ? (
               <Loader2 className="size-6 animate-spin" />
             ) : state === "success" ? (
@@ -187,7 +187,7 @@ export function UploadDropzone({ onUploadSuccess }: UploadDropzoneProps) {
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); open(); }}
-              className="inline-flex h-9 items-center gap-2 rounded-full bg-background px-4 text-sm font-semibold clay-raised transition-transform hover:-translate-y-px max-[640px]:w-full max-[640px]:justify-center"
+              className="inline-flex h-9 items-center gap-2 rounded-full bg-background px-4 text-sm font-semibold transition-transform hover:-translate-y-px max-[640px]:w-full max-[640px]:justify-center"
             >
               Choose file
             </button>
@@ -196,7 +196,7 @@ export function UploadDropzone({ onUploadSuccess }: UploadDropzoneProps) {
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); resetState(); }}
-              className="inline-flex h-9 items-center gap-2 rounded-full bg-background px-4 text-sm font-semibold clay-raised transition-transform hover:-translate-y-px max-[640px]:w-full max-[640px]:justify-center"
+              className="inline-flex h-9 items-center gap-2 rounded-full bg-background px-4 text-sm font-semibold transition-transform hover:-translate-y-px max-[640px]:w-full max-[640px]:justify-center"
             >
               {state === "success" ? "Upload another" : "Try again"}
             </button>

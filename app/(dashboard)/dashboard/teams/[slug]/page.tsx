@@ -104,7 +104,7 @@ export default async function TeamOverviewPage({
       </div>
 
       {/* Recent Activity */}
-      <Card className="border border-border rounded-[var(--radius-card)] shadow-[var(--shadow)]">
+      <Card className="border border-border rounded-[var(--radius-card)]">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Activity className="size-5" />

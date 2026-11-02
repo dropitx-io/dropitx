@@ -36,7 +36,7 @@ export function DashboardSidebarNav({ items }: DashboardSidebarNavProps) {
           <Link
             key={href}
             href={href}
-            className={`flex items-center gap-3 rounded-xl px-3 py-2 min-h-[40px] text-sm transition-all duration-200 ${
+            className={`flex items-center gap-3 rounded-xl px-3 py-2 min-h-[40px] text-sm transition-[color,background-color,border-color,opacity,transform] duration-200 ${
               isActive
                 ? "bg-primary/10 text-primary font-medium shadow-sm"
                 : "text-muted-foreground hover:bg-fg-soft hover:text-foreground"

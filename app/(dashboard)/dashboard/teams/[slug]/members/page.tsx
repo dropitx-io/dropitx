@@ -64,7 +64,7 @@ export default async function TeamMembersPage({ params }: Props) {
         />
       </div>
 
-      <Card className="border border-border rounded-[var(--radius-card)] shadow-[var(--shadow)]">
+      <Card className="border border-border rounded-[var(--radius-card)]">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Users className="size-5" />

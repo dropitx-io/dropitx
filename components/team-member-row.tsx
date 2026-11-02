@@ -121,7 +121,7 @@ export function TeamMemberRow({
               disabled={changingRole}
               type="button"
             >
-              <Badge variant={role} className="font-mono text-sm">{role}</Badge>
+              <Badge variant={role} className="tabular-nums text-sm">{role}</Badge>
               {changingRole ? (
                 <Loader2 className="size-3 animate-spin" />
               ) : (
@@ -144,7 +144,7 @@ export function TeamMemberRow({
             )}
           </>
         ) : (
-          <Badge variant={role} className="font-mono text-sm">{role}</Badge>
+          <Badge variant={role} className="tabular-nums text-sm">{role}</Badge>
         )}
       </div>
 

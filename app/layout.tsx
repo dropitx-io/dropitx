@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "@fontsource-variable/roboto";
 import "@fontsource-variable/roboto-mono";
+import "@fontsource-variable/newsreader/opsz.css";
 import { AuthProvider } from "@/components/auth-provider";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -11,7 +12,7 @@ import "./globals.css";
 const fontVariables = {
   "--font-sans": '"Roboto Variable", ui-sans-serif, system-ui, sans-serif',
   "--font-mono": '"Roboto Mono Variable", ui-monospace, SFMono-Regular, monospace',
-  "--font-display": "var(--font-sans)",
+  "--font-serif": '"Newsreader Variable", Georgia, serif',
 } as React.CSSProperties;
 
 export const metadata: Metadata = {

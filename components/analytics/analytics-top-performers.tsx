@@ -48,13 +48,13 @@ export function AnalyticsTopPerformers({ shares }: AnalyticsTopPerformersProps) 
                       /{share.slug}
                     </span>
                   </td>
-                  <td className="p-3 text-right font-mono tabular-nums">
+                  <td className="p-3 text-right tabular-nums">
                     {share.total_views.toLocaleString()}
                   </td>
-                  <td className="p-3 text-right font-mono tabular-nums">
+                  <td className="p-3 text-right tabular-nums">
                     {share.unique_views.toLocaleString()}
                   </td>
-                  <td className="hidden p-3 text-right font-mono tabular-nums sm:table-cell">
+                  <td className="hidden p-3 text-right tabular-nums sm:table-cell">
                     {vtr}%
                   </td>
                 </tr>

@@ -201,7 +201,7 @@ export function EnhancedInviteDialog({
             )}
 
             {email && !hasErrors && (
-              <p className="text-sm text-success">✓ Valid email address</p>
+              <p className="text-sm text-success">Valid email address</p>
             )}
           </div>
 

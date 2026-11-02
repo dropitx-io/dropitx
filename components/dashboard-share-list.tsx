@@ -156,10 +156,10 @@ export function DashboardShareList({
               type="button"
               onClick={() => setFilter(t.id)}
               className={cn(
-                "inline-flex h-9 items-center gap-2 rounded-full px-4 text-[13.5px] font-semibold transition-all duration-200",
+                "inline-flex h-9 items-center gap-2 rounded-full px-4 text-[13.5px] font-semibold transition-[color,background-color,border-color,opacity,transform] duration-200",
                 filter === t.id
                   ? "bg-primary text-primary-foreground"
-                  : "bg-card text-muted-foreground clay-raised hover:-translate-y-px hover:text-foreground"
+                  : "bg-card text-muted-foreground hover:-translate-y-px hover:text-foreground"
               )}
             >
               {t.label}
@@ -180,10 +180,10 @@ export function DashboardShareList({
               type="button"
               onClick={() => setTypeFilter(p.id)}
               className={cn(
-                "inline-flex h-9 items-center gap-1.5 rounded-full px-4 text-[13.5px] font-semibold transition-all duration-200",
+                "inline-flex h-9 items-center gap-1.5 rounded-full px-4 text-[13.5px] font-semibold transition-[color,background-color,border-color,opacity,transform] duration-200",
                 typeFilter === p.id
                   ? "bg-primary text-primary-foreground"
-                  : "bg-card text-muted-foreground clay-raised hover:-translate-y-px hover:text-foreground"
+                  : "bg-card text-muted-foreground hover:-translate-y-px hover:text-foreground"
               )}
             >
               {p.label}
@@ -202,7 +202,7 @@ export function DashboardShareList({
       {rows.length === 0 ? (
         <EmptyState />
       ) : (
-        <div className="overflow-hidden rounded-[34px] bg-card clay-raised">
+        <div className="overflow-hidden rounded-[34px] bg-card">
           <div className="overflow-x-auto">
             <table className="w-full border-collapse">
               <thead>
@@ -341,8 +341,8 @@ export function DashboardShareList({
 
 function EmptyState() {
   return (
-    <div className="flex flex-col items-center justify-center rounded-[34px] border-2 border-dashed border-border bg-card py-16 text-center clay-raised">
-      <span className="mb-4 grid size-12 place-items-center rounded-[22px] bg-primary/9 text-primary clay-raised">
+    <div className="flex flex-col items-center justify-center rounded-[34px] border-2 border-dashed border-border bg-card py-16 text-center">
+      <span className="mb-4 grid size-12 place-items-center rounded-[22px] bg-primary/9 text-primary">
         <FileText className="size-5" />
       </span>
       <p className="font-display text-lg font-bold">No shares yet</p>
