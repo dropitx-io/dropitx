@@ -65,7 +65,7 @@
 [data-ui].slot .s-meta { display: block; font-size: 2.4cqi; color: var(--muted-foreground); margin-bottom: 2.4cqi; }
 [data-ui].slot .s-p { display: block; font-size: 3.1cqi; margin-bottom: 2cqi; }
 @media (max-width: 760px) {
-  [data-ui].slot { width: 100%; height: auto; aspect-ratio: 3 / 2; margin: 0.16em 0 0.32em; font-size: 16px; }
+  [data-ui].slot { width: 100%; height: auto; aspect-ratio: 3 / 2; margin: 3vw 0 6vw; font-size: 16px; }
   [data-ui].slot .s-title { font-size: 8cqi; }
   [data-ui].slot .s-p { font-size: 4.3cqi; }
   [data-ui].slot .s-meta, [data-ui].slot .s-bar { font-size: 3.4cqi; }
