@@ -4,7 +4,8 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import Link from "next/link";
 import { useAuth } from "@/components/auth-provider";
 import { authFetch } from "@/lib/api-client";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { squareButton } from "@/app/(content)/_ui/public-styles";
+import { cn } from "@/lib/utils";
 import { Heart } from "lucide-react";
 
 interface BookmarkToggleProps {
@@ -67,26 +68,28 @@ export function BookmarkToggle({ shareId, slug }: BookmarkToggleProps) {
     return (
       <Link
         href={`/auth/login?next=/s/${slug}`}
-        className={buttonVariants({ variant: "ghost", size: "icon-sm" })}
-        aria-label="Sign in to add to favorites"
+        className={squareButton("quiet", "small")}
         title="Sign in to add to favorites"
       >
-        <Heart className="size-4" />
+        <Heart className="size-4" aria-hidden="true" />
+        Favorite
       </Link>
     );
   }
 
   return (
-    <Button
-      variant="ghost"
-      size="icon-sm"
+    <button
+      type="button"
       onClick={toggle}
       disabled={loading}
-      aria-label={isFavorited ? "Remove from favorites" : "Add to favorites"}
+      aria-pressed={isFavorited}
+      className={squareButton("quiet", "small")}
     >
       <Heart
-        className={`size-4 transition-colors duration-200 ${isFavorited ? "text-destructive fill-destructive" : ""}`}
+        aria-hidden="true"
+        className={cn("size-4 transition-colors duration-200", isFavorited && "fill-current")}
       />
-    </Button>
+      {isFavorited ? "Favorited" : "Favorite"}
+    </button>
   );
 }

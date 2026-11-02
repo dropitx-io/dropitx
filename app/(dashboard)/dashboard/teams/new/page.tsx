@@ -1,17 +1,24 @@
+import Link from "next/link";
 import { CreateTeamForm } from "@/components/create-team-form";
-import { PageHeader } from "@/components/page-header";
+import { TitleRow } from "@/components/analytics/title-row";
 
 export default function NewTeamPage() {
   return (
-    <div className="max-w-[680px] mx-auto">
-      <PageHeader
-        eyebrow="/dashboard/teams/new"
-        title="Create Team"
-        subtitle="Set up a new team to collaborate with others"
+    <>
+      <TitleRow
+        crumb={
+          <>
+            <Link href="/dashboard/teams" className="hover:text-card-foreground hover:underline hover:underline-offset-[3px]">
+              Teams
+            </Link>
+            <span aria-hidden="true">/</span>
+            <span>New</span>
+          </>
+        }
+        title="Create team"
+        finding="You become its owner. Invite people once it exists."
       />
-      <div className="rounded-[var(--radius-card)] border border-border bg-card p-6">
-        <CreateTeamForm />
-      </div>
-    </div>
+      <CreateTeamForm />
+    </>
   );
 }

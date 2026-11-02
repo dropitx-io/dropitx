@@ -90,7 +90,7 @@ export function ProfilePublicSection({ username, isPublic, save }: ProfilePublic
             {error}
           </p>
         ) : (
-          <p id="username-hint" className="text-xs text-muted-foreground">
+          <p id="username-hint" className="text-[13px] text-muted-foreground">
             3-30 characters: lowercase letters, numbers and hyphens.
           </p>
         )}
@@ -110,7 +110,7 @@ export function ProfilePublicSection({ username, isPublic, save }: ProfilePublic
           Public profile
           {togglingPublic && <Loader2 className="size-3.5 animate-spin" />}
         </label>
-        <p className="text-xs text-muted-foreground">
+        <p className="text-[13px] text-muted-foreground">
           Anyone can open your profile page, which lists only your public shares.
         </p>
         {username && isPublic && (

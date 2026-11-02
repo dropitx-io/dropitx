@@ -1,21 +1,16 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { getSessionUser } from "@/lib/firebase/server";
 import { AccountNotProvisionedError, getTeams } from "@/lib/dashboard-data";
 import { AccountSetupState } from "@/components/account-setup-state";
-import Link from "next/link";
-import { Users, Plus, Clock } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { TitleRow } from "@/components/analytics/title-row";
+import { formatDay } from "@/components/analytics/analytics-format";
+import { PersonAvatar } from "@/components/team/person-avatar";
+import { roleLabel } from "@/components/team/role-label";
+import { LINE2, TABLE, TBODY, TD, TH, THEAD, TR, WIDE } from "@/components/team/table-classes";
 import type { TeamMembership } from "@/types/team";
-
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-}
 
 export default async function TeamsPage() {
   const cookieStore = await cookies();
@@ -33,68 +28,65 @@ export default async function TeamsPage() {
 
   // A membership whose team row is gone has nothing to show.
   const teams = memberships.flatMap((m) => (m.teams ? [{ ...m.teams, role: m.role }] : []));
+  const owned = teams.filter((t) => t.role === "owner").length;
+  const finding =
+    teams.length === 0
+      ? "You are not in a team yet."
+      : `You are in ${teams.length} ${teams.length === 1 ? "team" : "teams"} and own ${owned === 0 ? "none" : owned}.`;
 
   return (
-    <div className="mx-auto max-w-[1200px] space-y-5">
-      <div className="flex items-end justify-between gap-4">
-        <div>
-          <h1 className="text-[22px] font-bold tracking-tight">Teams</h1>
-          <p className="mt-1 text-[13px] text-muted-foreground">
-            Collaborate with others on shared drops.
-          </p>
-        </div>
-        <Link
-          href="/dashboard/teams/new"
-          className={cn(buttonVariants({ size: "sm" }), "gap-1.5")}
-        >
-          <Plus className="size-3.5" />
-          Create Team
-        </Link>
-      </div>
-
-      {teams.length === 0 ? (
-        <div className="grid place-items-center rounded-lg border border-dashed border-border bg-card py-16 text-center">
-          <span className="mb-3 flex size-12 items-center justify-center rounded-lg border border-border">
-            <Users className="size-5 text-muted-foreground" />
-          </span>
-          <p className="font-semibold">No teams yet</p>
-          <p className="mb-4 mt-1 text-sm text-muted-foreground">
-            Create a team to collaborate with others on shared drops.
-          </p>
-          <Link href="/dashboard/teams/new" className={cn(buttonVariants({ size: "sm" }), "gap-1.5")}>
-            <Plus className="size-3.5" />
-            Create Team
+    <>
+      <TitleRow
+        title="Teams"
+        finding={finding}
+        actions={
+          <Link href="/dashboard/teams/new" className={buttonVariants({ size: "sm" })}>
+            Create team
           </Link>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          {teams.map((team) => (
-            <Link
-              key={team.id}
-              href={`/dashboard/teams/${team.slug}`}
-              className="block rounded-lg border border-border bg-card p-5 transition-colors hover:border-primary/40 hover:bg-accent/30"
-            >
-              <div className="flex items-center gap-2.5">
-                <Users className="size-5 shrink-0 text-primary" />
-                <p className="flex-1 truncate font-medium">{team.name}</p>
-                <span className="rounded border border-border bg-background px-2 py-0.5 text-xs font-semibold text-muted-foreground">
-                  {team.role}
-                </span>
-              </div>
-              <div className="mt-3 flex items-center gap-3 text-xs text-muted-foreground">
-                <span className="flex items-center gap-1">
-                  <Clock className="size-3" />
-                  Created {formatDate(team.created_at)}
-                </span>
-                <span className="rounded bg-muted px-1.5 py-0.5 font-semibold uppercase">
-                  {team.plan}
-                </span>
-              </div>
-            </Link>
-          ))}
-        </div>
-      )}
-    </div>
+        }
+      />
+      <section aria-labelledby="teams-h">
+        <h2 id="teams-h" className="sr-only">
+          Your teams
+        </h2>
+        {teams.length === 0 ? (
+          <p className="flex min-h-[38px] items-center rounded-lg border border-dashed border-input px-3 text-sm text-muted-foreground">
+            Create a team to publish links together and share API keys.
+          </p>
+        ) : (
+          <table className={TABLE}>
+            <thead className={THEAD}>
+              <tr>
+                <th scope="col" className={TH}>Team</th>
+                <th scope="col" className={TH}>Your role</th>
+                <th scope="col" className={TH}>Plan</th>
+                <th scope="col" className={`${TH} text-right`}>Created</th>
+              </tr>
+            </thead>
+            <tbody className={TBODY}>
+              {teams.map((team) => (
+                <tr key={team.id} className={TR}>
+                  <td className={TD}>
+                    <Link href={`/dashboard/teams/${team.slug}`} className="group flex min-w-0 items-center gap-3">
+                      <PersonAvatar id={team.id} name={team.name} />
+                      <span className="min-w-0">
+                        <span className="block truncate font-medium text-card-foreground group-hover:underline group-hover:underline-offset-[3px]">{team.name}</span>
+                        <span className="block truncate font-mono text-xs text-muted-foreground">{team.slug}</span>
+                      </span>
+                    </Link>
+                  </td>
+                  <td className={`${TD} ${WIDE}`}>{roleLabel(team.role)}</td>
+                  <td className={`${TD} ${WIDE}`}>{roleLabel(team.plan)}</td>
+                  <td className={`${TD} ${WIDE} text-right whitespace-nowrap`}>{formatDay(team.created_at)}</td>
+                  <td className={`${TD} ${LINE2}`}>
+                    {roleLabel(team.role)}, {roleLabel(team.plan)} plan, created {formatDay(team.created_at)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </section>
+    </>
   );
 }
-

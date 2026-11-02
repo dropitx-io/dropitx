@@ -3,17 +3,17 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { Suspense } from "react";
 import { getSessionUser } from "@/lib/firebase/server";
-import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { EmbedSnippet } from "@/components/embed-snippet";
-import { Badge } from "@/components/ui/badge";
+import Link from "next/link";
+import { Wordmark } from "@/components/brand-mark";
 import { BookmarkToggle } from "@/components/bookmark-toggle";
 import { QrCodeButton } from "@/components/qr-code-button";
-import { FileCode, FileText, Eye, Clock, Calendar } from "lucide-react";
 import { getShortFileTypeLabel } from "@/lib/file-utils";
 import { getShareMeta } from "@/lib/share-data";
-import { ShareBody, ShareBodySkeleton } from "./share-body";
 import { SITE_URL } from "@/lib/site-url";
-
+import { cn } from "@/lib/utils";
+import { body, grid, gutter, page, small, squareButton } from "@/app/(content)/_ui/public-styles";
+import { ShareBody, ShareBodySkeleton } from "./share-body";
+import { ShareRail } from "./share-rail";
 
 interface SharePageProps {
   params: Promise<{ slug: string }>;
@@ -90,9 +90,14 @@ function formatUploadDate(dateStr: string): string {
     year: "numeric",
     month: "short",
     day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
   });
+}
+
+/** The title runs at the display size when short; long file names step down so it stays within two lines. */
+function titleSize(title: string): string {
+  if (title.length <= 18) return "max-w-[11em] text-[clamp(44px,8vw,132px)] leading-[0.95] tracking-[-0.045em]";
+  if (title.length <= 36) return "max-w-[22em] text-[clamp(36px,5.2vw,84px)] leading-[1] tracking-[-0.035em]";
+  return "max-w-[30em] text-[clamp(28px,3.2vw,52px)] leading-[1.05] tracking-[-0.025em]";
 }
 
 function formatFileSize(bytes: number): string {
@@ -125,73 +130,68 @@ export default async function SharePage({ params }: SharePageProps) {
   // The content read below is what counts this visit; the metadata predates it.
   const viewCount = !gated && !needsReveal ? share.view_count + 1 : share.view_count;
   const displayName = share.filename ?? share.title ?? slug;
-  const isMarkdown = share.mime_type === "text/markdown";
+
+  const expiresIn = share.expires_at ? formatExpiresIn(share.expires_at) : null;
+  const meta: { label: string; value: string }[] = [
+    { label: "Type", value: getShortFileTypeLabel(share.filename, share.mime_type) },
+    { label: "Views", value: viewCount.toLocaleString("en-US") },
+    { label: "Shared", value: formatUploadDate(share.created_at) },
+    ...(share.file_size ? [{ label: "Size", value: formatFileSize(share.file_size) }] : []),
+    ...(expiresIn ? [{ label: "Expires", value: expiresIn === "Expired" ? "Expired" : `in ${expiresIn}` }] : []),
+  ];
 
   return (
-    <div className="flex flex-1 flex-col gap-4 p-4 md:p-6 max-w-[1200px] mx-auto w-full animate-fade-in">
-      {/* Metadata header */}
-      <Card>
-        <CardHeader className="gap-3">
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="shrink-0">
-                {isMarkdown ? (
-                  <FileText className="size-5 text-primary" />
-                ) : (
-                  <FileCode className="size-5 text-primary" />
-                )}
-              </div>
-              <CardTitle className="truncate text-lg">{displayName}</CardTitle>
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <Badge variant="outline">
-                {getShortFileTypeLabel(share.filename, share.mime_type)}
-              </Badge>
-              <BookmarkToggle shareId={share.id} slug={share.slug} />
-              <QrCodeButton slug={share.slug} />
-            </div>
-          </div>
-          <CardDescription className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
-            <span className="flex items-center gap-1">
-              <Calendar className="size-3" />
-              {formatUploadDate(share.created_at)}
-            </span>
-            <span className="flex items-center gap-1">
-              <Eye className="size-3" />
-              {viewCount} views
-            </span>
-            {share.file_size ? (
-              <span>{formatFileSize(share.file_size)}</span>
-            ) : null}
-            {share.expires_at && (
-              <span className="flex items-center gap-1">
-                <Clock className="size-3" />
-                Expires in {formatExpiresIn(share.expires_at)}
-              </span>
-            )}
-          </CardDescription>
-          {/* Embed snippet — only for non-restricted public shares */}
-          {!share.is_private && !share.has_password && (
-            <div className="mt-3">
-              <EmbedSnippet slug={share.slug} />
-            </div>
-          )}
-        </CardHeader>
-      </Card>
+    <div className={page}>
+      <header className={cn(gutter, "flex h-[72px] shrink-0 items-center gap-3")}>
+        <Wordmark className="mr-auto py-2 text-[22px] tracking-[-0.02em]" />
+        <BookmarkToggle shareId={share.id} slug={share.slug} />
+        <QrCodeButton slug={share.slug} />
+      </header>
 
-      {/* Everything above is resolved before the first byte, so a missing share answers 404.
-          The content read streams in behind the skeleton. */}
-      <Suspense fallback={<ShareBodySkeleton />}>
-        <ShareBody
-          slug={slug}
-          filename={share.filename}
-          mimeType={share.mime_type}
-          groupFiles={share.group_files}
-          gated={gated}
-          needsReveal={needsReveal}
-          isAuthenticated={!!sessionUser}
-        />
-      </Suspense>
+      <main id="main" className="flex-1">
+        <div className={cn(gutter, "pt-[clamp(40px,6vw,88px)]")}>
+          <h1 className={cn("break-words font-serif font-light", titleSize(displayName))}>{displayName}</h1>
+          <dl className="mt-9 grid grid-cols-2 gap-x-[clamp(28px,4vw,64px)] gap-y-4 min-[861px]:flex min-[861px]:flex-wrap">
+            {meta.map((m) => (
+              <div key={m.label}>
+                <dt className={cn(small, "text-muted-foreground")}>{m.label}</dt>
+                <dd className={body}>{m.value}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+
+        <div className={cn(gutter, grid, "mt-[clamp(48px,6vw,88px)] items-start")}>
+          {/* Everything above is resolved before the first byte, so a missing share answers 404.
+              The content read streams in behind the skeleton. */}
+          <div className="col-span-full flex min-w-0 flex-col gap-[clamp(56px,7vw,96px)] min-[1100px]:col-span-8">
+            <Suspense fallback={<ShareBodySkeleton />}>
+              <ShareBody
+                slug={slug}
+                filename={share.filename}
+                mimeType={share.mime_type}
+                groupFiles={share.group_files}
+                gated={gated}
+                needsReveal={needsReveal}
+                isAuthenticated={!!sessionUser}
+              />
+            </Suspense>
+          </div>
+          <ShareRail
+            share={share}
+            viewCount={viewCount}
+            expiresIn={expiresIn}
+            className="col-span-full mt-14 max-w-[440px] min-[1100px]:sticky min-[1100px]:top-6 min-[1100px]:col-span-3 min-[1100px]:col-start-10 min-[1100px]:mt-0 min-[1100px]:max-w-none"
+          />
+        </div>
+      </main>
+
+      <footer className={cn(gutter, "mt-[clamp(96px,12vw,176px)] flex flex-wrap items-center justify-between gap-6 bg-field py-12 text-field-foreground")}>
+        <p className={body}>Shared with DropItX. Turn your own Markdown or HTML into a page like this.</p>
+        <Link href="/" className={squareButton("inverse", "small")}>
+          Share a file
+        </Link>
+      </footer>
     </div>
   );
 }

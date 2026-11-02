@@ -2,36 +2,32 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { UserPlus } from "lucide-react";
 import { InviteMemberDialog } from "@/components/invite-member-dialog";
-import type { TeamInvite } from "@/types/team";
 
 interface MembersPageClientProps {
   teamSlug: string;
+  teamName: string;
   canInvite: boolean;
-  pendingInvites: TeamInvite[];
+  /** Emails that already have an invite waiting, so the dialog can say so before sending another. */
+  pendingEmails: string[];
 }
 
-export function MembersPageClient({
-  teamSlug,
-  canInvite,
-  pendingInvites,
-}: MembersPageClientProps) {
+/** The members page's one primary action and the dialog it opens. */
+export function MembersPageClient({ teamSlug, teamName, canInvite, pendingEmails }: MembersPageClientProps) {
   const [inviteOpen, setInviteOpen] = useState(false);
 
+  if (!canInvite) return null;
   return (
     <>
-      {canInvite && (
-        <Button size="sm" onClick={() => setInviteOpen(true)}>
-          <UserPlus className="size-4" />
-          Invite
-        </Button>
-      )}
+      <Button size="sm" onClick={() => setInviteOpen(true)}>
+        Invite member
+      </Button>
       <InviteMemberDialog
         teamSlug={teamSlug}
+        teamName={teamName}
         open={inviteOpen}
         onClose={() => setInviteOpen(false)}
-        pendingInvites={pendingInvites}
+        pendingEmails={pendingEmails}
       />
     </>
   );

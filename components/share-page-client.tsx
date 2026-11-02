@@ -61,46 +61,49 @@ export function SharePageClient({
 
   return (
     <>
-      <FileTabs files={tabs} activeSlug={activeSlug} onSelect={handleSelect} />
+      <div>
+        <FileTabs files={tabs} activeSlug={activeSlug} onSelect={handleSelect} />
 
-      <div className="flex gap-0 rounded-lg overflow-hidden border border-border/60">
-        <FileListSidebar
-          files={sidebarFiles}
-          activeSlug={activeSlug}
-          onSelect={handleSelect}
-          className="hidden md:block"
-        />
+        <div className="flex gap-0">
+          <FileListSidebar
+            files={sidebarFiles}
+            activeSlug={activeSlug}
+            onSelect={handleSelect}
+            className="hidden md:block"
+          />
 
-        <div className="flex-1 min-w-0">
-          {isLoadingContent ? (
-            <div className="flex items-center justify-center py-20">
-              <Loader2 className="size-6 animate-spin text-muted-foreground" />
-            </div>
-          ) : activeNeedsReveal ? (
-            <RevealShareContent
-              key={activeSlug}
-              slug={activeSlug}
-              filename={activeFile?.filename}
-              mimeType={activeFile?.mime_type}
-              password={isProtectedFile(activeSlug) ? password : undefined}
-              onWrongPassword={() => handleWrongPassword(activeSlug)}
-              onRevealed={(content) => handleRevealed(activeSlug, content)}
-            />
-          ) : (
-            <div className={isMarkdown && activeContent?.encoding !== "base64" ? "p-4 md:p-6" : "p-2"}>
-              {activeContent !== undefined ? (
-                <ShareFileContent
-                  content={activeContent}
-                  filename={activeFile?.filename}
-                  mimeType={activeFile?.mime_type}
-                />
-              ) : (
-                <div className="flex items-center justify-center py-20 text-muted-foreground text-sm">
-                  {activeNotice ?? "Select a file to view"}
-                </div>
-              )}
-            </div>
-          )}
+          <div className="flex-1 min-w-0">
+            {isLoadingContent ? (
+              <div role="status" className="flex items-center justify-center py-20 text-muted-foreground">
+                <Loader2 className="size-6 animate-spin" aria-hidden="true" />
+                <span className="sr-only">Loading the file</span>
+              </div>
+            ) : activeNeedsReveal ? (
+              <RevealShareContent
+                key={activeSlug}
+                slug={activeSlug}
+                filename={activeFile?.filename}
+                mimeType={activeFile?.mime_type}
+                password={isProtectedFile(activeSlug) ? password : undefined}
+                onWrongPassword={() => handleWrongPassword(activeSlug)}
+                onRevealed={(content) => handleRevealed(activeSlug, content)}
+              />
+            ) : (
+              <div className={isMarkdown && activeContent?.encoding !== "base64" ? "max-w-[720px] py-2 md:pl-8" : undefined}>
+                {activeContent !== undefined ? (
+                  <ShareFileContent
+                    content={activeContent}
+                    filename={activeFile?.filename}
+                    mimeType={activeFile?.mime_type}
+                  />
+                ) : (
+                  <div className="flex items-center justify-center py-20 text-[17px] text-muted-foreground">
+                    {activeNotice ?? "Select a file to view"}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

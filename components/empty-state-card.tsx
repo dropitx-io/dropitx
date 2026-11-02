@@ -8,21 +8,18 @@ interface EmptyStateCardProps {
   className?: string
 }
 
+/** An empty block that keeps its frame: a dashed edge, a grey icon, a title and one sentence. */
 export function EmptyStateCard({ icon: Icon, title, description, className }: EmptyStateCardProps) {
   return (
     <div
       className={cn(
-        "flex flex-col items-center justify-center rounded-[var(--radius-card)] border border-dashed border-border bg-card px-6 py-16 text-center",
+        "grid justify-items-center gap-1 rounded-lg border border-dashed border-input px-4 py-8 text-center text-sm text-muted-foreground",
         className
       )}
     >
-      <div className="flex size-14 items-center justify-center rounded-2xl bg-accent-soft text-primary mb-4">
-        <Icon className="size-7" />
-      </div>
-      <p className="text-base font-medium">{title}</p>
-      {description && (
-        <p className="mt-1 text-sm text-muted-foreground max-w-xs">{description}</p>
-      )}
+      <Icon className="mb-1 size-5" strokeWidth={1.5} aria-hidden />
+      <p className="font-medium text-card-foreground">{title}</p>
+      {description && <p className="max-w-sm">{description}</p>}
     </div>
   )
 }

@@ -1,17 +1,20 @@
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
+import { ExternalLink } from "lucide-react";
 import { getSessionUser } from "@/lib/firebase/server";
 import { AccountNotProvisionedError, getShareAnalytics } from "@/lib/dashboard-data";
 import { AccountSetupState } from "@/components/account-setup-state";
-import { AnalyticsStatsCards } from "@/components/analytics/analytics-stats-cards";
-import { AnalyticsViewChart } from "@/components/analytics/analytics-view-chart";
-import { AnalyticsReferrerChart } from "@/components/analytics/analytics-referrer-chart";
-import { AnalyticsGeoChart } from "@/components/analytics/analytics-geo-chart";
-import { AnalyticsEmptyState } from "@/components/analytics/analytics-empty-state";
-import { ArrowLeft, Link as LinkIcon, Copy } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { TitleRow } from "@/components/analytics/title-row";
+import { KpiRow } from "@/components/analytics/kpi-row";
+import { SectionHead } from "@/components/analytics/section-head";
+import { ShareTable } from "@/components/analytics/share-table";
+import { CopyLinkButton } from "@/components/analytics/copy-link-button";
+import { AnalyticsViewChart } from "@/components/analytics/analytics-view-chart";
+import { busiestDay, fillDaily } from "@/components/analytics/chart-data";
+import { countryName, formatDay, formatInt } from "@/components/analytics/analytics-format";
+import { foldRows } from "@/components/analytics/share-rows";
 import type { ShareAnalyticsResponse } from "@/types/analytics";
 import { SITE_URL } from "@/lib/site-url";
 
@@ -20,6 +23,8 @@ interface PerShareAnalyticsPageProps {
 }
 
 const ANALYTICS_DAYS = 30;
+
+const sum = (rows: { count: number }[]) => rows.reduce((total, r) => total + r.count, 0);
 
 export default async function PerShareAnalyticsPage({ params }: PerShareAnalyticsPageProps) {
   const { slug } = await params;
@@ -39,76 +44,95 @@ export default async function PerShareAnalyticsPage({ params }: PerShareAnalytic
   if (!data) notFound();
 
   const { share, summary, timeseries, referrers, geo, days } = data;
-  const title = share.title ?? share.filename ?? share.slug;
+  const title = share.title || share.filename || share.slug;
   const shareUrl = `${SITE_URL}/s/${share.slug}`;
-  const hasData = summary.total_views > 0;
+  const shownUrl = `${new URL(SITE_URL).host}/s/${share.slug}`;
+  const series = fillDaily(timeseries, days, new Date().toISOString().slice(0, 10));
+  const peak = busiestDay(series);
+  const range = `${formatDay(series[0].date)} to ${formatDay(series[series.length - 1].date)}`;
+
+  const referrerRows = referrers
+    .map((r) => ({ label: r.referrer_source.charAt(0).toUpperCase() + r.referrer_source.slice(1), count: r.views }))
+    .sort((a, b) => b.count - a.count);
+  const countryRows = geo.map((g) => ({ label: countryName(g.country_code), count: g.views })).sort((a, b) => b.count - a.count);
+
+  const finding = peak ? (
+    <>
+      Busiest on <b>{formatDay(peak.date)}</b> with {formatInt(peak.views)} {peak.views === 1 ? "view" : "views"}; {formatInt(summary.views_7d)} in the last 7 days.
+    </>
+  ) : (
+    `No views in the last ${days} days.`
+  );
 
   return (
-    <div className="space-y-5">
-      <div className="flex items-start gap-3">
-        <Link
-          href="/dashboard/analytics"
-          className={cn(buttonVariants({ variant: "outline", size: "sm" }), "mt-0.5 gap-1.5")}
-        >
-          <ArrowLeft className="size-3.5" /> Back
-        </Link>
-        <div className="min-w-0">
-          <h1 className="truncate text-[20px] font-bold tracking-tight">{title}</h1>
-          <p className="font-mono text-xs text-muted-foreground">/{share.slug}</p>
-        </div>
-      </div>
-
-      <div className="flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-3">
-        <LinkIcon className="size-3.5 shrink-0 text-muted-foreground" />
-        <code className="flex-1 truncate font-mono text-xs text-muted-foreground">{shareUrl}</code>
-        <button
-          type="button"
-          className="copy-url-btn rounded-md p-1.5 hover:bg-muted"
-          data-url={shareUrl}
-          title="Copy link"
-        >
-          <Copy className="size-3.5" />
-        </button>
-      </div>
-
-      {hasData ? (
-        <>
-          <AnalyticsStatsCards analytics={summary} days={days} />
-
-          <div className="rounded-lg border border-border bg-card p-5">
-            <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/80">
-              Views over time (last {days} days)
-            </p>
-            <AnalyticsViewChart data={timeseries} />
+    <>
+      <TitleRow
+        crumb={
+          <>
+            <Link href="/dashboard/analytics" className="hover:text-card-foreground hover:underline hover:underline-offset-[3px]">
+              Analytics
+            </Link>
+            <span aria-hidden="true">/</span>
+            <span className="truncate">{title}</span>
+          </>
+        }
+        title={title}
+        meta={
+          <div className="mt-1.5 flex items-center gap-1.5 text-sm text-muted-foreground">
+            <span className="truncate font-mono text-[13px] text-card-foreground">{shownUrl}</span>
+            <CopyLinkButton url={shareUrl} />
           </div>
+        }
+        finding={finding}
+        actions={
+          <>
+            <a href={`/s/${share.slug}`} target="_blank" rel="noopener" className={buttonVariants({ variant: "outline", size: "sm" })}>
+              <ExternalLink className="size-4 text-muted-foreground" strokeWidth={1.5} />
+              Open
+            </a>
+            <CopyLinkButton url={shareUrl} label="Copy link" primary />
+          </>
+        }
+      />
 
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div className="rounded-lg border border-border bg-card p-5">
-              <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/80">
-                Traffic sources (last {days} days)
-              </p>
-              {referrers.length > 0 ? (
-                <AnalyticsReferrerChart data={referrers} />
-              ) : (
-                <p className="py-8 text-center text-sm text-muted-foreground">No referrer data</p>
-              )}
-            </div>
-            <div className="rounded-lg border border-border bg-card p-5">
-              <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/80">
-                Geography (last {days} days)
-              </p>
-              {geo.length > 0 ? (
-                <AnalyticsGeoChart data={geo} />
-              ) : (
-                <p className="py-8 text-center text-sm text-muted-foreground">No geo data</p>
-              )}
-            </div>
-          </div>
-        </>
-      ) : (
-        <AnalyticsEmptyState message={`No views in the last ${days} days.`} />
-      )}
-    </div>
+      <KpiRow
+        items={[
+          { label: "Views", value: formatInt(summary.total_views), note: `Last ${days} days`, lead: true },
+          { label: "Unique visitors", value: formatInt(summary.unique_views), note: `Last ${days} days` },
+          { label: "Views today", value: formatInt(summary.views_today), note: "Since 00:00 UTC" },
+          { label: "Avg views per day", value: summary.avg_daily_views.toLocaleString("en-US", { maximumFractionDigits: 1 }), note: `Last ${days} days` },
+        ]}
+      />
+
+      <section className="mb-10" aria-label="Views per day">
+        <SectionHead title="Views per day" description={`${range}, UTC.`} />
+        {peak ? (
+          <AnalyticsViewChart data={series} />
+        ) : (
+          <p className="flex min-h-[38px] items-center rounded-lg border border-dashed border-input px-3 text-sm text-muted-foreground">
+            No views in this period. The chart starts with the first read.
+          </p>
+        )}
+      </section>
+
+      <div className="grid gap-x-8 gap-y-10 lg:grid-cols-2">
+        <ShareTable
+          title="Referrers"
+          description="Where readers clicked the link."
+          head="Referrer"
+          rows={foldRows(referrerRows)}
+          total={sum(referrerRows)}
+          empty={`No referrers in the last ${days} days.`}
+        />
+        <ShareTable
+          title="Countries"
+          description="Where readers were when they opened it."
+          head="Country"
+          rows={foldRows(countryRows)}
+          total={sum(countryRows)}
+          empty={`No views in the last ${days} days.`}
+        />
+      </div>
+    </>
   );
 }
-

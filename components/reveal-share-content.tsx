@@ -1,8 +1,8 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { body, squareButton } from "@/app/(content)/_ui/public-styles";
+import { cn } from "@/lib/utils";
 import { ShareFileContent } from "@/components/share-file-content";
 import { authFetch } from "@/lib/api-client";
 import { unlockShare } from "@/lib/share-unlock";
@@ -25,7 +25,7 @@ export function OnceOnlyNotice() {
   return (
     <>
       <p className="font-medium">This content can be opened only once.</p>
-      <p className="max-w-sm text-sm text-muted-foreground">
+      <p className="max-w-[34em]">
         Once you reveal it, it is deleted and cannot be viewed again. Copy anything you need to keep.
       </p>
     </>
@@ -108,28 +108,29 @@ export function RevealShareContent({
   }
 
   return (
-    <div className="flex flex-col items-center justify-center gap-3 px-4 py-16 text-center">
+    <div className={cn(body, "grid max-w-[34em] justify-items-start gap-4 bg-surface p-[clamp(24px,4vw,48px)]")}>
       {state.status === "unavailable" ? (
-        <p className="text-sm text-muted-foreground">This content is no longer available.</p>
+        <p>This content is no longer available.</p>
       ) : state.status === "protected" ? (
-        <p className="text-sm text-muted-foreground">This file is password protected.</p>
+        <p>This file is password protected.</p>
       ) : state.status === "wrong-password" ? (
-        <p className="text-sm text-muted-foreground">This file has a different password.</p>
+        <p>This file has a different password.</p>
       ) : (
         <>
           <OnceOnlyNotice />
-          <Button onClick={reveal} disabled={state.status === "loading"}>
-            {state.status === "loading" ? (
-              <>
-                <Loader2 className="size-4 animate-spin" />
-                Revealing…
-              </>
-            ) : (
-              "Reveal content"
-            )}
-          </Button>
+          <button
+            type="button"
+            onClick={reveal}
+            disabled={state.status === "loading"}
+            aria-busy={state.status === "loading"}
+            className={cn(squareButton(), "mt-2")}
+          >
+            {state.status === "loading" ? "Revealing the content" : "Reveal the content"}
+          </button>
           {state.status === "failed" && (
-            <p className="text-sm text-destructive">Could not load the content. Try again.</p>
+            <p role="alert" className="font-medium text-destructive">
+              Could not load the content. Try again.
+            </p>
           )}
         </>
       )}

@@ -2,9 +2,8 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Code, Copy, Check } from "lucide-react";
+import { Copy, Check } from "lucide-react";
 import { SITE_URL } from "@/lib/site-url";
-
 
 interface EmbedSnippetProps {
   slug: string;
@@ -22,16 +21,11 @@ export function EmbedSnippet({ slug }: EmbedSnippetProps) {
 
   return (
     <div className="flex flex-col gap-2">
-      <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground flex items-center gap-1">
-        <Code className="size-3" />
-        Embed
-      </label>
+      <span className="text-sm font-medium text-card-foreground">Embed</span>
       <div className="flex items-center gap-2">
-        <div className="flex-1 bg-secondary rounded-md p-3 font-mono text-sm overflow-x-auto">
-          <code className="text-xs break-all">{embedCode}</code>
-        </div>
-        <Button variant="outline" size="icon" onClick={handleCopy} className="shrink-0 rounded-md">
-          {copied ? <Check className="size-3" /> : <Copy className="size-3" />}
+        <code className="flex-1 overflow-x-auto rounded-md bg-raised p-3 font-mono text-xs break-all text-card-foreground">{embedCode}</code>
+        <Button variant="outline" size="icon" onClick={handleCopy} aria-label={copied ? "Copied" : "Copy embed code"} className="shrink-0">
+          {copied ? <Check className="size-4" strokeWidth={1.5} /> : <Copy className="size-4" strokeWidth={1.5} />}
         </Button>
       </div>
     </div>

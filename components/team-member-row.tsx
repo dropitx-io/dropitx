@@ -2,20 +2,24 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Trash2, Loader2, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { apiErrorDetail, authFetch } from "@/lib/api-client";
 import type { TeamMemberRole, TeamRole } from "@/types/team";
 import { TEAM_ROLES } from "@/lib/team-utils";
+import { formatDay } from "@/components/analytics/analytics-format";
+import { PersonAvatar } from "@/components/team/person-avatar";
+import { RowMenu } from "@/components/team/row-menu";
+import { roleLabel } from "@/components/team/role-label";
+import { ACTIONS, LINE2, TD, TR, WIDE } from "@/components/team/table-classes";
 
 interface TeamMemberRowProps {
   userId: string;
-  displayName: string | null;
+  displayName: string;
   avatarUrl: string | null;
-  email?: string;
   role: TeamMemberRole;
+  joinedAt: string;
+  /** Links this member added to the team. */
+  linkCount: number;
   /** Current user's role — determines edit permissions. */
   viewerRole: TeamMemberRole;
   /** Whether this row is the current user. */
@@ -23,148 +27,76 @@ interface TeamMemberRowProps {
   teamSlug: string;
 }
 
-export function TeamMemberRow({
-  userId,
-  displayName,
-  avatarUrl,
-  email,
-  role,
-  viewerRole,
-  isSelf,
-  teamSlug,
-}: TeamMemberRowProps) {
+export function TeamMemberRow({ userId, displayName, avatarUrl, role, joinedAt, linkCount, viewerRole, isSelf, teamSlug }: TeamMemberRowProps) {
   const router = useRouter();
-  const [changingRole, setChangingRole] = useState(false);
-  const [removing, setRemoving] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
 
   const canEditRole = viewerRole === "owner" && !isSelf;
   const canRemove = viewerRole === "owner" || isSelf;
-  const display = displayName || email || userId.slice(0, 8);
-  const initial = display[0].toUpperCase();
 
   async function handleChangeRole(newRole: TeamRole) {
-    setChangingRole(true);
-    setMenuOpen(false);
+    setBusy(true);
     try {
       const res = await authFetch(`/api/dashboard/teams/${teamSlug}/members`, {
         method: "PATCH",
         body: JSON.stringify({ user_id: userId, role: newRole }),
       });
       if (!res.ok) throw new Error(await apiErrorDetail(res, "Failed to update role"));
-      toast.success(`Role updated to ${newRole}`);
+      toast.success(`${displayName} is now ${roleLabel(newRole).toLowerCase()}`);
       router.refresh();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to update role");
     } finally {
-      setChangingRole(false);
+      setBusy(false);
     }
   }
 
   async function handleRemove() {
-    const action = isSelf ? "leave the team" : `remove ${display}`;
+    const action = isSelf ? "leave the team" : `remove ${displayName} from the team`;
     if (!confirm(`Are you sure you want to ${action}?`)) return;
 
-    setRemoving(true);
+    setBusy(true);
     try {
       const res = await authFetch(`/api/dashboard/teams/${teamSlug}/members`, {
         method: "DELETE",
         body: JSON.stringify({ user_id: userId }),
       });
       if (!res.ok) throw new Error(await apiErrorDetail(res, "Failed to remove member"));
-      toast.success(isSelf ? "You left the team" : `Removed ${display}`);
+      toast.success(isSelf ? "You left the team" : `Removed ${displayName}`);
       router.refresh();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to remove member");
     } finally {
-      setRemoving(false);
+      setBusy(false);
     }
   }
 
+  const menu = [
+    ...(canEditRole ? TEAM_ROLES.map((r) => ({ label: roleLabel(r), checked: r === role, onSelect: () => r !== role && handleChangeRole(r) })) : []),
+    ...(canRemove ? [{ label: isSelf ? "Leave team" : "Remove from team", danger: true, separated: canEditRole, onSelect: handleRemove }] : []),
+  ];
+  const links = `${linkCount} ${linkCount === 1 ? "link" : "links"}`;
+
   return (
-    <div className="flex items-center gap-3 py-3 border-b border-border last:border-b-0">
-      {/* Avatar */}
-      {avatarUrl ? (
-        /* eslint-disable-next-line @next/next/no-img-element */
-        <img
-          src={avatarUrl}
-          alt=""
-          referrerPolicy="no-referrer"
-          className="size-8 rounded-[var(--radius-card)] shrink-0"
-        />
-      ) : (
-        <div className="size-8 rounded-[var(--radius-card)] bg-muted flex items-center justify-center text-primary text-xs font-bold shrink-0">
-          {initial}
+    <tr className={TR}>
+      <td className={TD}>
+        <div className="flex min-w-0 items-center gap-3">
+          <PersonAvatar id={userId} name={displayName} imageUrl={avatarUrl} />
+          <span className="flex min-w-0 items-center gap-1.5 font-medium text-card-foreground">
+            <span className="truncate">{displayName}</span>
+            {isSelf && <span className="rounded-sm bg-raised px-1.5 text-xs font-normal text-muted-foreground">You</span>}
+          </span>
         </div>
-      )}
-
-      {/* Name + email */}
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium truncate">
-          {display}
-          {isSelf && (
-            <span className="text-muted-foreground font-normal"> (you)</span>
-          )}
-        </p>
-        {email && (
-          <p className="text-xs text-muted-foreground truncate">{email}</p>
-        )}
-      </div>
-
-      {/* Role */}
-      <div className="relative shrink-0">
-        {canEditRole ? (
-          <>
-            <button
-              className="flex items-center gap-1"
-              onClick={() => setMenuOpen((o) => !o)}
-              disabled={changingRole}
-              type="button"
-            >
-              <Badge variant={role} className="tabular-nums text-sm">{role}</Badge>
-              {changingRole ? (
-                <Loader2 className="size-3 animate-spin" />
-              ) : (
-                <ChevronDown className="size-3 text-muted-foreground" />
-              )}
-            </button>
-            {menuOpen && (
-              <div className="absolute right-0 top-full mt-1 z-10 bg-card border border-border rounded-lg py-1 min-w-[100px]">
-                {TEAM_ROLES.filter((r) => r !== role).map((r) => (
-                  <button
-                    key={r}
-                    className="w-full text-left px-3 py-1.5 text-sm hover:bg-muted transition-colors duration-200"
-                    onClick={() => handleChangeRole(r)}
-                    type="button"
-                  >
-                    {r}
-                  </button>
-                ))}
-              </div>
-            )}
-          </>
-        ) : (
-          <Badge variant={role} className="tabular-nums text-sm">{role}</Badge>
-        )}
-      </div>
-
-      {/* Remove / Leave */}
-      {canRemove && (
-        <Button
-          variant="ghost"
-          size="icon-xs"
-          onClick={handleRemove}
-          disabled={removing}
-          className="text-destructive hover:text-destructive shrink-0"
-          title={isSelf ? "Leave team" : `Remove ${display}`}
-        >
-          {removing ? (
-            <Loader2 className="size-3 animate-spin" />
-          ) : (
-            <Trash2 className="size-3" />
-          )}
-        </Button>
-      )}
-    </div>
+      </td>
+      <td className={`${TD} ${WIDE}`}>{roleLabel(role)}</td>
+      <td className={`${TD} ${WIDE} text-right`}>{linkCount}</td>
+      <td className={`${TD} ${WIDE} text-right whitespace-nowrap`}>{formatDay(joinedAt)}</td>
+      <td className={`${TD} ${LINE2}`}>
+        {roleLabel(role)}, {links}, joined {formatDay(joinedAt)}
+      </td>
+      <td className={`${TD} ${ACTIONS} w-11`}>
+        {menu.length > 0 && <RowMenu label={`Actions for ${displayName}`} items={menu} busy={busy} />}
+      </td>
+    </tr>
   );
 }

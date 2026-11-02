@@ -7,7 +7,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Clock } from "lucide-react";
 
 /**
  * Each value is what the API reads as `expires_in`: a named period it knows, or a whole number of seconds.
@@ -28,25 +27,25 @@ export const EXPIRATION_OPTIONS = [
 export type ExpirationValue = (typeof EXPIRATION_OPTIONS)[number]["value"];
 
 interface ExpirationSelectProps {
+  id?: string;
   value: string;
   onChange: (value: string) => void;
   disabled?: boolean;
-  compact?: boolean;
+  /** Shown while no period is chosen, e.g. "Keep current" when editing an existing share. */
+  placeholder?: string;
 }
 
 export function ExpirationSelect({
+  id,
   value,
   onChange,
   disabled = false,
-  compact = false,
+  placeholder = "Choose a period",
 }: ExpirationSelectProps) {
   return (
     <Select value={value} onValueChange={onChange} disabled={disabled}>
-      <SelectTrigger className={compact ? "h-8 w-[140px]" : "w-full"}>
-        <div className="flex items-center gap-1.5">
-          <Clock className="size-3.5 text-muted-foreground" />
-          <SelectValue placeholder="Expiration" />
-        </div>
+      <SelectTrigger id={id} className="h-8 w-[140px] border-input bg-sheet shadow-none max-md:h-11">
+        <SelectValue placeholder={placeholder} />
       </SelectTrigger>
       <SelectContent>
         {EXPIRATION_OPTIONS.map((opt) => (

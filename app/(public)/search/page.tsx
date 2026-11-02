@@ -6,6 +6,9 @@ import { SearchBar } from "@/components/search-bar";
 import { SearchResults } from "@/components/search-results";
 import type { SearchResult } from "@/types/share";
 import { apiErrorDetail, getApiUrl } from "@/lib/api-client";
+import { PublicNav } from "@/app/(content)/_ui/public-nav";
+import { body, displayS, gutter, notice, page } from "@/app/(content)/_ui/public-styles";
+import { cn } from "@/lib/utils";
 
 export default function SearchPage() {
   const searchParams = useSearchParams();
@@ -73,22 +76,25 @@ export default function SearchPage() {
   }, []);
 
   return (
-    <div className="mx-auto w-full max-w-[1120px] flex-1 px-6 py-8">
-      <h1 className="text-[22px] font-bold tracking-tight">Search</h1>
+    <div className={page}>
+      <PublicNav current="/search" />
+      <main id="main" className={cn(gutter, "flex-1 pb-[clamp(56px,7vw,112px)] pt-[clamp(32px,5vw,72px)]")}>
+        <h1 className={cn(displayS, "max-w-[8em]")}>Search shared pages</h1>
 
-      <div className="mt-4">
-        <SearchBar initialValue={query} />
-      </div>
+        <div className="mt-[clamp(32px,4vw,56px)]">
+          <SearchBar initialValue={query} />
+        </div>
 
-      {error && (
-        <p className="mt-4 text-sm text-destructive" role="alert">
-          {error}
-        </p>
-      )}
+        {error && (
+          <p role="alert" className={cn(body, notice.error, "mt-6 max-w-[40em]")}>
+            {error}
+          </p>
+        )}
 
-      <div className="mt-6">
-        <SearchResults results={results} isLoading={isLoading} />
-      </div>
+        <div className="mt-[clamp(40px,5vw,72px)]">
+          <SearchResults results={results} isLoading={isLoading} />
+        </div>
+      </main>
     </div>
   );
 }

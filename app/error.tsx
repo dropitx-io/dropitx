@@ -1,8 +1,7 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { AlertTriangle } from "lucide-react";
+import { StatusPage } from "@/app/(content)/_ui/status-page";
+import { squareButton } from "@/app/(content)/_ui/public-styles";
 
 interface GlobalErrorProps {
   error: Error & { digest?: string };
@@ -11,21 +10,14 @@ interface GlobalErrorProps {
 
 export default function GlobalError({ reset }: GlobalErrorProps) {
   return (
-    <div className="flex flex-1 items-center justify-center p-4">
-      <Card className="w-full max-w-md text-center animate-fade-in">
-        <CardHeader className="items-center gap-3 pb-2">
-          <div className="size-14 rounded-lg bg-destructive/10 flex items-center justify-center">
-            <AlertTriangle className="size-7 text-destructive" />
-          </div>
-          <CardTitle className="text-xl">Something went wrong</CardTitle>
-          <CardDescription>
-            An unexpected error occurred. Please try again.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="justify-center">
-          <Button onClick={reset}>Try again</Button>
-        </CardContent>
-      </Card>
-    </div>
+    <StatusPage
+      title="Something went wrong."
+      message="The page hit an error while loading. Try again; if it keeps happening, come back in a few minutes."
+      action={
+        <button type="button" onClick={reset} className={squareButton()}>
+          Try again
+        </button>
+      }
+    />
   );
 }

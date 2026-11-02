@@ -41,8 +41,8 @@ export function HtmlViewer({ htmlContent }: HtmlViewerProps) {
 
   if (error) {
     return (
-      <div className="flex h-[80vh] w-full items-center justify-center rounded-lg border border-destructive/30 bg-destructive/5">
-        <p className="text-sm text-destructive">
+      <div className="flex h-[80vh] w-full items-center justify-center bg-pill-negative">
+        <p role="alert" className="text-[17px] text-pill-negative-foreground">
           Rendering error: {error}
         </p>
       </div>
@@ -57,7 +57,7 @@ export function HtmlViewer({ htmlContent }: HtmlViewerProps) {
       srcDoc={safeContent}
       sandbox="allow-scripts"
       title="Shared HTML content"
-      className="h-[80vh] w-full rounded-lg border border-border"
+      className="h-[80vh] w-full bg-card"
       scrolling="auto"
     />
   );

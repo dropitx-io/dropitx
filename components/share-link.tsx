@@ -87,7 +87,7 @@ export function ShareLink({ result }: ShareLinkProps) {
             id="share-url-input"
             value={shareUrl}
             readOnly
-            className="font-mono text-sm"
+            className="text-sm"
           />
           <Button
             type="button"
@@ -117,7 +117,7 @@ export function ShareLink({ result }: ShareLinkProps) {
 
         {/* Inline copied feedback */}
         {copied && (
-          <p className="text-xs text-success animate-fade-in">
+          <p className="text-[13px] text-success animate-fade-in">
             Link copied to clipboard
           </p>
         )}
@@ -135,7 +135,7 @@ export function ShareLink({ result }: ShareLinkProps) {
                 value={result.deleteToken}
                 readOnly
                 aria-label="Delete token (shown once)"
-                className="font-mono text-xs"
+                className="text-sm"
               />
               <Button
                 type="button"
@@ -156,7 +156,7 @@ export function ShareLink({ result }: ShareLinkProps) {
                 <Copy className="size-4" />
               </Button>
             </div>
-            {deleteError && <p className="text-xs text-destructive">{deleteError}</p>}
+            {deleteError && <p className="text-[13px] text-destructive">{deleteError}</p>}
             <Button
               type="button"
               variant="ghost"

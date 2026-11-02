@@ -4,6 +4,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Search, X } from "lucide-react";
+import { field } from "@/app/(content)/_ui/public-styles";
+import { cn } from "@/lib/utils";
 
 interface SearchBarProps {
   initialValue?: string;
@@ -65,17 +67,20 @@ export function SearchBar({ initialValue = "", compact = false }: SearchBarProps
   }, []);
 
   return (
-    <div className={`relative ${compact ? "max-w-md" : "max-w-xl"} mx-auto w-full`}>
-      <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+    <div className={cn("relative w-full", compact ? "max-w-md" : "max-w-[40em]")}>
+      <Search
+        aria-hidden="true"
+        className="pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-muted-foreground"
+      />
 
       <Input
         type="text"
         value={value}
         onChange={handleChange}
         onKeyDown={handleKeyDown}
-        placeholder="Search shared files..."
-        aria-label="Search shared files"
-        className={compact ? "h-10 pl-9 text-sm" : "h-11 pl-9 text-base"}
+        placeholder="Search by title or words in the page"
+        aria-label="Search shared pages"
+        className={cn(field, "min-h-[56px] pl-12 pr-14")}
       />
 
       {value.length > 0 && (
@@ -83,9 +88,9 @@ export function SearchBar({ initialValue = "", compact = false }: SearchBarProps
           type="button"
           onClick={handleClear}
           aria-label="Clear search"
-          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors duration-200 cursor-pointer"
+          className="absolute right-1 top-1/2 flex size-11 -translate-y-1/2 cursor-pointer items-center justify-center text-muted-foreground transition-colors duration-200 hover:text-foreground"
         >
-          <X className="size-4" />
+          <X className="size-5" aria-hidden="true" />
         </button>
       )}
     </div>

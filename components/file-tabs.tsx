@@ -3,7 +3,6 @@
 import { cn } from "@/lib/utils";
 import { getFileIcon, formatFileSize } from "@/lib/file-utils";
 import { X } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 
 export interface FileTab {
   slug: string;
@@ -27,7 +26,7 @@ export function FileTabs({ files, activeSlug, onSelect, onClose, className }: Fi
   return (
     <div
       className={cn(
-        "flex items-center gap-1 overflow-x-auto border-b border-border/60 bg-muted/30 px-2 py-1 scrollbar-thin",
+        "flex items-center gap-1 overflow-x-auto bg-surface p-1 scrollbar-thin",
         className
       )}
     >
@@ -38,20 +37,20 @@ export function FileTabs({ files, activeSlug, onSelect, onClose, className }: Fi
         return (
           <button
             key={file.slug}
+            type="button"
             onClick={() => onSelect(file.slug)}
+            aria-current={isActive ? "true" : undefined}
             className={cn(
-              "group flex items-center gap-1.5 rounded-t-md px-3 py-1.5 text-xs font-medium transition-colors whitespace-nowrap",
+              "group flex min-h-10 items-center gap-2 px-3 text-[15px] whitespace-nowrap transition-colors",
               isActive
-                ? "bg-background text-foreground border border-border/60 border-b-background -mb-px"
-                : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                ? "bg-background text-foreground"
+                : "text-muted-foreground hover:bg-active hover:text-foreground"
             )}
           >
             <Icon className="size-3.5 shrink-0" />
-            <span className="truncate max-w-[120px]">{file.filename}</span>
+            <span className="max-w-[160px] truncate">{file.filename}</span>
             {file.file_size != null && (
-              <Badge variant="ghost" className="text-[10px] px-1 py-0 h-4 font-normal">
-                {formatFileSize(file.file_size)}
-              </Badge>
+              <span className="text-[13px] text-muted-foreground">{formatFileSize(file.file_size)}</span>
             )}
             {onClose && files.length > 1 && (
               <span
@@ -68,7 +67,7 @@ export function FileTabs({ files, activeSlug, onSelect, onClose, className }: Fi
                   }
                 }}
                 className={cn(
-                  "ml-1 rounded-sm p-0.5 hover:bg-destructive/10 hover:text-destructive transition-colors",
+                  "ml-1 p-0.5 transition-colors hover:bg-destructive/10 hover:text-destructive",
                   isActive ? "opacity-60 hover:opacity-100" : "opacity-0 group-hover:opacity-60 hover:!opacity-100"
                 )}
               >

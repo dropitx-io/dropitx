@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { Eye, FileText, Star } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PublicNav } from "@/app/(content)/_ui/public-nav";
+import { body, displayS, gutter, head, page as pageRoot, small, textLink } from "@/app/(content)/_ui/public-styles";
+import { cn } from "@/lib/utils";
 import { getPublicProfile, getPublicProfileShares } from "@/lib/public-profile-data";
 
 interface ProfilePageProps {
@@ -43,89 +43,90 @@ export default async function ProfilePage({ params, searchParams }: ProfilePageP
   const base = `/u/${profile.username}`;
 
   return (
-    <main className="mx-auto flex w-full max-w-[860px] flex-1 flex-col gap-6 p-4 md:p-6 animate-fade-in">
-      <header className="flex items-center gap-4">
-        {profile.avatar_url ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={profile.avatar_url} alt="" referrerPolicy="no-referrer" className="size-20 rounded-md" />
-        ) : (
-          <div className="flex size-20 items-center justify-center rounded-md bg-primary text-2xl font-bold text-primary-foreground">
-            {name[0].toUpperCase()}
+    <div className={pageRoot}>
+      <PublicNav />
+      <main id="main" className={cn(gutter, "flex-1 pb-[clamp(56px,7vw,112px)] pt-[clamp(40px,6vw,88px)]")}>
+        <header className="flex items-end gap-[clamp(16px,2.4vw,32px)]">
+          {profile.avatar_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={profile.avatar_url} alt="" referrerPolicy="no-referrer" className="size-[clamp(72px,9vw,128px)] shrink-0 object-cover" />
+          ) : (
+            <div aria-hidden="true" className="flex size-[clamp(72px,9vw,128px)] shrink-0 items-center justify-center bg-field font-serif text-[clamp(36px,4.5vw,64px)] font-light text-field-foreground">
+              {name[0].toUpperCase()}
+            </div>
+          )}
+          <div className="min-w-0">
+            <h1 className={cn(displayS, "break-words text-[clamp(40px,6vw,96px)]")}>{name}</h1>
+            <p className={cn(body, "mt-2 text-muted-foreground")}>@{profile.username}</p>
           </div>
-        )}
-        <div className="min-w-0">
-          <h1 className="truncate font-display text-2xl font-bold">{name}</h1>
-          <p className="tabular-nums text-sm text-muted-foreground">@{profile.username}</p>
-          {profile.bio && <p className="mt-2 text-sm">{profile.bio}</p>}
-        </div>
-      </header>
+        </header>
+        {profile.bio && <p className={cn(body, "mt-8 max-w-[34em]")}>{profile.bio}</p>}
 
-      <div className="flex flex-wrap gap-x-5 gap-y-1 text-sm text-muted-foreground">
-        <span>{profile.share_count ?? 0} shares</span>
-        <span>{profile.total_views ?? 0} views</span>
-        <span>{profile.total_stars ?? 0} stars</span>
-      </div>
+        <dl className="mt-9 flex flex-wrap gap-x-[clamp(28px,4vw,64px)] gap-y-4">
+          {[
+            { label: "Shares", value: profile.share_count ?? 0 },
+            { label: "Views", value: profile.total_views ?? 0 },
+            { label: "Stars", value: profile.total_stars ?? 0 },
+          ].map((m) => (
+            <div key={m.label}>
+              <dt className={cn(small, "text-muted-foreground")}>{m.label}</dt>
+              <dd className={cn(body, "tabular-nums")}>{m.value.toLocaleString("en-US")}</dd>
+            </div>
+          ))}
+        </dl>
 
-      <section aria-labelledby="public-shares" className="flex flex-col gap-3">
-        <h2 id="public-shares" className="text-lg font-semibold">
-          Public shares
-        </h2>
-        {shares.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            {page > 1 ? "No more shares." : "No public shares yet."}
-          </p>
-        ) : (
-          <ul className="flex flex-col gap-3">
-            {shares.map((share) => (
-              <li key={share.slug}>
-                <Link href={`/s/${share.slug}`} className="block rounded-lg transition-colors hover:bg-accent/40">
-                  <Card>
-                    <CardHeader className="gap-1">
-                      <CardTitle className="flex items-center gap-2 truncate">
-                        <FileText className="size-4 shrink-0 text-primary" />
-                        <span className="truncate">{share.title || share.filename}</span>
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+        <section aria-labelledby="public-shares" className="mt-[clamp(64px,8vw,120px)] grid max-w-[46em] gap-8">
+          <h2 id="public-shares" className={head}>
+            Public shares
+          </h2>
+          {shares.length === 0 ? (
+            <p className={cn(body, "text-muted-foreground")}>
+              {page > 1 ? "No more shares." : "No public shares yet."}
+            </p>
+          ) : (
+            <ul className="grid gap-[clamp(28px,3.5vw,44px)]">
+              {shares.map((share) => (
+                <li key={share.slug}>
+                  <Link href={`/s/${share.slug}`} className="group block">
+                    <span className={cn(head, "break-words underline-offset-[0.18em] group-hover:underline")}>
+                      {share.title || share.filename}
+                    </span>
+                    <span className={cn(small, "mt-2 flex flex-wrap gap-x-4 gap-y-1 text-muted-foreground")}>
                       <span>{formatDate(share.created_at)}</span>
-                      <span className="flex items-center gap-1">
-                        <Eye className="size-3" />
-                        {share.view_count ?? 0}
+                      <span>
+                        {share.view_count ?? 0} {share.view_count === 1 ? "view" : "views"}
                       </span>
-                      <span className="flex items-center gap-1">
-                        <Star className="size-3" />
-                        {share.star_count ?? 0}
+                      <span>
+                        {share.star_count ?? 0} {share.star_count === 1 ? "star" : "stars"}
                       </span>
                       {share.tags?.map((tag) => (
-                        <Badge key={tag} variant="secondary">
-                          {tag}
-                        </Badge>
+                        <span key={tag}>{tag}</span>
                       ))}
-                    </CardContent>
-                  </Card>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
 
-        {(page > 1 || hasMore) && (
-          <nav aria-label="Pagination" className="flex items-center justify-between text-sm">
-            {page > 1 ? (
-              <Link href={page === 2 ? base : `${base}?page=${page - 1}`} className="text-primary hover:underline">
-                Newer
-              </Link>
-            ) : (
-              <span />
-            )}
-            {hasMore && (
-              <Link href={`${base}?page=${page + 1}`} className="text-primary hover:underline">
-                Older
-              </Link>
-            )}
-          </nav>
-        )}
-      </section>
-    </main>
+          {(page > 1 || hasMore) && (
+            <nav aria-label="Pagination" className={cn(body, "flex items-center justify-between")}>
+              {page > 1 ? (
+                <Link href={page === 2 ? base : `${base}?page=${page - 1}`} className={textLink}>
+                  Newer
+                </Link>
+              ) : (
+                <span />
+              )}
+              {hasMore && (
+                <Link href={`${base}?page=${page + 1}`} className={textLink}>
+                  Older
+                </Link>
+              )}
+            </nav>
+          )}
+        </section>
+      </main>
+    </div>
   );
 }

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -10,14 +9,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import {
-  History,
-  Loader2,
-  RotateCcw,
-  Eye,
-  ChevronDown,
-  Clock,
-} from "lucide-react";
+import { RotateCcw, Eye } from "lucide-react";
 import { toast } from "sonner";
 import { apiErrorDetail, authFetch } from "@/lib/api-client";
 
@@ -31,12 +23,13 @@ interface VersionHistoryProps {
 }
 
 function formatVersionDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString("en-US", {
+  return new Date(dateStr).toLocaleString("en-GB", {
     month: "short",
     day: "numeric",
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
+    hourCycle: "h23",
   });
 }
 
@@ -110,102 +103,56 @@ export function VersionHistory({ slug }: VersionHistoryProps) {
   };
 
   if (loading) {
-    return (
-      <Card>
-        <CardContent className="flex items-center justify-center py-8">
-          <Loader2 className="size-5 animate-spin text-muted-foreground" />
-        </CardContent>
-      </Card>
-    );
+    return <p className="text-sm text-muted-foreground">Loading versions.</p>;
   }
 
   if (error) {
     return (
-      <Card>
-        <CardContent className="py-6">
-          <p className="text-sm text-destructive text-center">{error}</p>
-        </CardContent>
-      </Card>
+      <p role="alert" className="text-sm text-destructive">
+        {error}
+      </p>
     );
   }
 
   if (versions.length === 0) {
-    return null; // Don't show section if no versions
+    return <p className="text-sm text-muted-foreground">No earlier versions yet. Each update keeps one.</p>;
   }
+
+  const currentNum = versions[0]?.version_num;
 
   return (
     <>
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <History className="size-4" />
-            Version History
-            <span className="text-xs font-normal text-muted-foreground">
-              ({versions.length} version{versions.length !== 1 ? "s" : ""})
-            </span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
-            {versions.map((version) => (
-              <div
-                key={version.version_num}
-                className="flex items-center gap-3 rounded-lg border p-3 hover:bg-muted/30 transition-colors"
+      <p className="mb-2 text-xs tabular-nums text-muted-foreground">
+        {versions.length} {versions.length === 1 ? "version" : "versions"}
+      </p>
+      <ul>
+        {versions.map((version) => (
+          <li key={version.version_num} className="flex items-center gap-2 border-t border-rule py-2.5 first:border-border">
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium tabular-nums">
+                Version {version.version_num}
+                {version.version_num === currentNum && <span className="ml-1.5 font-normal text-muted-foreground">current</span>}
+              </p>
+              <p className="text-xs tabular-nums text-muted-foreground">{formatVersionDate(version.created_at)}</p>
+            </div>
+            <Button variant="ghost" size="icon-sm" onClick={() => previewVersion(version)} aria-label={`Preview version ${version.version_num}`} title="Preview">
+              <Eye className="size-4" strokeWidth={1.5} />
+            </Button>
+            {version.version_num !== currentNum && (
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                onClick={() => restoreVersion(version.version_num)}
+                disabled={restoring !== null}
+                aria-label={`Restore version ${version.version_num}`}
+                title="Restore"
               >
-                <div className="shrink-0 size-8 rounded-full bg-primary/10 flex items-center justify-center">
-                  <span className="text-xs font-bold text-primary">
-                    v{version.version_num}
-                  </span>
-                </div>
-
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium">
-                      Version {version.version_num}
-                      {version.version_num === versions[0]?.version_num && (
-                        <span className="ml-1.5 text-xs text-success font-normal">
-                          (current)
-                        </span>
-                      )}
-                    </span>
-                  </div>
-                  <span className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
-                    <Clock className="size-3" />
-                    {formatVersionDate(version.created_at)}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-1 shrink-0">
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    onClick={() => previewVersion(version)}
-                    title="Preview version"
-                  >
-                    <Eye className="size-4" />
-                  </Button>
-                  {/* Don't show restore on current version */}
-                  {version.version_num !== versions[0]?.version_num && (
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      onClick={() => restoreVersion(version.version_num)}
-                      disabled={restoring !== null}
-                      title="Restore this version"
-                    >
-                      {restoring === version.version_num ? (
-                        <Loader2 className="size-4 animate-spin" />
-                      ) : (
-                        <RotateCcw className="size-4" />
-                      )}
-                    </Button>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+                <RotateCcw className="size-4" strokeWidth={1.5} />
+              </Button>
+            )}
+          </li>
+        ))}
+      </ul>
 
       {/* Preview dialog */}
       <Dialog
@@ -226,13 +173,11 @@ export function VersionHistory({ slug }: VersionHistoryProps) {
               {selectedVersion && formatVersionDate(selectedVersion.created_at)}
             </DialogDescription>
           </DialogHeader>
-          <div className="overflow-y-auto max-h-[60vh] rounded-lg border bg-muted/30 p-4">
+          <div className="max-h-[60vh] overflow-y-auto rounded-lg border border-border bg-raised p-4">
             {previewLoading ? (
-              <div className="flex justify-center py-8">
-                <Loader2 className="size-5 animate-spin text-muted-foreground" />
-              </div>
+              <p className="text-sm text-muted-foreground">Loading this version.</p>
             ) : (
-              <pre className="text-sm whitespace-pre-wrap break-words font-mono">
+              <pre className="whitespace-pre-wrap break-words font-mono text-[13px]">
                 {previewContent}
               </pre>
             )}
@@ -249,7 +194,7 @@ export function VersionHistory({ slug }: VersionHistoryProps) {
                   disabled={restoring !== null}
                   className="gap-1.5"
                 >
-                  <RotateCcw className="size-3.5" />
+                  <RotateCcw className="size-3.5" strokeWidth={1.5} />
                   Restore this version
                 </Button>
               )}

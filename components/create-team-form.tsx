@@ -3,12 +3,11 @@
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Users, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { apiErrorDetail, authFetch } from "@/lib/api-client";
 import { isValidTeamName, isValidTeamSlug } from "@/lib/team-utils";
+import { Field, INPUT, SettingsRow } from "@/components/team/settings-row";
 
 /** Auto-generates a slug from a name (mirrors server-side logic without random suffix). */
 function nameToSlug(name: string): string {
@@ -66,71 +65,49 @@ export function CreateTeamForm() {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Users className="size-5" />
-          New Team
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-1.5">
-            <label htmlFor="team-name" className="text-sm font-medium">
-              Team Name
-            </label>
-            <Input
-              id="team-name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Engineering, Design Team"
-              maxLength={100}
-              className="h-10 rounded-md"
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <label htmlFor="team-slug" className="text-sm font-medium">
-              Slug
-            </label>
-            <Input
-              id="team-slug"
-              value={displaySlug}
-              onChange={(e) => {
-                setSlugEdited(true);
-                setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""));
-              }}
-              placeholder="team-slug"
-              maxLength={50}
-              className="h-10 rounded-md"
-            />
-            <p className="text-xs text-muted-foreground">
-              URL: /dashboard/teams/{displaySlug || "..."}
-            </p>
-          </div>
-
-          <div className="flex gap-2 justify-end">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => router.back()}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              disabled={submitting || !nameValid || !slugValid}
-              className="rounded-md"
-            >
-              {submitting ? (
-                <Loader2 className="size-4 animate-spin" />
-              ) : (
-                "Create Team"
-              )}
-            </Button>
-          </div>
-        </form>
-      </CardContent>
-    </Card>
+    <form onSubmit={handleSubmit}>
+      <SettingsRow rule={false} title="Team" description="The name people see, and the slug in the team's dashboard address.">
+        <Field label="Team name" htmlFor="team-name">
+          <input
+            id="team-name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="e.g. Engineering"
+            maxLength={100}
+            autoComplete="off"
+            className={INPUT}
+          />
+        </Field>
+        <Field
+          label="Slug"
+          htmlFor="team-slug"
+          hint={`2 to 50 lowercase letters, numbers and hyphens. Address: /dashboard/teams/${displaySlug || "..."}`}
+          error={displaySlug && !slugValid ? "Use 2 to 50 lowercase letters, numbers and hyphens, not starting or ending with a hyphen." : null}
+        >
+          <input
+            id="team-slug"
+            value={displaySlug}
+            onChange={(e) => {
+              setSlugEdited(true);
+              setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""));
+            }}
+            placeholder="team-slug"
+            maxLength={50}
+            autoComplete="off"
+            aria-invalid={displaySlug && !slugValid ? true : undefined}
+            className={`${INPUT} font-mono`}
+          />
+        </Field>
+        <div className="flex justify-end gap-2 pt-1">
+          <Button type="button" variant="outline" size="sm" onClick={() => router.back()}>
+            Cancel
+          </Button>
+          <Button type="submit" size="sm" disabled={submitting || !nameValid || !slugValid}>
+            {submitting && <Loader2 className="size-4 animate-spin" />}
+            Create team
+          </Button>
+        </div>
+      </SettingsRow>
+    </form>
   );
 }

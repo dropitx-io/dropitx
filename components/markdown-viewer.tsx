@@ -184,10 +184,12 @@ export function MarkdownViewer({ content, headings }: MarkdownViewerProps) {
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-end">
-        <div className="inline-flex rounded-md border border-border bg-secondary p-1 text-muted-foreground text-xs gap-1">
+        <div role="group" aria-label="Preview or raw Markdown" className="inline-flex gap-1 bg-surface p-1 text-[14px] text-muted-foreground">
           <button
+            type="button"
+            aria-pressed={mode === "preview"}
             onClick={() => setMode("preview")}
-            className={`rounded px-3 py-1 font-medium transition-colors duration-200 ${
+            className={`min-h-9 px-3 transition-colors duration-200 ${
               mode === "preview"
                 ? "bg-background text-foreground"
                 : "hover:text-foreground"
@@ -196,8 +198,10 @@ export function MarkdownViewer({ content, headings }: MarkdownViewerProps) {
             Preview
           </button>
           <button
+            type="button"
+            aria-pressed={mode === "raw"}
             onClick={() => setMode("raw")}
-            className={`rounded px-3 py-1 font-medium transition-colors duration-200 ${
+            className={`min-h-9 px-3 transition-colors duration-200 ${
               mode === "raw"
                 ? "bg-background text-foreground"
                 : "hover:text-foreground"
@@ -209,7 +213,7 @@ export function MarkdownViewer({ content, headings }: MarkdownViewerProps) {
       </div>
 
       {mode === "preview" ? (
-        <div className="markdown-body px-2 py-1">
+        <div className="markdown-body">
           <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdComponents}>
             {content}
           </ReactMarkdown>

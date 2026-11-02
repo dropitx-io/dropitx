@@ -1,92 +1,56 @@
 "use client";
 
 /**
- * API Key Manager — client component for the user dashboard.
- * Lists existing API keys, generates new ones, and revokes keys.
+ * API keys: lists the caller's personal keys and, on a team, that team's keys; creates keys
+ * (the raw key is shown once) and revokes them.
  */
 
 import { useState, useEffect, useCallback } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Key, Plus, Copy, Loader2, Trash2, X } from "lucide-react";
+import { CircleAlert } from "lucide-react";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 import { apiErrorDetail, authFetch } from "@/lib/api-client";
+import { formatDay } from "@/components/analytics/analytics-format";
+import { Bar } from "@/components/analytics/loading-blocks";
+import { CreateKeyDialog } from "@/components/team/create-key-dialog";
+import { keysForTeam } from "@/components/team/team-format";
+import { ACTIONS, LINE2, TABLE, TBODY, TD, TH, THEAD, TR, WIDE } from "@/components/team/table-classes";
+import type { components } from "@/lib/api-types";
 
-interface ApiKey {
-  id: string;
-  name: string;
-  key_prefix: string;
-  last_used_at: string | null;
-  created_at: string;
-}
+type ApiKey = components["schemas"]["ApiKeyResponse"];
 
-interface NewKeyResponse extends ApiKey {
-  /** The raw key; the API returns it only in the create response. */
-  key: string;
-}
-
-export function ApiKeyManager() {
-  const [keys, setKeys] = useState<ApiKey[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [showDialog, setShowDialog] = useState(false);
-  const [keyName, setKeyName] = useState("");
-  const [generating, setGenerating] = useState(false);
-  const [newKey, setNewKey] = useState<NewKeyResponse | null>(null);
+export function ApiKeyManager({ team }: { team?: { id: string; name: string } }) {
+  const [keys, setKeys] = useState<ApiKey[] | null>(null);
+  const [failed, setFailed] = useState<string | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
   const [revokingId, setRevokingId] = useState<string | null>(null);
 
+  const teamId = team?.id;
   const fetchKeys = useCallback(async () => {
     try {
       const res = await authFetch("/api/v1/keys");
-      if (!res.ok) throw new Error(await apiErrorDetail(res, "Failed to fetch keys"));
-      setKeys((await res.json()) as ApiKey[]);
+      if (!res.ok) throw new Error(await apiErrorDetail(res, "Failed to load API keys"));
+      const all = (await res.json()) as ApiKey[];
+      setKeys(teamId ? keysForTeam(all, teamId) : all.filter((k) => !k.team_id));
+      setFailed(null);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to load API keys");
-    } finally {
-      setLoading(false);
+      setFailed(err instanceof Error ? err.message : "Failed to load API keys");
     }
-  }, []);
+  }, [teamId]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- canonical fetch-on-mount; setStates only run after await inside fetchKeys
     fetchKeys();
   }, [fetchKeys]);
 
-  async function handleGenerate() {
-    const trimmed = keyName.trim();
-    if (!trimmed) {
-      toast.error("Please enter a name for the key");
-      return;
-    }
-
-    setGenerating(true);
+  async function handleRevoke(key: ApiKey) {
+    if (!confirm(`Revoke "${key.name}"? Anything using ${key.key_prefix}... stops working at once. This can't be undone.`)) return;
+    setRevokingId(key.id);
     try {
-      const res = await authFetch("/api/v1/keys", {
-        method: "POST",
-        body: JSON.stringify({ name: trimmed }),
-      });
-      if (!res.ok) throw new Error(await apiErrorDetail(res, "Failed to generate key"));
-      setNewKey((await res.json()) as NewKeyResponse);
-      setKeyName("");
-      // Refresh list (new key won't show the full key, only prefix)
-      await fetchKeys();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to generate key");
-    } finally {
-      setGenerating(false);
-    }
-  }
-
-  async function handleRevoke(id: string, name: string) {
-    if (!confirm(`Revoke key "${name}"? This cannot be undone.`)) return;
-
-    setRevokingId(id);
-    try {
-      const res = await authFetch(`/api/v1/keys/${id}`, { method: "DELETE" });
+      const res = await authFetch(`/api/v1/keys/${key.id}`, { method: "DELETE" });
       if (!res.ok) throw new Error(await apiErrorDetail(res, "Failed to revoke key"));
-      toast.success(`Key "${name}" revoked`);
-      setKeys((prev) => prev.filter((k) => k.id !== id));
+      toast.success(`Revoked ${key.name}`);
+      setKeys((prev) => prev?.filter((k) => k.id !== key.id) ?? null);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to revoke key");
     } finally {
@@ -94,163 +58,86 @@ export function ApiKeyManager() {
     }
   }
 
-  function handleCopyKey(key: string) {
-    navigator.clipboard.writeText(key).then(
-      () => toast.success("API key copied to clipboard"),
-      () => toast.error("Failed to copy key"),
-    );
-  }
-
-  function closeDialog() {
-    setShowDialog(false);
-    setNewKey(null);
-    setKeyName("");
-  }
-
-  function formatDate(iso: string | null): string {
-    if (!iso) return "Never";
-    return new Date(iso).toLocaleDateString(undefined, {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  }
+  const teamCount = keys?.filter((k) => k.team_id).length ?? 0;
+  const count = keys === null ? "" : team ? `${keys.length} active: ${teamCount} team, ${keys.length - teamCount} personal` : `${keys.length} active`;
+  const scopeOf = (k: ApiKey) => (k.team_id ? "Team" : "Personal");
+  const used = (k: ApiKey) => (k.last_used_at ? formatDay(k.last_used_at) : null);
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <Key className="size-5" />
-            API Keys
-          </CardTitle>
-          <Button size="sm" onClick={() => setShowDialog(true)}>
-            <Plus className="size-4" />
-            Generate Key
+    <>
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-sm text-muted-foreground tabular-nums">{count}</span>
+        <Button type="button" size="sm" onClick={() => setDialogOpen(true)}>
+          Create key
+        </Button>
+      </div>
+
+      {failed ? (
+        <div className="flex items-center gap-2.5 rounded-lg border border-border px-3.5 py-3 text-sm">
+          <CircleAlert className="size-4 shrink-0 text-destructive" strokeWidth={1.5} />
+          <span className="flex-1 text-card-foreground">{failed}</span>
+          <Button type="button" variant="outline" size="sm" onClick={() => { setFailed(null); fetchKeys(); }}>
+            Retry
           </Button>
         </div>
-      </CardHeader>
-      <CardContent>
-        {loading ? (
-          <div className="flex items-center justify-center py-8 text-muted-foreground">
-            <Loader2 className="size-5 animate-spin mr-2" />
-            Loading keys...
-          </div>
-        ) : keys.length === 0 && !showDialog ? (
-          <p className="text-sm text-muted-foreground py-4">
-            No API keys yet. Generate one to access the REST API.
-          </p>
-        ) : (
-          <div className="divide-y">
-            {keys.map((k) => (
-              <div
-                key={k.id}
-                className="flex items-center justify-between py-3 first:pt-0 last:pb-0"
-              >
-                <div className="min-w-0 flex-1">
-                  <p className="font-medium text-sm truncate">{k.name}</p>
-                  <div className="flex items-center gap-2 mt-1">
-                    <Badge variant="secondary" className="font-mono text-sm">
-                      {k.key_prefix}...
-                    </Badge>
-                    <span className="text-sm text-muted-foreground">
-                      Created {formatDate(k.created_at)}
-                    </span>
-                    <span className="text-sm text-muted-foreground">
-                      Last used {formatDate(k.last_used_at)}
-                    </span>
-                  </div>
-                </div>
-                <Button
-                  variant="destructive"
-                  size="icon-xs"
-                  onClick={() => handleRevoke(k.id, k.name)}
-                  disabled={revokingId === k.id}
-                  aria-label={`Revoke key ${k.name}`}
-                >
-                  {revokingId === k.id ? (
-                    <Loader2 className="size-3 animate-spin" />
-                  ) : (
-                    <Trash2 className="size-3" />
-                  )}
-                </Button>
-              </div>
-            ))}
-          </div>
-        )}
+      ) : keys !== null && keys.length === 0 ? (
+        <p className="flex min-h-[38px] items-center rounded-lg border border-dashed border-input px-3 text-sm text-muted-foreground">
+          No keys yet. Create one to publish from the CLI or an MCP client.
+        </p>
+      ) : (
+        <table className={TABLE}>
+          <thead className={THEAD}>
+            <tr>
+              <th scope="col" className={TH}>Name</th>
+              <th scope="col" className={TH}>Key</th>
+              <th scope="col" className={`${TH} text-right`}>Created</th>
+              <th scope="col" className={`${TH} text-right`}>Last used</th>
+              <th scope="col" className={TH}><span className="sr-only">Actions</span></th>
+            </tr>
+          </thead>
+          <tbody className={TBODY} aria-busy={keys === null}>
+            {keys === null
+              ? [120, 96].map((w) => (
+                  <tr key={w} className={TR}>
+                    <td className={TD}><Bar w={w} /></td>
+                    <td className={`${TD} ${WIDE}`}><Bar w={90} /></td>
+                    <td className={`${TD} ${WIDE} text-right`}><Bar w={44} /></td>
+                    <td className={`${TD} ${WIDE} text-right`}><Bar w={44} /></td>
+                    <td className={TD} />
+                  </tr>
+                ))
+              : keys.map((k) => (
+                  <tr key={k.id} className={TR}>
+                    <td className={`${TD} font-medium text-card-foreground`}>{k.name}</td>
+                    <td className={`${TD} ${WIDE}`}>
+                      <span className="flex items-center gap-1.5 whitespace-nowrap">
+                        <span className="font-mono text-[13px]">{k.key_prefix}...</span>
+                        <span className="rounded-sm bg-raised px-1.5 text-xs text-muted-foreground">{scopeOf(k)}</span>
+                      </span>
+                    </td>
+                    <td className={`${TD} ${WIDE} text-right whitespace-nowrap`}>{formatDay(k.created_at)}</td>
+                    <td className={`${TD} ${WIDE} text-right whitespace-nowrap`}>{used(k) ?? <span className="text-muted-foreground">Never</span>}</td>
+                    <td className={`${TD} ${LINE2}`}>
+                      <span className="font-mono">{k.key_prefix}...</span>, {scopeOf(k).toLowerCase()}, {used(k) ? `used ${used(k)}` : "never used"}
+                    </td>
+                    <td className={`${TD} ${ACTIONS}`}>
+                      <button
+                        type="button"
+                        onClick={() => handleRevoke(k)}
+                        disabled={revokingId === k.id}
+                        aria-label={`Revoke ${k.name}`}
+                        className="text-sm font-medium text-card-foreground hover:underline hover:underline-offset-[3px] disabled:text-muted-foreground max-sm:min-h-11"
+                      >
+                        {revokingId === k.id ? "Revoking" : "Revoke"}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+          </tbody>
+        </table>
+      )}
 
-        {/* Dialog overlay */}
-        {showDialog && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-            <div className="bg-card rounded-lg border border-border w-full max-w-md mx-4 p-6 space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="font-semibold text-lg">
-                  {newKey ? "Your New API Key" : "Generate API Key"}
-                </h3>
-                <Button variant="ghost" size="icon-xs" onClick={closeDialog}>
-                  <X className="size-4" />
-                </Button>
-              </div>
-
-              {newKey ? (
-                <div className="space-y-3">
-                  <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
-                    Copy this key now. It won&apos;t be shown again.
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <code className="flex-1 rounded bg-muted px-3 py-2 text-xs font-mono break-all">
-                      {newKey.key}
-                    </code>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => handleCopyKey(newKey.key)}
-                    >
-                      <Copy className="size-4" />
-                    </Button>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    Name: <strong>{newKey.name}</strong>
-                  </p>
-                  <Button className="w-full" onClick={closeDialog}>
-                    Done
-                  </Button>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  <div className="space-y-1.5">
-                    <label htmlFor="key-name" className="text-sm font-medium">
-                      Key Name
-                    </label>
-                    <Input
-                      id="key-name"
-                      value={keyName}
-                      onChange={(e) => setKeyName(e.target.value)}
-                      placeholder='e.g. "CI/CD", "My Laptop"'
-                      maxLength={100}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") handleGenerate();
-                      }}
-                    />
-                  </div>
-                  <div className="flex gap-2 justify-end">
-                    <Button variant="outline" onClick={closeDialog}>
-                      Cancel
-                    </Button>
-                    <Button onClick={handleGenerate} disabled={generating}>
-                      {generating ? (
-                        <Loader2 className="size-4 animate-spin" />
-                      ) : (
-                        "Generate"
-                      )}
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+      <CreateKeyDialog open={dialogOpen} onOpenChange={setDialogOpen} team={team} onCreated={fetchKeys} />
+    </>
   );
 }

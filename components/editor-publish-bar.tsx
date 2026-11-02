@@ -1,64 +1,71 @@
 "use client";
 
-import { useState, useCallback } from "react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Check, Copy, Loader2, Lock, Unlock, FileEdit, Sparkles } from "lucide-react";
+import { useCallback, useRef, useState } from "react";
+import { Check, ExternalLink, SlidersHorizontal } from "lucide-react";
 import { toast } from "sonner";
 import { trackEvent, AnalyticsEvent } from "@/lib/analytics";
 import { useAuth } from "@/components/auth-provider";
 import { apiErrorDetail, authFetch } from "@/lib/api-client";
 import type { components } from "@/lib/api-types";
-import { Input } from "@/components/ui/input";
-import { ExpirationSelect } from "@/components/expiration-select";
+import { SITE_URL } from "@/lib/site-url";
+import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Switch } from "@/components/app-shell/switch";
+import { EXPIRATION_OPTIONS, ExpirationSelect } from "@/components/expiration-select";
 import { BurnAfterReadingToggle } from "@/components/burn-after-reading-toggle";
+import { CopyLinkButton } from "@/components/links/copy-link-button";
 
 interface EditorPublishBarProps {
   content: string;
-  isDirty: boolean;
+  /** The title field; sent when set. */
+  title: string;
+  /** The share's title as loaded, so an update sends the title only when the user changed it. */
+  initialTitle?: string;
   mode: "create" | "edit";
   editSlug?: string;
-  editTitle?: string;
   /** Privacy of the share being edited, so an update never changes it unless the user does. */
   initialIsPrivate?: boolean;
   /** Called after a successful publish or update, with the exact content that was saved. */
   onPublished?: (slug: string, url: string, publishedContent: string) => void;
   onClearDraft?: () => void;
-  draftSavedAt?: Date | null;
 }
 
 type PublishBody = components["schemas"]["PublishRequest"];
 type UpdateBody = components["schemas"]["UpdatePublishRequest"];
 
-function countWords(text: string): number {
-  return text.trim().split(/\s+/).filter(Boolean).length;
-}
+const host = SITE_URL.replace(/^https?:\/\//, "");
+const Sep = () => <span aria-hidden className="h-7 w-px shrink-0 bg-rule max-md:hidden" />;
 
 export function EditorPublishBar({
   content,
-  isDirty,
+  title,
+  initialTitle = "",
   mode,
   editSlug,
-  editTitle,
   initialIsPrivate = false,
   onPublished,
   onClearDraft,
-  draftSavedAt,
 }: EditorPublishBarProps) {
   const { user, loading: authLoading } = useAuth();
   const [publishing, setPublishing] = useState(false);
-  const [publishedUrl, setPublishedUrl] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
+  const [published, setPublished] = useState<{ slug: string; url: string; summary: string } | null>(null);
   const [isPrivate, setIsPrivate] = useState(initialIsPrivate);
   const [maxDownloads, setMaxDownloads] = useState("");
   // An existing share keeps its expiry unless the user picks a new one, so editing starts with no choice made.
   const [expiresIn, setExpiresIn] = useState(mode === "edit" ? "" : "30d");
-  const [showOptions, setShowOptions] = useState(false);
   const [burnAfterReading, setBurnAfterReading] = useState(false);
+  const [passwordOn, setPasswordOn] = useState(false);
+  const [password, setPassword] = useState("");
+  const passwordRef = useRef<HTMLInputElement>(null);
 
   const handlePublish = useCallback(async () => {
     if (!content.trim()) {
       toast.error("Content cannot be empty.");
+      return;
+    }
+    if (passwordOn && !password.trim()) {
+      toast.error("Set a password, or turn Password off.");
+      passwordRef.current?.focus();
       return;
     }
 
@@ -73,32 +80,33 @@ export function EditorPublishBar({
         // Nothing on the share page decrypts yet, so the editor never publishes an encrypted share.
         encrypted: false,
       };
+      if (title.trim()) body.title = title.trim();
+      if (passwordOn) body.password = password;
       if (maxDownloads) body.max_downloads = parseInt(maxDownloads, 10);
 
-      const res = await authFetch("/api/publish", {
-        method: "POST",
-        body: JSON.stringify(body),
-      });
+      const res = await authFetch("/api/publish", { method: "POST", body: JSON.stringify(body) });
+      if (!res.ok) throw new Error(await apiErrorDetail(res, "Publishing failed"));
+      const data = (await res.json()) as { slug: string; url: string };
 
-      if (!res.ok) {
-        throw new Error(await apiErrorDetail(res, "Publishing failed"));
-      }
-
-      const data = await res.json();
-
-      const url: string = data.url;
-
-      setPublishedUrl(url);
-      toast.success("Published successfully!");
+      const expiry = EXPIRATION_OPTIONS.find((o) => o.value === expiresIn)?.label;
+      const summary = [
+        passwordOn ? "Password on" : "No password",
+        expiry ? `expires in ${expiry}` : null,
+        burnAfterReading ? "burns after first read" : null,
+      ]
+        .filter(Boolean)
+        .join(", ");
+      setPublished({ slug: data.slug, url: data.url, summary });
+      toast.success("Published");
       trackEvent(AnalyticsEvent.CONTENT_PUBLISHED, { is_private: isPrivate, encrypted: false, burn: burnAfterReading });
-      onPublished?.(data.slug, url, content);
+      onPublished?.(data.slug, data.url, content);
       onClearDraft?.();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Publishing failed");
     } finally {
       setPublishing(false);
     }
-  }, [content, isPrivate, expiresIn, maxDownloads, burnAfterReading, onPublished, onClearDraft]);
+  }, [content, title, isPrivate, expiresIn, maxDownloads, burnAfterReading, passwordOn, password, onPublished, onClearDraft]);
 
   const handleUpdate = useCallback(async () => {
     if (!editSlug || !content.trim()) return;
@@ -107,11 +115,8 @@ export function EditorPublishBar({
     try {
       // Always false: the editor refuses to open encrypted shares, and the API clears the stored IV and salt on
       // every update. Revisit this together with that refusal.
-      const body: UpdateBody = {
-        content,
-        is_private: isPrivate,
-        encrypted: false,
-      };
+      const body: UpdateBody = { content, is_private: isPrivate, encrypted: false };
+      if (title.trim() && title.trim() !== initialTitle) body.title = title.trim();
       if (expiresIn) body.expires_in = expiresIn;
       if (maxDownloads) body.max_downloads = parseInt(maxDownloads, 10);
 
@@ -119,13 +124,10 @@ export function EditorPublishBar({
         method: "PUT",
         body: JSON.stringify(body),
       });
-
-      if (!res.ok) {
-        throw new Error(await apiErrorDetail(res, "Update failed"));
-      }
+      if (!res.ok) throw new Error(await apiErrorDetail(res, "Update failed"));
 
       const data = await res.json();
-      toast.success("Updated successfully!");
+      toast.success("Updated");
       // The expiry was applied; a later update keeps it unless the user picks another.
       setExpiresIn("");
       onPublished?.(editSlug, data.url, content);
@@ -134,165 +136,148 @@ export function EditorPublishBar({
     } finally {
       setPublishing(false);
     }
-  }, [editSlug, content, isPrivate, maxDownloads, expiresIn, onPublished]);
+  }, [editSlug, content, title, initialTitle, isPrivate, maxDownloads, expiresIn, onPublished]);
 
-  const copyUrl = useCallback(async () => {
-    if (!publishedUrl) return;
-    await navigator.clipboard.writeText(publishedUrl);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  }, [publishedUrl]);
-
-  const charCount = content.length;
-  const wordCount = countWords(content);
-  const readingTime = wordCount > 0 ? Math.ceil(wordCount / 200) : 0;
+  const create = mode === "create";
 
   return (
-    <div className="sticky bottom-0 z-20 border-t border-border/60 bg-surface/80">
-      {/* Options panel */}
-      {showOptions && (
-        <div className="space-y-3 px-4 py-3 border-b border-border/30">
-          {/* Row 1: Max downloads + Expiration */}
-          <div className="flex items-end gap-4">
-            <div className="flex-1 max-w-[180px]">
-              <label className="text-xs font-medium text-muted-foreground block mb-1">
+    <div className="-mx-6 mt-4 flex shrink-0 flex-wrap items-center gap-x-5 gap-y-3 border-t border-border px-6 py-3 max-md:-mx-4 max-md:mt-3 max-md:px-4">
+      <div className="flex min-w-0 flex-wrap items-center gap-x-5 gap-y-3">
+        {create && (
+          <>
+            <div className="flex flex-wrap items-center gap-2.5">
+              <Switch id="opt-password" checked={passwordOn} onChange={setPasswordOn} disabled={publishing || !!published} />
+              <label htmlFor="opt-password" className="cursor-pointer text-sm font-medium">
+                Password
+              </label>
+              {passwordOn && (
+                <input
+                  ref={passwordRef}
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Set a password"
+                  autoComplete="new-password"
+                  aria-label="Password for this page"
+                  disabled={publishing || !!published}
+                  className="h-8 w-[168px] rounded-md border border-input bg-sheet px-3 text-sm outline-none placeholder:text-muted-foreground focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring max-md:h-11 max-md:w-full"
+                />
+              )}
+            </div>
+            <Sep />
+          </>
+        )}
+        <div className="flex items-center gap-2.5">
+          <label htmlFor="opt-expiry" className="text-sm font-medium">
+            Expires
+          </label>
+          <ExpirationSelect
+            id="opt-expiry"
+            value={expiresIn}
+            onChange={setExpiresIn}
+            disabled={publishing || !!published}
+            placeholder="Keep current"
+          />
+        </div>
+        {create && (
+          <>
+            <Sep />
+            {/* A new document only; the update API cannot change it. */}
+            <BurnAfterReadingToggle enabled={burnAfterReading} onChange={setBurnAfterReading} disabled={publishing || !!published} />
+          </>
+        )}
+        <Sep />
+        <Popover>
+          <PopoverTrigger
+            disabled={publishing || !!published}
+            className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-md px-2 text-sm text-muted-foreground transition-colors duration-150 hover:bg-active hover:text-foreground disabled:opacity-50 max-md:h-11"
+          >
+            <SlidersHorizontal className="size-4" strokeWidth={1.5} aria-hidden />
+            More
+            {(isPrivate || maxDownloads) && <span className="text-xs text-card-foreground">(set)</span>}
+          </PopoverTrigger>
+          <PopoverContent side="top" align="start" className="w-64 gap-3 p-3 shadow-none ring-1 ring-border">
+            <div className="flex items-center justify-between gap-3">
+              <label htmlFor="opt-private" className="text-sm font-medium">
+                Private
+              </label>
+              <Switch id="opt-private" checked={isPrivate} onChange={setIsPrivate} />
+            </div>
+            <div className="grid gap-1.5">
+              <label htmlFor="opt-max-downloads" className="text-sm font-medium">
                 Max downloads
               </label>
-              <Input
+              <input
+                id="opt-max-downloads"
                 type="number"
-                placeholder="Unlimited"
                 min="1"
+                placeholder="Unlimited"
                 value={maxDownloads}
                 onChange={(e) => setMaxDownloads(e.target.value)}
-                disabled={publishing}
-                className="h-8 text-sm"
+                className="h-8 w-full rounded-md border border-input bg-sheet px-3 text-sm tabular-nums outline-none placeholder:text-muted-foreground focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring"
               />
             </div>
-            <div className="flex-1 max-w-[180px]">
-              <label className="text-xs font-medium text-muted-foreground block mb-1">
-                Expires in
-              </label>
-              <ExpirationSelect value={expiresIn} onChange={setExpiresIn} disabled={publishing} compact />
-            </div>
-          </div>
+          </PopoverContent>
+        </Popover>
+      </div>
 
-          {/* Row 2: Burn after reading — a new document only; the update API cannot change it */}
-          {mode === "create" && (
-            <BurnAfterReadingToggle
-              enabled={burnAfterReading}
-              onChange={setBurnAfterReading}
-              disabled={publishing}
-            />
-          )}
-        </div>
-      )}
-
-      {/* Main bar */}
-      <div className="flex items-center justify-between px-4 py-2">
-        <div className="flex items-center gap-3 text-xs text-muted-foreground">
-          <span className="tabular-nums">{charCount.toLocaleString()} chars</span>
-          <span className="text-border">&middot;</span>
-          <span className="tabular-nums">{wordCount.toLocaleString()} words</span>
-          {readingTime > 0 && (
-            <>
-              <span className="text-border">&middot;</span>
-              <span className="tabular-nums">{readingTime} min read</span>
-            </>
-          )}
-          {isDirty && !publishedUrl && (
-            <>
-              <span className="text-border">&middot;</span>
-              <span className="flex items-center gap-1 text-amber-500">
-                <span className="size-1.5 rounded-full bg-amber-500 animate-pulse" />
-                Unsaved
-              </span>
-            </>
-          )}
-          {draftSavedAt && !publishedUrl && (
-            <>
-              <span className="text-border">&middot;</span>
-              <span className="flex items-center gap-1 text-success">
-                <span className="size-1.5 rounded-full bg-success" />
-                Draft saved
-              </span>
-            </>
-          )}
-          {mode === "edit" && editTitle && (
-            <Badge variant="outline" className="text-xs gap-1">
-              <FileEdit className="size-3" />
-              {editTitle}
-            </Badge>
-          )}
-          {/* Status indicators */}
-          {burnAfterReading && (
-            <Badge variant="outline" className="text-xs">
-              Burns after first read
-            </Badge>
-          )}
-        </div>
-
-        <div className="flex items-center gap-2">
-          {/* Options toggle */}
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            className="rounded-lg"
-            onClick={() => setShowOptions(!showOptions)}
-            title="Publish options"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
-              <circle cx="12" cy="12" r="3" />
-            </svg>
-          </Button>
-
-          {/* Privacy toggle */}
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            className="rounded-lg"
-            onClick={() => setIsPrivate(!isPrivate)}
-            title={isPrivate ? "Make public" : "Make private"}
-          >
-            {isPrivate ? (
-              <Lock className="size-4 text-foreground" />
-            ) : (
-              <Unlock className="size-4 text-muted-foreground" />
-            )}
-          </Button>
-
-          {publishedUrl ? (
-            <div className="flex items-center gap-2">
-              <code className="rounded-lg bg-muted px-2.5 py-1 text-xs max-w-[200px] truncate font-mono">
-                {publishedUrl}
-              </code>
-              <Button size="icon-sm" variant="outline" className="rounded-lg" onClick={copyUrl}>
-                {copied ? <Check className="size-3 text-success" /> : <Copy className="size-3" />}
-              </Button>
-            </div>
-          ) : authLoading ? (
-            <Button size="sm" disabled className="gap-1.5">
-              <Loader2 className="size-3 animate-spin" />
-            </Button>
-          ) : !user ? (
-            <a href="/auth/login?next=/editor">
-              <Button size="sm" className="gap-1.5">
-                <Sparkles className="size-3.5" />
-                Sign in to publish
-              </Button>
-            </a>
-          ) : (
-            <Button
-              size="sm"
-              className="gap-1.5 shadow-sm shadow-primary/20"
-              disabled={publishing || !content.trim()}
-              onClick={mode === "edit" ? handleUpdate : handlePublish}
+      <div className="ml-auto flex min-w-0 items-center gap-4 max-md:ml-0 max-md:w-full max-md:justify-between">
+        {published ? (
+          <div role="status" className="flex min-w-0 flex-wrap items-center gap-3">
+            <span className="inline-flex items-center gap-1.5 whitespace-nowrap text-sm font-medium text-success">
+              <Check className="size-4" strokeWidth={1.5} aria-hidden />
+              Published
+            </span>
+            <span className="flex h-8 min-w-0 items-center gap-1 rounded-md border border-border pl-2.5 pr-1">
+              <span className="truncate font-mono text-xs">{host}/s/{published.slug}</span>
+              <CopyLinkButton slug={published.slug} />
+            </span>
+            <a
+              href={published.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex h-8 items-center gap-1.5 rounded-md border border-input px-3 text-sm font-medium hover:bg-active"
             >
-              {publishing && <Loader2 className="size-3 animate-spin" />}
-              {mode === "edit" ? "Update" : "Publish"}
-            </Button>
-          )}
-        </div>
+              <ExternalLink className="size-3.5" strokeWidth={1.5} aria-hidden />
+              Open
+            </a>
+            <span className="text-xs text-muted-foreground">{published.summary}.</span>
+          </div>
+        ) : (
+          <>
+            <p className="min-w-0 text-right text-sm max-md:text-left">
+              <span className="block text-xs text-muted-foreground">{create ? "Publishes to" : "Updates"}</span>
+              {create ? (
+                <span className="whitespace-nowrap">A new short link on {host}</span>
+              ) : (
+                <span className="whitespace-nowrap font-mono text-xs">
+                  {host}/s/{editSlug}
+                </span>
+              )}
+            </p>
+            {authLoading ? (
+              <Button size="sm" disabled className="max-md:h-11">
+                {create ? "Publish" : "Update"}
+              </Button>
+            ) : !user ? (
+              <a
+                href={`/auth/login?next=${encodeURIComponent(editSlug ? `/editor?slug=${editSlug}` : "/editor")}`}
+                className="inline-flex h-8 items-center rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground hover:bg-primary/88 max-md:h-11"
+              >
+                Sign in to publish
+              </a>
+            ) : (
+              <Button
+                size="sm"
+                className="max-md:h-11"
+                disabled={publishing || !content.trim()}
+                onClick={create ? handlePublish : handleUpdate}
+              >
+                {publishing ? (create ? "Publishing" : "Updating") : create ? "Publish" : "Update"}
+              </Button>
+            )}
+          </>
+        )}
       </div>
     </div>
   );

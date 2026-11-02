@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { EmbedViewedTracker } from "@/components/embed-viewed-tracker";
 import { MarkdownViewerWrapper } from "@/components/markdown-viewer-wrapper";
 import { getShareContent, getShareMeta } from "@/lib/share-data";
+import { textLink } from "@/app/(content)/_ui/public-styles";
 
 interface EmbedPageProps {
   params: Promise<{ slug: string }>;
@@ -9,18 +10,10 @@ interface EmbedPageProps {
 
 function OpenOnDropItX({ slug, message }: { slug: string; message: string }) {
   return (
-    <div style={{
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      height: "100vh",
-      fontFamily: "sans-serif",
-      background: "var(--color-background, #f7eee6)",
-      color: "var(--color-foreground, #2b211c)",
-    }}>
-      <p>
+    <div className="type-page flex min-h-svh items-center justify-center bg-background p-6 text-center text-[18px] leading-[1.6] text-foreground">
+      <p className="max-w-[34em]">
         {message}{" "}
-        <a href={`/s/${slug}`} target="_top" style={{ color: "var(--color-primary, #9a5b3c)" }}>
+        <a href={`/s/${slug}`} target="_top" className={textLink}>
           Open it on DropItX
         </a>
       </p>
@@ -61,16 +54,16 @@ export default async function EmbedPage({ params }: EmbedPageProps) {
   const fileContent = body.content;
 
   return (
-    <div style={{ background: "#fff8f1" }}>
+    <div className="min-h-svh bg-background text-foreground">
       <EmbedViewedTracker slug={slug} />
       {isMarkdown ? (
-        <div style={{ padding: "1rem" }}>
+        <div className="p-4">
           <MarkdownViewerWrapper content={fileContent} />
         </div>
       ) : (
         <iframe
           srcDoc={fileContent}
-          style={{ width: "100%", height: "100vh", border: "none" }}
+          className="block h-svh w-full border-0"
           sandbox="allow-scripts"
           title={share.filename ?? share.title ?? slug}
         />

@@ -1,95 +1,78 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useCallback, useRef, useState } from "react";
 import Link from "next/link";
+import { ChevronsUpDown, LogOut, UserRound } from "lucide-react";
 import { useAuth } from "@/components/auth-provider";
-import { Button } from "@/components/ui/button";
-import { LayoutDashboard, User, LogOut } from "lucide-react";
+import { useDismiss } from "@/components/app-shell/use-dismiss";
+import type { ShellUser } from "@/components/app-shell/load-shell-props";
 
-export function AuthUserMenu() {
-  const { user, profile, signOut } = useAuth();
+const itemClass =
+  "flex h-8 w-full items-center gap-2.5 rounded-md px-2 text-left text-sm text-card-foreground transition-colors duration-150 hover:bg-raised max-md:h-11";
+
+/** The signed-in person at the foot of the sidebar; opens a menu with Profile and Sign out. */
+export function AuthUserMenu({ user, onNavigate }: { user: ShellUser; onNavigate?: () => void }) {
+  const { signOut } = useAuth();
   const [open, setOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
+  const [signingOut, setSigningOut] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (!open) return;
-    const handleClick = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
-  }, [open]);
+  const close = useCallback(() => setOpen(false), []);
+  useDismiss(open, rootRef, close);
 
-  if (!user) {
-    return (
-      <Link href="/auth/login">
-        <Button variant="outline" size="sm">
-          Sign In
-        </Button>
-      </Link>
-    );
+  async function handleSignOut() {
+    setSigningOut(true);
+    try {
+      await signOut();
+    } finally {
+      window.location.href = "/";
+    }
   }
 
-  const initial = (
-    profile?.display_name ||
-    user.displayName ||
-    user.email ||
-    "U"
-  )[0].toUpperCase();
-
   return (
-    <div className="relative" ref={menuRef}>
-      <button
-        onClick={() => setOpen(!open)}
-        className="flex items-center gap-2 rounded-md p-0.5 transition-colors duration-200"
-      >
-        {profile?.avatar_url || user.photoURL ? (
-          <img
-            src={(profile?.avatar_url || user.photoURL) as string}
-            alt=""
-            className="size-8 rounded-md border border-border"
-            referrerPolicy="no-referrer"
-          />
-        ) : (
-          <div className="size-8 rounded-md bg-primary flex items-center justify-center text-primary-foreground text-sm font-bold">
-            {initial}
-          </div>
-        )}
-      </button>
-
+    <div className="relative" ref={rootRef}>
       {open && (
-        <div className="absolute right-0 mt-2 w-48 rounded-lg border border-border bg-card z-[41] py-1">
-          <Link
-            href="/dashboard"
-            onClick={() => setOpen(false)}
-            className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-secondary transition-colors duration-200"
-          >
-            <LayoutDashboard className="size-4" />
-            Dashboard
-          </Link>
+        <div
+          role="menu"
+          className="absolute inset-x-0 bottom-full z-30 mb-1 rounded-lg border border-border bg-popover p-1"
+        >
           <Link
             href="/dashboard/profile"
-            onClick={() => setOpen(false)}
-            className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-secondary transition-colors duration-200"
+            role="menuitem"
+            className={itemClass}
+            onClick={() => {
+              setOpen(false);
+              onNavigate?.();
+            }}
           >
-            <User className="size-4" />
+            <UserRound className="size-4 text-muted-foreground" strokeWidth={1.5} aria-hidden />
             Profile
           </Link>
-          <button
-            onClick={async () => {
-              await signOut();
-              setOpen(false);
-              window.location.href = "/";
-            }}
-            className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-secondary w-full text-left text-destructive transition-colors duration-200"
-          >
-            <LogOut className="size-4" />
-            Sign Out
+          <button type="button" role="menuitem" className={itemClass} onClick={handleSignOut} disabled={signingOut}>
+            <LogOut className="size-4 text-muted-foreground" strokeWidth={1.5} aria-hidden />
+            {signingOut ? "Signing out" : "Sign out"}
           </button>
         </div>
       )}
+      <button
+        type="button"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
+        className="flex h-11 w-full items-center gap-2.5 rounded-lg px-2 text-left transition-colors duration-150 hover:bg-active aria-expanded:bg-active"
+      >
+        <span
+          aria-hidden
+          className="grid size-7 shrink-0 place-items-center rounded-full bg-active text-xs font-semibold text-foreground"
+        >
+          {user.initials}
+        </span>
+        <span className="min-w-0 flex-1 leading-4">
+          <span className="block truncate text-[13px] font-medium text-foreground">{user.displayName}</span>
+          <span className="block truncate text-xs text-muted-foreground">{user.email}</span>
+        </span>
+        <ChevronsUpDown className="size-4 shrink-0 text-muted-foreground" strokeWidth={1.5} aria-hidden />
+      </button>
     </div>
   );
 }

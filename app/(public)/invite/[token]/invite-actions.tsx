@@ -7,8 +7,8 @@
 
 import { useState, useTransition } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
+import { small, squareButton } from "@/app/(content)/_ui/public-styles";
+import { cn } from "@/lib/utils";
 import { apiErrorDetail, authFetch } from "@/lib/api-client";
 import { useAuth } from "@/components/auth-provider";
 
@@ -54,26 +54,35 @@ export function InviteActions({ teamSlug }: InviteActionsProps) {
     }
   }
 
+  const busy = pending !== null || refreshing || authLoading;
+
   return (
-    <div className="mt-6 space-y-2">
+    <div className="mt-3 grid gap-3">
       {error && (
-        <p role="alert" className="mb-3 text-sm text-destructive">
+        <p role="alert" className={cn(small, "font-medium text-destructive")}>
           {error}
         </p>
       )}
-      <Button onClick={() => respond("accept")} disabled={pending !== null || refreshing || authLoading} className="w-full">
-        {pending === "accept" && <Loader2 className="mr-2 size-4 animate-spin" />}
-        {pending === "accept" ? "Accepting..." : "Accept Invite"}
-      </Button>
-      <Button
-        variant="outline"
-        onClick={() => respond("decline")}
-        disabled={pending !== null || refreshing || authLoading}
-        className="w-full"
-      >
-        {pending === "decline" && <Loader2 className="mr-2 size-4 animate-spin" />}
-        {pending === "decline" ? "Declining..." : "Decline"}
-      </Button>
+      <div className="flex flex-wrap gap-3">
+        <button
+          type="button"
+          onClick={() => respond("accept")}
+          disabled={busy}
+          aria-busy={pending === "accept"}
+          className={squareButton()}
+        >
+          {pending === "accept" ? "Accepting" : "Accept the invite"}
+        </button>
+        <button
+          type="button"
+          onClick={() => respond("decline")}
+          disabled={busy}
+          aria-busy={pending === "decline"}
+          className={squareButton("quiet")}
+        >
+          {pending === "decline" ? "Declining" : "Decline"}
+        </button>
+      </div>
     </div>
   );
 }
