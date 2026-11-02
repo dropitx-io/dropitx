@@ -53,7 +53,7 @@ export default nextConfig;
 Tailwind is configured through PostCSS and CSS, not a `tailwind.config.*` file (Tailwind v4 convention):
 
 - `postcss.config.mjs` — registers the `@tailwindcss/postcss` plugin.
-- `app/globals.css` — `@import "tailwindcss"` plus theme tokens via `@theme inline`. Defines the design-system color tokens (`--color-primary`, `--color-surface`, OKLCH-based), Clay radii (`--radius-sm: 14px` through `--radius-pill: 9999px`), and a `.dark` custom variant. Edit tokens here, not in a JS config.
+- `app/globals.css` — `@import "tailwindcss"` plus theme tokens via `@theme inline`. Defines the design-system color tokens (`--color-primary`, `--color-surface`, `--color-frame`, `--color-sheet`), radii (`--radius-sm: 4px` through `--radius-2xl: 16px`, `--radius-pill: 9999px`), and a `.dark` custom variant. Edit tokens here, not in a JS config.
 
 ### `components.json` (shadcn/ui)
 
