@@ -12,6 +12,9 @@ export interface LinkRow {
   file_size: number | null;
   created_at: string | null;
   has_password: boolean;
+  expires_at: string | null;
+  burn_after_reading: boolean;
+  burned: boolean;
 }
 
 export type LinkFilter = "all" | "md" | "html" | "protected";
@@ -86,6 +89,9 @@ export function personalLinkRows(shares: ShareListItem[]): LinkRow[] {
     file_size: s.file_size ?? null,
     created_at: s.created_at,
     has_password: s.has_password,
+    expires_at: s.expires_at ?? null,
+    burn_after_reading: s.burn_after_reading,
+    burned: s.burned,
   }));
 }
 
@@ -104,6 +110,9 @@ export function teamLinkRows(rows: TeamShareRow[]): LinkRow[] {
             file_size: s.file_size,
             created_at: s.created_at,
             has_password: s.has_password ?? false,
+            expires_at: s.expires_at ?? null,
+            burn_after_reading: s.burn_after_reading ?? false,
+            burned: s.burned ?? false,
           },
         ]
       : [],
@@ -118,4 +127,29 @@ export function formatShortDate(iso: string | null, now: Date = new Date()): str
   if (!iso) return null;
   const date = new Date(iso);
   return (date.getFullYear() === now.getFullYear() ? dayMonth : dayMonthYear).format(date);
+}
+
+export type LinkStatusKind = "burned" | "expired" | "expiring" | "password" | "burn" | "public";
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+/** A link counts as expiring when its expiry falls inside this window. */
+const EXPIRING_WITHIN_DAYS = 7;
+
+/** The one status a row shows, the most urgent fact first: burned, expired, expiring soon, password, burn on read, public. */
+export function linkStatus(
+  row: Pick<LinkRow, "has_password" | "expires_at" | "burn_after_reading" | "burned">,
+  now: Date = new Date(),
+): { kind: LinkStatusKind; label: string } {
+  if (row.burned) return { kind: "burned", label: "Burned" };
+  if (row.expires_at) {
+    const left = Date.parse(row.expires_at) - now.getTime();
+    if (left <= 0) return { kind: "expired", label: "Expired" };
+    if (left < EXPIRING_WITHIN_DAYS * DAY_MS) {
+      const days = Math.floor(left / DAY_MS);
+      return { kind: "expiring", label: days === 0 ? "Expires today" : `Expires in ${plural(days, "day", "days")}` };
+    }
+  }
+  if (row.has_password) return { kind: "password", label: "Password" };
+  if (row.burn_after_reading) return { kind: "burn", label: "Burns after first read" };
+  return { kind: "public", label: "Public" };
 }

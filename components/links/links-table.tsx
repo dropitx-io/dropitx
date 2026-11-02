@@ -1,12 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { FileCode, FileText, Globe, Lock } from "lucide-react";
+import { Clock, FileCode, FileText, Flame, Globe, Lock } from "lucide-react";
 import { formatFileSize } from "@/lib/file-utils";
 import { cn } from "@/lib/utils";
 import { CopyLinkButton, shareLabel } from "@/components/links/copy-link-button";
 import { LinkActionsMenu } from "@/components/links/link-actions-menu";
-import { formatShortDate, isMarkdown, linkName, type LinkRow } from "@/components/links/link-rows";
+import { formatShortDate, isMarkdown, linkName, linkStatus, type LinkRow, type LinkStatusKind } from "@/components/links/link-rows";
 
 const th = "h-9 px-3 text-left text-xs font-normal whitespace-nowrap text-muted-foreground first:pl-0 last:pr-0";
 // Below 640px each row becomes two lines: name and views, then status, size and date in grey.
@@ -30,16 +30,31 @@ function Size({ bytes }: { bytes: number | null }) {
   );
 }
 
+const PILL = "inline-flex h-[22px] items-center gap-1.5 whitespace-nowrap rounded-full px-2 text-xs font-medium";
+const PILL_STYLE: Record<LinkStatusKind, string> = {
+  burned: "bg-active text-foreground",
+  expired: "bg-pill-negative text-pill-negative-foreground",
+  expiring: "bg-pill-warning text-pill-warning-foreground",
+  password: "bg-active text-foreground",
+  burn: "bg-active text-foreground",
+  public: "text-muted-foreground ring-1 ring-inset ring-input",
+};
+const PILL_ICON: Record<LinkStatusKind, typeof Lock> = {
+  burned: Flame,
+  expired: Clock,
+  expiring: Clock,
+  password: Lock,
+  burn: Flame,
+  public: Globe,
+};
+
 function StatusPill({ row }: { row: LinkRow }) {
-  return row.has_password ? (
-    <span className="inline-flex h-[22px] items-center gap-1.5 whitespace-nowrap rounded-full bg-active px-2 text-xs font-medium text-foreground">
-      <Lock className="size-3" strokeWidth={1.5} aria-hidden />
-      Password
-    </span>
-  ) : (
-    <span className="inline-flex h-[22px] items-center gap-1.5 whitespace-nowrap rounded-full px-2 text-xs font-medium text-muted-foreground ring-1 ring-inset ring-input">
-      <Globe className="size-3" strokeWidth={1.5} aria-hidden />
-      Public
+  const status = linkStatus(row);
+  const Icon = PILL_ICON[status.kind];
+  return (
+    <span className={cn(PILL, PILL_STYLE[status.kind])}>
+      <Icon className="size-3" strokeWidth={1.5} aria-hidden />
+      {status.label}
     </span>
   );
 }
@@ -59,7 +74,8 @@ export function LinksTable({ rows, onDelete, deletingId = null }: LinksTableProp
         <col className="w-[88px]" />
         <col className="w-[104px]" />
         <col className="w-[104px]" />
-        <col className="w-[132px]" />
+        <col className="w-[104px]" />
+        <col className="w-[176px]" />
         <col className="w-11" />
       </colgroup>
       <thead className="max-sm:hidden">
@@ -68,6 +84,7 @@ export function LinksTable({ rows, onDelete, deletingId = null }: LinksTableProp
           <th scope="col" className={cn(th, "text-right")}>Views</th>
           <th scope="col" className={cn(th, "text-right")}>Size</th>
           <th scope="col" className={cn(th, "text-right")}>Created</th>
+          <th scope="col" className={cn(th, "text-right")}>Expires</th>
           <th scope="col" className={th}>Status</th>
           <th scope="col" className={th}>
             <span className="sr-only">Actions</span>
@@ -79,6 +96,7 @@ export function LinksTable({ rows, onDelete, deletingId = null }: LinksTableProp
           const name = linkName(row);
           const Icon = isMarkdown(row) ? FileText : FileCode;
           const created = formatShortDate(row.created_at);
+          const expires = formatShortDate(row.expires_at);
           return (
             <tr
               key={row.id}
@@ -106,6 +124,7 @@ export function LinksTable({ rows, onDelete, deletingId = null }: LinksTableProp
                 <Size bytes={row.file_size} />
               </td>
               <td className={cn(td, num, "max-sm:hidden")}>{created ?? <Dash />}</td>
+              <td className={cn(td, num, "max-sm:hidden")}>{expires ?? <Dash />}</td>
               <td className={cn(td, "max-sm:hidden")}>
                 <StatusPill row={row} />
               </td>

@@ -68,6 +68,19 @@ test("team rows keep only shares that still exist and default missing counts", (
     { created_at: null, shared_by: "u1", shares: { id: "1", slug: "s1", filename: null, title: "Plan", mime_type: null, view_count: null, file_size: null, created_at: null } },
   ]);
   assert.deepEqual(rows, [
-    { id: "1", slug: "s1", filename: "", title: "Plan", mime_type: "", view_count: 0, file_size: null, created_at: null, has_password: false },
+    { id: "1", slug: "s1", filename: "", title: "Plan", mime_type: "", view_count: 0, file_size: null, created_at: null, has_password: false, expires_at: null, burn_after_reading: false, burned: false },
   ]);
+});
+
+test("linkStatus picks one status per row, the most urgent first", async () => {
+  const { linkStatus } = await import("./link-rows.ts");
+  const now = new Date("2026-11-02T12:00:00Z");
+  const base = { has_password: false, expires_at: null, burn_after_reading: false, burned: false };
+  assert.deepEqual(linkStatus({ ...base, burned: true, has_password: true }, now), { kind: "burned", label: "Burned" });
+  assert.deepEqual(linkStatus({ ...base, expires_at: "2026-11-01T00:00:00Z" }, now), { kind: "expired", label: "Expired" });
+  assert.deepEqual(linkStatus({ ...base, expires_at: "2026-11-04T12:00:00Z", has_password: true }, now), { kind: "expiring", label: "Expires in 2 days" });
+  assert.deepEqual(linkStatus({ ...base, expires_at: "2026-11-03T06:00:00Z" }, now), { kind: "expiring", label: "Expires today" });
+  assert.deepEqual(linkStatus({ ...base, has_password: true, expires_at: "2026-12-30T00:00:00Z" }, now), { kind: "password", label: "Password" });
+  assert.deepEqual(linkStatus({ ...base, burn_after_reading: true }, now), { kind: "burn", label: "Burns after first read" });
+  assert.deepEqual(linkStatus(base, now), { kind: "public", label: "Public" });
 });

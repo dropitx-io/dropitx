@@ -41,26 +41,6 @@ export function TeamNav({ teams }: { teams: TeamNavItem[] }) {
   );
 }
 
-/** Mobile team nav: a single link to the teams list, marked while any team page is open. */
-export function TeamNavMobile() {
-  const pathname = usePathname();
-  const isActive = pathname.startsWith("/dashboard/teams");
-
-  return (
-    <Link
-      href="/dashboard/teams"
-      aria-current={isActive ? "page" : undefined}
-      className={cn(
-        "flex min-h-[44px] min-w-[44px] flex-col items-center justify-center gap-1 text-xs transition-colors duration-150",
-        isActive ? "text-card-foreground" : "text-muted-foreground hover:text-card-foreground",
-      )}
-    >
-      <Users className="size-4" strokeWidth={1.5} />
-      Teams
-    </Link>
-  );
-}
-
 /** Tabs across one team's pages; Settings shows only for the owner, who is the only one allowed to change it. */
 export function TeamTabs({ slug, isOwner }: { slug: string; isOwner: boolean }) {
   const pathname = usePathname();
