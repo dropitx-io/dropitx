@@ -53,7 +53,7 @@ export default function ResetPasswordPage() {
           </a>
         </div>
       ) : (
-        <form onSubmit={handleSubmit} className="grid gap-7">
+        <form onSubmit={handleSubmit} className="stagger-in grid gap-7">
           <EmailField value={email} onChange={setEmail} />
           <button type="submit" disabled={loading} aria-busy={loading} className={cn(squareButton(), "w-full")}>
             {loading ? "Sending the link" : "Send the reset link"}

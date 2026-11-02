@@ -59,7 +59,7 @@ export default function UpdatePasswordPage() {
         </p>
       )}
 
-      <form onSubmit={handleSubmit} className="grid gap-7">
+      <form onSubmit={handleSubmit} className="stagger-in grid gap-7">
         <PasswordField
           label="New password"
           value={password}

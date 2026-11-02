@@ -320,3 +320,14 @@
     transform: none;
   }
 }
+
+/* Load entrance for a short stack (auth forms): each child rises in turn; no script needed. */
+.stagger-in > * {
+  animation: slide-up 600ms var(--ease-out) both;
+}
+.stagger-in > :nth-child(2) { animation-delay: 75ms; }
+.stagger-in > :nth-child(3) { animation-delay: 150ms; }
+.stagger-in > :nth-child(4) { animation-delay: 225ms; }
+.stagger-in > :nth-child(5) { animation-delay: 300ms; }
+.stagger-in > :nth-child(6) { animation-delay: 375ms; }
+.stagger-in > :nth-child(n + 7) { animation-delay: 450ms; }

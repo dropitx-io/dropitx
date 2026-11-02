@@ -20,7 +20,7 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
         id="main"
         className={cn(gutter, grid, "flex-1 items-start pb-[clamp(56px,7vw,112px)] pt-[clamp(32px,5vw,72px)]")}
       >
-        <div className="col-span-full grid gap-7 min-[861px]:col-span-5">{children}</div>
+        <div className="stagger-in col-span-full grid gap-7 min-[861px]:col-span-5">{children}</div>
         <SharedDocument />
       </main>
     </div>
@@ -33,7 +33,7 @@ function SharedDocument() {
     <figure
       data-ui
       aria-label="A document shared with DropItX"
-      className="col-span-full mt-14 max-h-[520px] self-start overflow-hidden bg-card text-[15px] leading-[1.5] min-[861px]:col-span-6 min-[861px]:col-start-7 min-[861px]:mt-0 min-[861px]:max-h-[760px]"
+      className="shutter col-span-full mt-14 max-h-[520px] self-start overflow-hidden bg-card text-[15px] leading-[1.5] min-[861px]:col-span-6 min-[861px]:col-start-7 min-[861px]:mt-0 min-[861px]:max-h-[760px]"
     >
       <div className="flex items-center justify-between gap-3 bg-surface px-4 py-3 text-[13px]">
         <span className="truncate">dropitx.site/s/q3-incident-review</span>

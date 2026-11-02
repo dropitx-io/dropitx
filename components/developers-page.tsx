@@ -142,9 +142,7 @@ export function DevelopersPage() {
         </section>
       </main>
 
-      <div className={section}>
-        <LandingFooter />
-      </div>
+      <LandingFooter />
     </div>
   );
 }

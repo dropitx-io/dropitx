@@ -9,6 +9,8 @@ import { cn } from "@/lib/utils";
 interface SearchResultsProps {
   results: SearchResult[];
   isLoading: boolean;
+  /** True once the query is long enough to have been searched; before that there is nothing to report. */
+  searched: boolean;
 }
 
 function relativeTime(iso: string): string {
@@ -45,6 +47,14 @@ function SkeletonRow() {
   );
 }
 
+function Prompt() {
+  return (
+    <p className={cn(body, "max-w-[34em] text-muted-foreground")}>
+      Type two or more letters to search the titles and text of public pages.
+    </p>
+  );
+}
+
 function EmptyState() {
   return (
     <div className="grid max-w-[34em] gap-2 animate-fade-in">
@@ -54,7 +64,9 @@ function EmptyState() {
   );
 }
 
-export function SearchResults({ results, isLoading }: SearchResultsProps) {
+export function SearchResults({ results, isLoading, searched }: SearchResultsProps) {
+  if (!searched) return <Prompt />;
+
   if (isLoading) {
     return (
       <div role="status" aria-label="Loading results" className="grid max-w-[46em] gap-10">

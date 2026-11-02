@@ -78,7 +78,7 @@ export default function SearchPage() {
   return (
     <div className={page}>
       <PublicNav current="/search" />
-      <main id="main" className={cn(gutter, "flex-1 pb-[clamp(56px,7vw,112px)] pt-[clamp(32px,5vw,72px)]")}>
+      <main id="main" className={cn(gutter, "stagger-in flex-1 pb-[clamp(56px,7vw,112px)] pt-[clamp(32px,5vw,72px)]")}>
         <h1 className={cn(displayS, "max-w-[8em]")}>Search shared pages</h1>
 
         <div className="mt-[clamp(32px,4vw,56px)]">
@@ -92,7 +92,7 @@ export default function SearchPage() {
         )}
 
         <div className="mt-[clamp(40px,5vw,72px)]">
-          <SearchResults results={results} isLoading={isLoading} />
+          <SearchResults results={results} isLoading={isLoading} searched={query.length >= 2} />
         </div>
       </main>
     </div>
