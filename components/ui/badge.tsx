@@ -5,7 +5,7 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const badgeVariants = cva(
-  "group/badge inline-flex h-5 w-fit shrink-0 items-center justify-center gap-1 overflow-hidden rounded-full border border-transparent px-2.5 py-0.5 text-xs font-normal whitespace-nowrap transition-colors duration-200 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 [&>svg]:pointer-events-none [&>svg]:size-3!",
+  "group/badge inline-flex h-5 w-fit shrink-0 items-center justify-center gap-1 overflow-hidden rounded-full border border-transparent px-2.5 py-0.5 text-xs font-medium whitespace-nowrap transition-colors duration-200 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 [&>svg]:pointer-events-none [&>svg]:size-3!",
   {
     variants: {
       variant: {
@@ -15,25 +15,22 @@ const badgeVariants = cva(
         destructive:
           "bg-destructive/10 text-destructive focus-visible:ring-destructive/20 dark:bg-destructive/20 dark:focus-visible:ring-destructive/40 [a]:hover:bg-destructive/20",
         outline:
-          "border-primary/15 text-foreground [a]:hover:bg-primary/8",
+          "border-input text-foreground [a]:hover:bg-active",
         ghost:
-          "hover:bg-primary/8 hover:text-foreground",
+          "hover:bg-active hover:text-foreground",
         link: "text-primary underline-offset-4 hover:underline",
         /* File type badges */
-        html: "border-primary/15 text-muted-foreground",
-        markdown: "border-primary/15 bg-primary/12 text-primary",
+        html: "border-input text-muted-foreground",
+        markdown: "border-input text-muted-foreground",
         /* Status badges */
-        success:
-          "bg-success/10 text-success dark:bg-success/20",
-        warn:
-          "bg-warning/15 text-warning dark:bg-warning/20 dark:text-warning",
-        danger:
-          "bg-destructive/10 text-destructive dark:bg-destructive/20",
+        success: "bg-pill-positive text-pill-positive-foreground",
+        warn: "bg-pill-warning text-pill-warning-foreground",
+        danger: "bg-pill-negative text-pill-negative-foreground",
         /* Role badges */
-        owner: "bg-primary text-primary-foreground",
-        editor: "border-primary/15 text-foreground",
+        owner: "bg-active text-foreground",
+        editor: "border-input text-foreground",
         viewer: "bg-secondary text-secondary-foreground",
-        admin: "border-primary/15 bg-primary/12 text-primary",
+        admin: "bg-active text-foreground",
         member: "bg-secondary text-secondary-foreground",
       },
     },
