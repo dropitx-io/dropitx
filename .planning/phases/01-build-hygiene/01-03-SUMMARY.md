@@ -167,7 +167,7 @@ Threading the `Database` generic surfaced a significant pre-existing drift that 
 Full drift table recorded in `.planning/phases/01-build-hygiene/deferred-items.md`.
 
 ## User Setup Required
-- **Deployment prerequisite (blocking for production deploy):** Confirm `NEXT_PUBLIC_API_URL` is set in **Vercel Project Settings → Environment Variables → Production** before merging this change. With the fail-fast throw, a production build without this var will crash at the SSR pass. (The current production value is `https://dropitx-api.onrender.com` per the existing Vercel config — verify it is present and correct.)
+- **Deployment prerequisite (blocking for production deploy):** Confirm `NEXT_PUBLIC_API_URL` is set in **Vercel Project Settings → Environment Variables → Production** before merging this change. With the fail-fast throw, a production build without this var will crash at the SSR pass.
 
 ## Threat Surface
 
