@@ -1,4 +1,4 @@
-import { InviteNotificationBell } from "@/components/invite-notification-bell";
+import { InviteBellSlot } from "@/components/app-shell/invite-bell-slot";
 import { DashboardMobileNav } from "@/components/dashboard-mobile-nav";
 import { SidebarContent } from "@/components/app-shell/sidebar-content";
 import { TopBarSearch } from "@/components/app-shell/top-bar-search";
@@ -35,7 +35,7 @@ export function DashboardShell({ user, teams, storageUsedBytes, sheetClassName, 
           <TopBarSearch shortcut />
         </div>
         <div className="col-start-3 justify-self-end">
-          <InviteNotificationBell />
+          <InviteBellSlot viewport="desktop" />
         </div>
       </header>
 

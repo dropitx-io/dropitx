@@ -6,6 +6,8 @@ import { AccountNotProvisionedError, getProfile, type DashboardProfile } from "@
 import { getPublicProfile, getPublicProfileShares } from "@/lib/public-profile-data";
 import { AccountSetupState } from "@/components/account-setup-state";
 import { ProfileForm } from "@/components/profile-form";
+import { ApiKeyManager } from "@/components/api-key-manager";
+import { SettingsRow } from "@/components/team/settings-row";
 import { TitleRow } from "@/components/analytics/title-row";
 import { ProfilePreview } from "@/components/team/profile-preview";
 import { formatInt } from "@/components/analytics/analytics-format";
@@ -78,6 +80,14 @@ export default async function ProfilePage() {
           shares={preview.shares}
           failed={preview.failed}
         />
+      </div>
+      <div id="api-keys" className="mt-10 scroll-mt-16">
+        <SettingsRow
+          title="API keys"
+          description="Personal keys (shk_) publish as you from the CLI or an MCP client. A key is shown once when it's created and stored only as a hash. Team keys live in each team's settings."
+        >
+          <ApiKeyManager />
+        </SettingsRow>
       </div>
     </>
   );

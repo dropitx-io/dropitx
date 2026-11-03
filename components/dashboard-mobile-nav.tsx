@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
 import { BrandMark } from "@/components/brand-mark";
-import { InviteNotificationBell } from "@/components/invite-notification-bell";
+import { InviteBellSlot } from "@/components/app-shell/invite-bell-slot";
 import { SidebarContent } from "@/components/app-shell/sidebar-content";
 import { TopBarSearch } from "@/components/app-shell/top-bar-search";
 import type { ShellUser } from "@/components/app-shell/load-shell-props";
@@ -64,7 +64,7 @@ export function DashboardMobileNav({ user, teams, storageUsedBytes }: DashboardM
           <BrandMark className="text-primary" />
           <span className="truncate">{routeTitle(pathname)}</span>
         </span>
-        <InviteNotificationBell />
+        <InviteBellSlot viewport="phone" />
       </header>
 
       {open && (

@@ -65,8 +65,8 @@ export function DevelopersPage() {
               Install the CLI, upload a file or pipe text, and get a link back. Agents use it over MCP.
             </p>
             <div className="flex shrink-0 items-center gap-7 max-[760px]:flex-col max-[760px]:items-stretch max-[760px]:gap-4">
-              <Link href="/auth/login?mode=signup" className={cn(body, textLink, "self-start py-2.5")}>
-                Create an account
+              <Link href="/dashboard/profile#api-keys" className={cn(body, textLink, "self-start py-2.5")}>
+                Get an API key
               </Link>
               <a href="#install" className={squareButton()}>
                 Install the CLI
@@ -86,7 +86,8 @@ export function DevelopersPage() {
               <div><CopyInstallButton /></div>
             </div>
             <p data-reveal style={reveal(3)} className={cn(body, "max-w-[34em]")}>
-              Then give it your API key. Personal keys start with shk_, team keys with sht_.
+              Then give it an API key, made on{" "}
+              <Link href="/dashboard/profile#api-keys" className={textLink}>your profile</Link>. Personal keys start with shk_, team keys with sht_.
             </p>
             <pre data-reveal style={reveal(4)} className={codeBlock}><code>dropitx config set-key shk_your_key_here</code></pre>
           </div>
