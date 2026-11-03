@@ -1,20 +1,11 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import {
-  MessageSquare,
-  Loader2,
-  Send,
-  ChevronDown,
-  User,
-  Reply,
-  ChevronRight,
-} from "lucide-react";
+import { ChevronRight } from "lucide-react";
+import { body, small, squareButton } from "@/app/(content)/_ui/public-styles";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { getApiUrl, getAuthHeaders } from "@/lib/api-client";
 
@@ -34,6 +25,10 @@ interface CommentsResponse {
   page: number;
   per_page: number;
 }
+
+/** Comment inputs: square, a 2px edge, body-size text. */
+const commentField =
+  "h-auto min-h-11 rounded-none border-2 border-[color-mix(in_oklch,var(--foreground)_35%,var(--background))] bg-card px-3.5 text-[17px] md:text-[17px] hover:border-foreground focus-visible:border-foreground";
 
 interface CommentsSectionProps {
   slug: string;
@@ -167,103 +162,87 @@ function CommentItem({
   const hasReplies = comment.replies && comment.replies.length > 0;
 
   return (
-    <div className={depth > 0 ? "ml-6 pl-4 border-l-2 border-border/40" : ""}>
-      <div className="flex gap-3 rounded-lg p-3 hover:bg-muted/30 transition-colors">
-        <div className="shrink-0 size-8 rounded-full bg-muted flex items-center justify-center">
-          <User className="size-4 text-muted-foreground" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium">
-              {comment.author_name || "Anonymous"}
-            </span>
-            <span className="text-xs text-muted-foreground">
-              {formatCommentDate(comment.created_at)}
-            </span>
-          </div>
-          <p className="text-sm text-foreground/90 mt-0.5 whitespace-pre-wrap break-words">
-            {comment.content}
-          </p>
+    <div className={depth > 0 ? "ml-6 md:ml-10" : undefined}>
+      <div className="py-4">
+        <p className={cn(small, "flex flex-wrap items-baseline gap-x-2 text-muted-foreground")}>
+          <span className="text-[15px] font-medium text-foreground">{comment.author_name || "Anonymous"}</span>
+          <span>{formatCommentDate(comment.created_at)}</span>
+        </p>
+        <p className="mt-1 whitespace-pre-wrap break-words text-[17px] leading-[1.6]">{comment.content}</p>
 
-          {/* Reply actions */}
-          <div className="flex items-center gap-3 mt-2">
+        <div className="mt-1 flex items-center gap-5 text-[14px] text-muted-foreground">
+          <button
+            type="button"
+            onClick={() => setShowReplyForm(!showReplyForm)}
+            aria-expanded={showReplyForm}
+            className="min-h-9 transition-colors hover:text-foreground"
+          >
+            Reply
+          </button>
+          {hasReplies && (
             <button
-              onClick={() => setShowReplyForm(!showReplyForm)}
-              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+              type="button"
+              onClick={() => setShowReplies(!showReplies)}
+              aria-expanded={showReplies}
+              className="flex min-h-9 items-center gap-1 transition-colors hover:text-foreground"
             >
-              <Reply className="size-3" />
-              Reply
+              <ChevronRight
+                aria-hidden="true"
+                className={`size-3.5 transition-transform ${showReplies ? "rotate-90" : ""}`}
+              />
+              {comment.replies!.length} {comment.replies!.length === 1 ? "reply" : "replies"}
             </button>
-            {hasReplies && (
-              <button
-                onClick={() => setShowReplies(!showReplies)}
-                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-              >
-                <ChevronRight
-                  className={`size-3 transition-transform ${showReplies ? "rotate-90" : ""}`}
-                />
-                {comment.replies!.length} {comment.replies!.length === 1 ? "reply" : "replies"}
-              </button>
-            )}
-          </div>
-
-          {/* Inline reply form */}
-          {showReplyForm && (
-            <form onSubmit={handleReply} className="mt-3 space-y-2">
-              {!isAuthenticated && (
-                <Input
-                  placeholder="Your name (optional)"
-                  value={replyName}
-                  onChange={(e) => setReplyName(e.target.value)}
-                  disabled={submitting}
-                  className="h-8 text-sm"
-                />
-              )}
-              <div className="flex gap-2">
-                <Textarea
-                  placeholder="Write a reply..."
-                  value={replyContent}
-                  onChange={(e) => setReplyContent(e.target.value)}
-                  disabled={submitting}
-                  rows={2}
-                  className="resize-none text-sm"
-                  autoFocus
-                />
-                <div className="flex flex-col gap-1">
-                  <Button
-                    type="submit"
-                    size="icon"
-                    disabled={submitting || !replyContent.trim()}
-                    className="shrink-0 size-8"
-                  >
-                    {submitting ? (
-                      <Loader2 className="size-3.5 animate-spin" />
-                    ) : (
-                      <Send className="size-3.5" />
-                    )}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 text-xs"
-                    onClick={() => {
-                      setShowReplyForm(false);
-                      setReplyContent("");
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              </div>
-            </form>
           )}
         </div>
+
+        {showReplyForm && (
+          <form onSubmit={handleReply} className="mt-3 grid max-w-[34em] gap-3">
+            {!isAuthenticated && (
+              <Input
+                placeholder="Your name (optional)"
+                aria-label="Your name (optional)"
+                value={replyName}
+                onChange={(e) => setReplyName(e.target.value)}
+                disabled={submitting}
+                className={commentField}
+              />
+            )}
+            <Textarea
+              placeholder="Write a reply"
+              aria-label="Reply"
+              value={replyContent}
+              onChange={(e) => setReplyContent(e.target.value)}
+              disabled={submitting}
+              rows={2}
+              className={cn(commentField, "resize-none py-3")}
+              autoFocus
+            />
+            <div className="flex items-center gap-3">
+              <button
+                type="submit"
+                disabled={submitting || !replyContent.trim()}
+                aria-busy={submitting}
+                className={squareButton("solid", "small")}
+              >
+                {submitting ? "Posting" : "Post reply"}
+              </button>
+              <button
+                type="button"
+                className={squareButton("quiet", "small")}
+                onClick={() => {
+                  setShowReplyForm(false);
+                  setReplyContent("");
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        )}
       </div>
 
-      {/* Nested replies */}
       {hasReplies && showReplies && (
-        <div className="space-y-0">
+        <div>
           {comment.replies!.map((reply) => (
             <CommentItem
               key={reply.id}
@@ -368,98 +347,79 @@ export function CommentsSection({ slug, isAuthenticated }: CommentsSectionProps)
   const commentTree = buildCommentTree(comments);
 
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-base">
-          <MessageSquare className="size-4" />
-          Comments
-          {total > 0 && (
-            <Badge variant="secondary" className="text-xs font-normal px-1.5 py-0 h-5">
-              {total}
-            </Badge>
-          )}
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Comment form */}
-        <form onSubmit={handleSubmit} className="space-y-3">
-          {!isAuthenticated && (
-            <Input
-              placeholder="Your name (optional)"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              disabled={submitting}
-              className="h-9"
-            />
-          )}
-          <div className="flex gap-2">
-            <Textarea
-              placeholder={isAuthenticated ? "Write a comment..." : "Write a comment as guest..."}
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              disabled={submitting}
-              rows={2}
-              className="resize-none text-sm"
-            />
-            <Button
-              type="submit"
-              size="icon"
-              disabled={submitting || !content.trim()}
-              className="shrink-0 self-end"
-            >
-              {submitting ? (
-                <Loader2 className="size-4 animate-spin" />
-              ) : (
-                <Send className="size-4" />
-              )}
-            </Button>
-          </div>
-        </form>
+    <section aria-labelledby="comments-title" className="grid max-w-[720px] gap-6">
+      <h2 id="comments-title" className="text-[clamp(24px,1.3rem+1.1vw,36px)] leading-[1.15] tracking-[-0.015em]">
+        Comments
+        {total > 0 && <span className="text-muted-foreground"> ({total})</span>}
+      </h2>
 
-        {/* Comment list */}
-        {loading ? (
-          <div className="flex justify-center py-6">
-            <Loader2 className="size-5 animate-spin text-muted-foreground" />
-          </div>
-        ) : commentTree.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-4">
-            No comments yet. Be the first!
-          </p>
-        ) : (
-          <div className="space-y-1">
-            {commentTree.map((comment) => (
-              <CommentItem
-                key={comment.id}
-                comment={comment}
-                depth={0}
-                isAuthenticated={isAuthenticated}
-                slug={slug}
-                onReplyPosted={handleReplyPosted}
-              />
-            ))}
-
-            {hasMore && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="w-full gap-1"
-                onClick={() => {
-                  setLoadingMore(true);
-                  fetchComments(page + 1, true);
-                }}
-                disabled={loadingMore}
-              >
-                {loadingMore ? (
-                  <Loader2 className="size-3.5 animate-spin" />
-                ) : (
-                  <ChevronDown className="size-3.5" />
-                )}
-                Load more comments
-              </Button>
-            )}
-          </div>
+      <form onSubmit={handleSubmit} className="grid gap-3">
+        {!isAuthenticated && (
+          <Input
+            placeholder="Your name (optional)"
+            aria-label="Your name (optional)"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            disabled={submitting}
+            className={commentField}
+          />
         )}
-      </CardContent>
-    </Card>
+        <Textarea
+          placeholder={isAuthenticated ? "Write a comment" : "Write a comment as a guest"}
+          aria-label="Comment"
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+          disabled={submitting}
+          rows={3}
+          className={cn(commentField, "resize-none py-3")}
+        />
+        <div>
+          <button
+            type="submit"
+            disabled={submitting || !content.trim()}
+            aria-busy={submitting}
+            className={squareButton("solid", "small")}
+          >
+            {submitting ? "Posting" : "Post comment"}
+          </button>
+        </div>
+      </form>
+
+      {loading ? (
+        <p role="status" className={cn(body, "text-muted-foreground")}>
+          Loading comments
+        </p>
+      ) : commentTree.length === 0 ? (
+        <p className={cn(body, "text-muted-foreground")}>No comments yet.</p>
+      ) : (
+        <div>
+          {commentTree.map((comment) => (
+            <CommentItem
+              key={comment.id}
+              comment={comment}
+              depth={0}
+              isAuthenticated={isAuthenticated}
+              slug={slug}
+              onReplyPosted={handleReplyPosted}
+            />
+          ))}
+
+          {hasMore && (
+            <button
+              type="button"
+              className={cn(squareButton("quiet", "small"), "mt-4")}
+              onClick={() => {
+                setLoadingMore(true);
+                fetchComments(page + 1, true);
+              }}
+              disabled={loadingMore}
+              aria-busy={loadingMore}
+            >
+              {loadingMore ? "Loading" : "Load more comments"}
+            </button>
+          )}
+        </div>
+      )}
+    </section>
   );
 }

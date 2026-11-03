@@ -13,7 +13,7 @@
 | **Frontend Framework** | Next.js 16 (App Router), React 19, TypeScript 5 (strict) |
 | **Editor** | CodeMirror 6 + markdown extensions (loaded via `next/dynamic` with SSR disabled) |
 | **Viewer** | `react-markdown` + `remark-gfm` + Shiki syntax highlighting |
-| **Styling** | Tailwind CSS 4 + shadcn/ui + Clay design system (light-first, warm cream, terracotta accent) |
+| **Styling** | Tailwind CSS 4 + shadcn/ui, Olive on bone design system (see docs/design-guidelines.md) |
 | **Data** | None in the frontend: every read and write goes through the FastAPI backend (Postgres and S3-compatible storage live behind it) |
 | **Auth** | Firebase Auth (Google, GitHub, email/password); the server holds an httpOnly Firebase session cookie |
 | **Backend API** | FastAPI (Python) at `NEXT_PUBLIC_API_URL` — all business logic except OG image rendering and the session cookie routes |

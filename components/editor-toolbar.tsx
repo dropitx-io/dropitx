@@ -2,7 +2,6 @@
 
 import { type RefObject } from "react";
 import { EditorView } from "@codemirror/view";
-import { Button } from "@/components/ui/button";
 import {
   Bold,
   Italic,
@@ -15,6 +14,7 @@ import {
   Sun,
   Moon,
   Image as ImageIcon,
+  type LucideIcon,
 } from "lucide-react";
 
 interface EditorToolbarProps {
@@ -55,146 +55,63 @@ function insertLinePrefix(view: EditorView, prefix: string): void {
   view.focus();
 }
 
-export function EditorToolbar({
-  editorRef,
-  theme,
-  onToggleTheme,
-}: EditorToolbarProps) {
-  const view = editorRef.current;
+type Action = { label: string; icon: LucideIcon; run: (view: EditorView) => void };
 
-  const handleAction = (action: () => void) => {
-    if (!view) return;
-    action();
-  };
+const GROUPS: Action[][] = [
+  [
+    { label: "Bold (Ctrl+B)", icon: Bold, run: (v) => insertAtCursor(v, "**", "**") },
+    { label: "Italic (Ctrl+I)", icon: Italic, run: (v) => insertAtCursor(v, "*", "*") },
+    { label: "Heading", icon: Heading, run: (v) => insertLinePrefix(v, "## ") },
+  ],
+  [
+    { label: "Link (Ctrl+K)", icon: Link, run: (v) => insertAtCursor(v, "[", "](url)") },
+    { label: "Image", icon: ImageIcon, run: (v) => insertAtCursor(v, "![alt](", ")") },
+    { label: "Code block", icon: Code, run: (v) => insertAtCursor(v, "\n```\n", "\n```\n") },
+  ],
+  [
+    { label: "Bullet list", icon: List, run: (v) => insertLinePrefix(v, "- ") },
+    { label: "Ordered list", icon: ListOrdered, run: (v) => insertLinePrefix(v, "1. ") },
+    { label: "Horizontal rule", icon: Minus, run: (v) => insertAtCursor(v, "\n---\n", "") },
+  ],
+];
 
+const buttonClass =
+  "grid size-7 shrink-0 place-items-center rounded-md text-muted-foreground transition-colors duration-150 hover:bg-active hover:text-foreground";
+
+/** Formatting buttons for the Markdown pane head, plus the light/dark switch. */
+export function EditorToolbar({ editorRef, theme, onToggleTheme }: EditorToolbarProps) {
   return (
-    <div className="flex items-center gap-0.5 border-b border-border/60 bg-surface/50 px-3 py-1.5">
-      {/* Format group */}
-      <div className="flex items-center gap-0.5">
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          title="Bold (Ctrl+B)"
-          className="rounded-lg"
-          onClick={() => handleAction(() => insertAtCursor(view!, "**", "**"))}
-        >
-          <Bold className="size-4" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          title="Italic (Ctrl+I)"
-          className="rounded-lg"
-          onClick={() => handleAction(() => insertAtCursor(view!, "*", "*"))}
-        >
-          <Italic className="size-4" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          title="Heading"
-          className="rounded-lg"
-          onClick={() =>
-            handleAction(() => insertLinePrefix(view!, "## "))
-          }
-        >
-          <Heading className="size-4" />
-        </Button>
-      </div>
-
-      <div className="w-px h-5 bg-border/60 mx-1" />
-
-      {/* Insert group */}
-      <div className="flex items-center gap-0.5">
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          title="Link (Ctrl+K)"
-          className="rounded-lg"
-          onClick={() =>
-            handleAction(() => insertAtCursor(view!, "[", "](url)"))
-          }
-        >
-          <Link className="size-4" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          title="Image"
-          className="rounded-lg"
-          onClick={() =>
-            handleAction(() => insertAtCursor(view!, "![alt](", ")"))
-          }
-        >
-          <ImageIcon className="size-4" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          title="Code block"
-          className="rounded-lg"
-          onClick={() =>
-            handleAction(() => insertAtCursor(view!, "\n```\n", "\n```\n"))
-          }
-        >
-          <Code className="size-4" />
-        </Button>
-      </div>
-
-      <div className="w-px h-5 bg-border/60 mx-1" />
-
-      {/* List group */}
-      <div className="flex items-center gap-0.5">
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          title="Bullet list"
-          className="rounded-lg"
-          onClick={() =>
-            handleAction(() => insertLinePrefix(view!, "- "))
-          }
-        >
-          <List className="size-4" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          title="Ordered list"
-          className="rounded-lg"
-          onClick={() =>
-            handleAction(() => insertLinePrefix(view!, "1. "))
-          }
-        >
-          <ListOrdered className="size-4" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          title="Horizontal rule"
-          className="rounded-lg"
-          onClick={() =>
-            handleAction(() => insertAtCursor(view!, "\n---\n", ""))
-          }
-        >
-          <Minus className="size-4" />
-        </Button>
-      </div>
-
-      <div className="ml-auto">
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          title="Toggle theme"
-          className="rounded-lg"
-          onClick={onToggleTheme}
-        >
-          {theme === "dark" ? (
-            <Sun className="size-4" />
-          ) : (
-            <Moon className="size-4" />
-          )}
-        </Button>
-      </div>
+    <div role="toolbar" aria-label="Formatting" className="flex min-w-0 items-center gap-0.5 overflow-x-auto [scrollbar-width:none]">
+      {GROUPS.map((group, i) => (
+        <div key={i} className="flex items-center gap-0.5">
+          {i > 0 && <span aria-hidden className="mx-1 h-4 w-px bg-rule" />}
+          {group.map(({ label, icon: Icon, run }) => (
+            <button
+              key={label}
+              type="button"
+              title={label}
+              aria-label={label}
+              className={buttonClass}
+              onClick={() => {
+                const view = editorRef.current;
+                if (view) run(view);
+              }}
+            >
+              <Icon className="size-4" strokeWidth={1.5} />
+            </button>
+          ))}
+        </div>
+      ))}
+      <span aria-hidden className="mx-1 h-4 w-px bg-rule" />
+      <button
+        type="button"
+        title={theme === "dark" ? "Light theme" : "Dark theme"}
+        aria-label={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
+        className={buttonClass}
+        onClick={onToggleTheme}
+      >
+        {theme === "dark" ? <Sun className="size-4" strokeWidth={1.5} /> : <Moon className="size-4" strokeWidth={1.5} />}
+      </button>
     </div>
   );
 }

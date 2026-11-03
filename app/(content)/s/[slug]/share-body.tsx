@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation";
 import { PasswordGate } from "@/components/password-gate";
 import { ShareContentArea } from "@/components/share-content-area";
-import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getShareContent, type ShareMeta } from "@/lib/share-data";
 import type { ShareFilePayload } from "@/types/share-content";
@@ -20,11 +19,12 @@ interface ShareBodyProps {
 
 export function ShareBodySkeleton() {
   return (
-    <Card className="animate-fade-in">
-      <CardContent className="p-2">
-        <Skeleton className="h-[60vh] w-full" />
-      </CardContent>
-    </Card>
+    <div role="status" aria-label="Loading the shared page" className="grid max-w-[720px] gap-4">
+      <Skeleton className="h-6 w-3/4 rounded-none" />
+      <Skeleton className="h-6 w-full rounded-none" />
+      <Skeleton className="h-6 w-5/6 rounded-none" />
+      <Skeleton className="h-[40vh] w-full rounded-none" />
+    </div>
   );
 }
 

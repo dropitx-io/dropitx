@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useMemo } from "react";
 import { Download, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { squareButton } from "@/app/(content)/_ui/public-styles";
 import { useBlobUrl } from "@/hooks/use-blob-url";
 import { canPreview } from "@/lib/file-utils";
 
@@ -42,16 +42,17 @@ export function BinaryShareContent({ content, filename, mimeType }: BinaryShareC
 
   if (failed) {
     return (
-      <div className="flex h-[80vh] items-center justify-center rounded-lg border border-destructive/30 bg-destructive/5">
-        <p className="text-sm text-destructive">Could not decode this file.</p>
+      <div className="flex h-[80vh] items-center justify-center bg-pill-negative">
+        <p role="alert" className="text-[17px] text-pill-negative-foreground">Could not decode this file.</p>
       </div>
     );
   }
 
   if (!objectUrl) {
     return (
-      <div className="flex h-[80vh] items-center justify-center">
-        <Loader2 className="size-6 animate-spin text-muted-foreground" />
+      <div role="status" className="flex h-[80vh] items-center justify-center text-muted-foreground">
+        <Loader2 className="size-6 animate-spin" aria-hidden="true" />
+        <span className="sr-only">Preparing the file</span>
       </div>
     );
   }
@@ -65,7 +66,7 @@ export function BinaryShareContent({ content, filename, mimeType }: BinaryShareC
 
   if (previewable && isImage) {
     return (
-      <div className="relative h-[80vh] w-full overflow-hidden rounded-lg border border-border bg-muted/20 p-2">
+      <div className="relative h-[80vh] w-full overflow-hidden bg-surface p-2">
         <Image
           src={objectUrl}
           alt={displayName}
@@ -84,7 +85,7 @@ export function BinaryShareContent({ content, filename, mimeType }: BinaryShareC
         src={objectUrl}
         sandbox=""
         title={displayName}
-        className="h-[80vh] w-full rounded-lg border border-border bg-background"
+        className="h-[80vh] w-full bg-card"
       />
     );
   }
@@ -94,7 +95,7 @@ export function BinaryShareContent({ content, filename, mimeType }: BinaryShareC
       <iframe
         src={objectUrl}
         title={displayName}
-        className="h-[80vh] w-full rounded-lg border border-border bg-background"
+        className="h-[80vh] w-full bg-card"
       />
     );
   }
@@ -104,27 +105,22 @@ export function BinaryShareContent({ content, filename, mimeType }: BinaryShareC
       <video
         controls
         src={objectUrl}
-        className="h-[80vh] w-full rounded-lg border border-border bg-black"
+        className="h-[80vh] w-full bg-black"
       />
     );
   }
 
   if (previewable && isAudio) {
-    return <audio controls src={objectUrl} className="w-full rounded-lg border border-border" />;
+    return <audio controls src={objectUrl} className="w-full" />;
   }
 
   return (
-    <div className="flex h-[80vh] flex-col items-center justify-center gap-4 rounded-lg border border-border bg-muted/20 p-6 text-center">
-      <p className="max-w-full truncate text-sm font-medium text-foreground">{displayName}</p>
-      <Button
-        nativeButton={false}
-        render={<a href={objectUrl} download={downloadName} />}
-        variant="outline"
-        className="gap-1.5"
-      >
-        <Download className="size-4" />
+    <div className="flex h-[60vh] flex-col items-center justify-center gap-5 bg-surface p-6 text-center">
+      <p className="max-w-full truncate text-[clamp(18px,1.05rem+0.3vw,21px)] font-medium text-foreground">{displayName}</p>
+      <a href={objectUrl} download={downloadName} className={squareButton("quiet")}>
+        <Download className="size-4" aria-hidden="true" />
         Download
-      </Button>
+      </a>
     </div>
   );
 }

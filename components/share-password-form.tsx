@@ -75,7 +75,7 @@ export function SharePasswordForm({
   };
 
   return (
-    <form onSubmit={handleSet} className="flex flex-col gap-3 border border-dashed border-accent-line rounded-lg p-3 mt-2">
+    <form onSubmit={handleSet} className="mt-2 flex flex-col gap-3 rounded-lg bg-raised p-3">
       <div className="flex items-center gap-2 text-sm font-medium">
         <Lock className="size-4 shrink-0" />
         Password Protection
@@ -100,7 +100,7 @@ export function SharePasswordForm({
         className="h-10 rounded-md"
       />
 
-      {error && <p className="text-xs text-destructive">{error}</p>}
+      {error && <p className="text-[13px] text-destructive">{error}</p>}
 
       <div className="flex items-center gap-2">
         <Button type="submit" size="sm" disabled={loading || !password} className="rounded-md">

@@ -92,6 +92,9 @@ export async function getAllShares(): Promise<ShareListItem[]> {
     view_count: s.view_count,
     created_at: s.created_at,
     has_password: s.has_password,
+    expires_at: s.expires_at,
+    burn_after_reading: s.burn_after_reading,
+    burned: s.burned,
   }));
 }
 
@@ -156,6 +159,9 @@ export async function getTeamShares(slug: string): Promise<TeamShareRow[]> {
       file_size: row.shares.file_size,
       created_at: row.shares.created_at,
       has_password: row.shares.has_password,
+      expires_at: row.shares.expires_at,
+      burn_after_reading: row.shares.burn_after_reading,
+      burned: row.shares.burned,
     },
   }));
 }

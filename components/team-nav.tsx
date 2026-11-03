@@ -3,76 +3,74 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Users, Plus } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface TeamNavItem {
   slug: string;
   name: string;
 }
 
-interface TeamNavProps {
-  teams: TeamNavItem[];
-}
+const ROW =
+  "flex h-8 items-center gap-2.5 rounded-lg px-2 text-sm text-muted-foreground transition-colors duration-150 hover:bg-active hover:text-card-foreground";
 
-/** Sidebar team section — renders team links + create button with new styling. */
-export function TeamNav({ teams }: TeamNavProps) {
+/** Sidebar team section: one row per team and a row to create one. */
+export function TeamNav({ teams }: { teams: TeamNavItem[] }) {
   const pathname = usePathname();
 
-  if (teams.length === 0) {
-    return (
-      <Link
-        href="/dashboard/teams/new"
-        className="flex items-center gap-3 rounded-full px-3 py-2 text-sm hover:bg-fg-soft transition-colors duration-200 text-muted-foreground"
-      >
-        <Plus className="size-4" />
-        Create Team
-      </Link>
-    );
-  }
-
   return (
-    <div className="space-y-1">
+    <div className="grid gap-0.5">
       {teams.map((t) => {
         const isActive = pathname === `/dashboard/teams/${t.slug}`;
         return (
           <Link
             key={t.slug}
             href={`/dashboard/teams/${t.slug}`}
-            className={`flex items-center gap-3 rounded-full px-3 py-2 text-sm transition-colors duration-200 ${
-              isActive
-                ? "bg-fg-soft text-foreground font-medium"
-                : "hover:bg-fg-soft"
-            }`}
+            aria-current={isActive ? "page" : undefined}
+            className={cn(ROW, isActive && "bg-active font-medium text-card-foreground")}
           >
-            <Users className="size-4" />
+            <Users className="size-4" strokeWidth={1.5} />
             <span className="truncate">{t.name}</span>
           </Link>
         );
       })}
-      <Link
-        href="/dashboard/teams/new"
-        className="flex items-center gap-3 rounded-full px-3 py-2 text-sm hover:bg-fg-soft transition-colors duration-200 text-muted-foreground"
-      >
-        <Plus className="size-4" />
-        Create Team
+      <Link href="/dashboard/teams/new" className={ROW}>
+        <Plus className="size-4" strokeWidth={1.5} />
+        Create team
       </Link>
     </div>
   );
 }
 
-/** Mobile team nav — single link to teams list page with active state. */
-export function TeamNavMobile() {
+/** Tabs across one team's pages; Settings shows only for the owner, who is the only one allowed to change it. */
+export function TeamTabs({ slug, isOwner }: { slug: string; isOwner: boolean }) {
   const pathname = usePathname();
-  const isActive = pathname.startsWith("/dashboard/teams");
+  const base = `/dashboard/teams/${slug}`;
+  const tabs = [
+    { href: base, label: "Overview" },
+    { href: `${base}/members`, label: "Members" },
+    ...(isOwner ? [{ href: `${base}/settings`, label: "Settings" }] : []),
+  ];
 
   return (
-    <Link
-      href="/dashboard/teams"
-      className={`flex flex-col items-center justify-center gap-1 text-xs min-h-[44px] min-w-[44px] transition-colors ${
-        isActive ? "text-foreground" : "text-muted-foreground hover:text-foreground"
-      }`}
-    >
-      <Users className="size-4" />
-      Teams
-    </Link>
+    <nav aria-label="Team" className="mb-6 flex gap-6 overflow-x-auto border-b border-border">
+      {tabs.map((tab) => {
+        const current = pathname === tab.href;
+        return (
+          <Link
+            key={tab.href}
+            href={tab.href}
+            aria-current={current ? "page" : undefined}
+            className={cn(
+              "relative shrink-0 py-2.5 text-sm transition-colors duration-150",
+              current
+                ? "font-medium text-card-foreground after:absolute after:inset-x-0 after:-bottom-px after:h-0.5 after:bg-card-foreground"
+                : "text-muted-foreground hover:text-card-foreground",
+            )}
+          >
+            {tab.label}
+          </Link>
+        );
+      })}
+    </nav>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Bell, Loader2 } from "lucide-react";
+import { Bell } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useAuthUser } from "@/lib/use-auth-user";
@@ -28,11 +28,11 @@ interface Invite {
 function formatTimeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
   const mins = Math.floor(diff / 60000);
-  if (mins < 60) return `${mins}m ago`;
+  if (mins < 60) return `${Math.max(1, mins)} min ago`;
   const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
+  if (hrs < 24) return `${hrs} h ago`;
   const days = Math.floor(hrs / 24);
-  return `${days}d ago`;
+  return days === 1 ? "yesterday" : `${days} days ago`;
 }
 
 export function InviteNotificationBell() {
@@ -85,7 +85,7 @@ export function InviteNotificationBell() {
         body: JSON.stringify({ token }),
       });
       if (res.ok) {
-        toast.success("Joined team!");
+        toast.success("Joined the team");
         setInvites((prev) => prev.filter((i) => i.token !== token));
         router.push(`/dashboard/teams/${teamSlug}`);
       } else {
@@ -118,60 +118,50 @@ export function InviteNotificationBell() {
   return (
     <Popover>
       <PopoverTrigger
-        className="relative p-2 hover:bg-muted rounded-md text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-        aria-label={`Notifications${count > 0 ? ` (${count} pending)` : ""}`}
+        className="relative grid size-8 cursor-pointer place-items-center rounded-md text-muted-foreground transition-colors duration-150 hover:bg-active hover:text-foreground max-md:size-11"
+        aria-label={`Invitations${count > 0 ? ` (${count} pending)` : ""}`}
       >
-        <Bell className="size-[18px]" />
+        <Bell className="size-4" strokeWidth={1.5} />
         {count > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-white">
+          <span className="absolute right-0.5 top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-primary px-1 text-[11px] font-medium tabular-nums leading-none text-primary-foreground max-md:right-1.5 max-md:top-1.5">
             {count}
           </span>
         )}
       </PopoverTrigger>
-      <PopoverContent className="w-80 p-3" align="end">
-        <PopoverHeader>
-          <PopoverTitle>Pending Invitations</PopoverTitle>
+      <PopoverContent className="w-80 gap-2 p-2 shadow-none ring-1 ring-border" align="end">
+        <PopoverHeader className="px-1 pt-1">
+          <PopoverTitle>Team invitations</PopoverTitle>
         </PopoverHeader>
-        {loading && invites.length === 0 && (
-          <div className="flex items-center justify-center py-6 text-muted-foreground">
-            <Loader2 className="size-4 animate-spin mr-2" /> Loading...
-          </div>
-        )}
-        {!loading && invites.length === 0 && (
-          <p className="text-sm text-muted-foreground py-4 text-center">
-            No pending invitations
+        {invites.length === 0 && (
+          <p className="px-1 pb-2 text-sm text-muted-foreground">
+            {loading ? "Checking for invitations." : "No invitations waiting for you."}
           </p>
         )}
-        <div className="flex flex-col gap-2 max-h-72 overflow-y-auto">
+        <div className="flex max-h-72 flex-col gap-2 overflow-y-auto">
           {invites.map((invite) => (
-            <div key={invite.id} className="rounded-md border p-2.5">
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <p className="font-medium text-sm truncate">{invite.teams.name}</p>
-                  <p className="text-xs text-muted-foreground">
-                    from {invite.user_profiles?.display_name ?? "a teammate"} · {invite.role} · {formatTimeAgo(invite.created_at)}
-                  </p>
-                </div>
-              </div>
-              <div className="flex gap-2 mt-2">
+            <div key={invite.id} className="rounded-md border border-border p-2.5">
+              <p className="truncate text-sm font-medium">{invite.teams.name}</p>
+              <p className="text-xs text-muted-foreground">
+                From {invite.user_profiles?.display_name ?? "a teammate"}, as {invite.role},{" "}
+                <span className="tabular-nums">{formatTimeAgo(invite.created_at)}</span>
+              </p>
+              <div className="mt-2 flex gap-2">
                 <Button
                   size="sm"
-                  className="flex-1 h-7 text-xs"
+                  className="flex-1"
                   disabled={!!loadingAction}
                   onClick={() => handleAccept(invite.token, invite.teams.slug)}
                 >
-                  {loadingAction === `accept:${invite.token}` && <Loader2 className="size-3 animate-spin" />}
-                  Accept
+                  {loadingAction === `accept:${invite.token}` ? "Joining" : "Join team"}
                 </Button>
                 <Button
                   size="sm"
                   variant="outline"
-                  className="flex-1 h-7 text-xs"
+                  className="flex-1"
                   disabled={!!loadingAction}
                   onClick={() => handleDecline(invite.token)}
                 >
-                  {loadingAction === `decline:${invite.token}` && <Loader2 className="size-3 animate-spin" />}
-                  Decline
+                  {loadingAction === `decline:${invite.token}` ? "Declining" : "Decline"}
                 </Button>
               </div>
             </div>

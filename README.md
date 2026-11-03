@@ -32,7 +32,7 @@ Drop HTML and Markdown files, write in the built-in editor, and get short sharea
 - **TypeScript** (strict mode)
 - **Firebase Auth** (Google, GitHub, email/password)
 - **CodeMirror 6** (Markdown editor, SSR-disabled)
-- **Tailwind CSS 4** + shadcn/ui (Clay design system — light-first, warm cream, terracotta accent, organic radii)
+- **Tailwind CSS 4** + shadcn/ui (Olive on bone design system, see docs/design-guidelines.md)
 - **CLI**: `dropitx-cli` — Python, published to PyPI as `dropitx`
 
 ## Getting Started

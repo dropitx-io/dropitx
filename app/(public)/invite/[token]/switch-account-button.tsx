@@ -7,8 +7,8 @@
  */
 
 import { useState } from "react";
-import { Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { small, squareButton } from "@/app/(content)/_ui/public-styles";
+import { cn } from "@/lib/utils";
 import { useAuth } from "@/components/auth-provider";
 
 interface SwitchAccountButtonProps {
@@ -34,16 +34,17 @@ export function SwitchAccountButton({ loginUrl }: SwitchAccountButtonProps) {
   }
 
   return (
-    <div className="mt-6 space-y-2">
+    <div className="mt-3 grid gap-3">
       {error && (
-        <p role="alert" className="text-sm text-destructive">
+        <p role="alert" className={cn(small, "font-medium text-destructive")}>
           {error}
         </p>
       )}
-      <Button onClick={handleClick} disabled={pending} className="w-full">
-        {pending && <Loader2 className="mr-2 size-4 animate-spin" />}
-        Sign in with a different account
-      </Button>
+      <div>
+        <button type="button" onClick={handleClick} disabled={pending} aria-busy={pending} className={squareButton()}>
+          {pending ? "Signing you out" : "Sign in with a different account"}
+        </button>
+      </div>
     </div>
   );
 }

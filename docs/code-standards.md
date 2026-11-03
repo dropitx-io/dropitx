@@ -127,13 +127,11 @@ Never import `lib/firebase/server.ts` in a client component — server-only.
 - Token naming: `--{namespace}-{property}-{variant}` (e.g., `--primary`, `--accent-soft`, `--sidebar-ring`)
 - `cn()` from `lib/utils.ts` for conditional class merging (clsx + tailwind-merge)
 - Component variants via `class-variance-authority`
-- **Light-first default**: Clay system uses warm cream (#f7eee6) canvas with optional `.dark` companion for accessibility
-- **Font usage**: `font-sans` (Inter) for all text/headings, `font-mono` (Geist Mono) for labels/code/metadata
-- **Chart colors**: Use `--chart-1` through `--chart-5` tokens for data visualization — terracotta, matcha, blueberry, lemon, ube
-- **Token colors**: All CSS variables in `app/globals.css` use hex for light mode (primary), `.dark` selector for dark companion
-- **Primary accent**: `--primary` is terracotta (#9a5b3c), `--background` is warm cream (#f7eee6)
-- **Radius tokens**: Clay uses generous, organic radii (14px, 22px, 34px, pill 9999px) — hardcoded, no calc
-- **Shadows**: `--shadow` uses layered elevation (dark drop + light inset highlight) for three-dimensionality
+- **Design system**: Olive on bone, documented in `docs/design-guidelines.md`; tokens in `app/globals.css` (light in `:root`, companion in `.dark`)
+- **Font usage**: Newsreader (`.type-page`, `.display`) on marketing pages; Roboto (`font-sans`) in the app with `tabular-nums` on figures; `font-mono` only for code, slugs and keys
+- **Chart colors**: one data hue, `--chart-1` (olive), on the main series; other series in the grey `--chart-2..5`
+- **Radius tokens**: 4px chips, 6px controls, 8px cards, 16px the app sheet; page buttons are square
+- **Shadows**: none at rest; `--shadow-float` only for menus, dialogs and toasts
 - 8pt spacing grid: use even Tailwind spacing values
 
 ## Security

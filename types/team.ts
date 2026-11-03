@@ -80,6 +80,9 @@ export interface TeamShareRow {
     file_size: number | null;
     created_at: string | null;
     has_password?: boolean;
+    expires_at?: string | null;
+    burn_after_reading?: boolean;
+    burned?: boolean;
   } | null;
 }
 

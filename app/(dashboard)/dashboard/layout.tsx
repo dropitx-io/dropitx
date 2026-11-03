@@ -1,9 +1,9 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/firebase/server";
-import { AccountNotProvisionedError, getShareTotals, getTeams } from "@/lib/dashboard-data";
 import { AccountSetupState } from "@/components/account-setup-state";
 import { DashboardShell } from "@/components/dashboard-shell";
+import { loadShellProps } from "@/components/app-shell/load-shell-props";
 
 export default async function DashboardLayout({
   children,
@@ -11,44 +11,11 @@ export default async function DashboardLayout({
   children: React.ReactNode;
 }) {
   const cookieStore = await cookies();
-  const user = await getSessionUser(cookieStore);
+  const session = await getSessionUser(cookieStore);
 
-  if (!user) redirect("/auth/login");
+  if (!session) redirect("/auth/login");
 
-  const displayName = user.name ?? user.email?.split("@")[0] ?? "User";
-  const email = user.email ?? "";
-  const initials = displayName
-    .split(/\s+/)
-    .map((s) => s[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
+  const { needsSetup, ...shell } = await loadShellProps(session);
 
-  let teams: { slug: string; name: string }[] = [];
-  let storageUsedBytes: number | null = null;
-  let content: React.ReactNode = children;
-  try {
-    const memberships = await getTeams();
-    teams = memberships.flatMap((m) =>
-      m.teams ? [{ slug: m.teams.slug, name: m.teams.name }] : [],
-    );
-    try {
-      storageUsedBytes = (await getShareTotals()).total_size;
-    } catch (err) {
-      console.error("dashboard layout: storage total unavailable", err);
-    }
-  } catch (err) {
-    if (!(err instanceof AccountNotProvisionedError)) throw err;
-    content = <AccountSetupState />;
-  }
-
-  return (
-    <DashboardShell
-      user={{ displayName, email, initials }}
-      teams={teams}
-      storageUsedBytes={storageUsedBytes}
-    >
-      {content}
-    </DashboardShell>
-  );
+  return <DashboardShell {...shell}>{needsSetup ? <AccountSetupState /> : children}</DashboardShell>;
 }

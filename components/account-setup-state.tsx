@@ -2,9 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { UserRoundCog, Loader2 } from "lucide-react";
+import { UserRoundCog } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { apiErrorDetail, authFetch } from "@/lib/api-client";
 
 /** Shown when the API does not know the signed-in account yet; Retry provisions it and reloads. */
@@ -28,24 +27,18 @@ export function AccountSetupState() {
   }
 
   return (
-    <div className="flex flex-1 items-center justify-center p-4">
-      <Card className="w-full max-w-md text-center">
-        <CardHeader className="items-center gap-3 pb-2">
-          <div className="flex size-14 items-center justify-center rounded-lg bg-primary/10">
-            <UserRoundCog className="size-7 text-primary" />
-          </div>
-          <CardTitle className="text-xl">Setting up your account</CardTitle>
-          <CardDescription>
-            Your account is not ready yet. Try again in a moment.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex-col justify-center gap-3">
-          {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
-          <Button onClick={handleRetry} disabled={retrying}>
-            {retrying ? <Loader2 className="size-4 animate-spin" /> : "Retry"}
-          </Button>
-        </CardContent>
-      </Card>
+    <div>
+      <h1 className="text-2xl font-semibold tracking-[-0.01em] text-card-foreground max-sm:text-[22px]">Setting up your account</h1>
+      <p className="mb-5 mt-1 text-sm text-muted-foreground">Your account is not ready yet. Try again in a moment.</p>
+      <div className="flex flex-wrap items-center gap-2.5 rounded-lg border border-border px-3.5 py-3 text-sm">
+        <UserRoundCog className="size-4 shrink-0 text-muted-foreground" strokeWidth={1.5} aria-hidden />
+        <span className="min-w-0 flex-1">
+          {error ? <span role="alert" className="text-destructive">{error}</span> : "The API has not created your account record yet."}
+        </span>
+        <Button size="sm" variant="outline" onClick={handleRetry} disabled={retrying}>
+          {retrying ? "Retrying" : "Retry"}
+        </Button>
+      </div>
     </div>
   );
 }

@@ -1,6 +1,5 @@
 "use client";
 
-import { Card, CardContent } from "@/components/ui/card";
 import { CommentsSection } from "@/components/comments-section";
 import { RevealShareContent } from "@/components/reveal-share-content";
 import { ShareFileContent } from "@/components/share-file-content";
@@ -53,15 +52,13 @@ export function ShareContentArea({
         />
       ) : (
         <>
-          <Card>
-            <CardContent className={isMarkdown && content?.encoding !== "base64" ? "p-4 md:p-6" : "p-2"}>
-              {content === null ? (
-                <RevealShareContent slug={slug} filename={filename} mimeType={mimeType} />
-              ) : (
-                <ShareFileContent content={content} filename={filename} mimeType={mimeType} />
-              )}
-            </CardContent>
-          </Card>
+          <div className={isMarkdown && content?.encoding !== "base64" ? "max-w-[720px]" : undefined}>
+            {content === null ? (
+              <RevealShareContent slug={slug} filename={filename} mimeType={mimeType} />
+            ) : (
+              <ShareFileContent content={content} filename={filename} mimeType={mimeType} />
+            )}
+          </div>
           <CommentsSection slug={slug} isAuthenticated={isAuthenticated} />
         </>
       )}

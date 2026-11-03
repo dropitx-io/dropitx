@@ -2,9 +2,6 @@
 
 import { cn } from "@/lib/utils";
 import { getFileIcon, formatFileSize, getFileTypeLabel } from "@/lib/file-utils";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Download, ExternalLink } from "lucide-react";
 
 export interface FileEntry {
   slug: string;
@@ -26,17 +23,10 @@ export function FileListSidebar({ files, activeSlug, onSelect, className }: File
   if (files.length <= 1) return null;
 
   return (
-    <div
-      className={cn(
-        "w-64 shrink-0 border-r border-border/60 bg-muted/20 overflow-y-auto",
-        className
-      )}
-    >
+    <div className={cn("w-64 shrink-0 overflow-y-auto bg-surface", className)}>
       <div className="p-3">
-        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-          Files ({files.length})
-        </h3>
-        <div className="space-y-1">
+        <p className="mb-2 px-2 text-[14px] text-muted-foreground">{files.length} files</p>
+        <div className="grid gap-1">
           {files.map((file) => {
             const isActive = file.slug === activeSlug;
             const Icon = getFileIcon(file.filename, file.mime_type);
@@ -44,39 +34,25 @@ export function FileListSidebar({ files, activeSlug, onSelect, className }: File
             return (
               <button
                 key={file.slug}
+                type="button"
                 onClick={() => onSelect(file.slug)}
+                aria-current={isActive ? "true" : undefined}
                 className={cn(
-                  "w-full flex items-start gap-2.5 rounded-lg p-2.5 text-left transition-colors",
-                  isActive
-                    ? "bg-primary/10 border border-primary/20"
-                    : "hover:bg-muted/50 border border-transparent"
+                  "flex w-full items-start gap-2.5 p-2.5 text-left transition-colors",
+                  isActive ? "bg-background" : "hover:bg-active"
                 )}
               >
                 <Icon
-                  className={cn(
-                    "size-4 shrink-0 mt-0.5",
-                    isActive ? "text-primary" : "text-muted-foreground"
-                  )}
+                  className={cn("mt-1 size-4 shrink-0", isActive ? "text-foreground" : "text-muted-foreground")}
                 />
-                <div className="flex-1 min-w-0">
-                  <p
-                    className={cn(
-                      "text-sm truncate",
-                      isActive ? "font-medium text-foreground" : "text-foreground/80"
-                    )}
-                  >
+                <div className="min-w-0 flex-1">
+                  <p className={cn("truncate text-[15px]", isActive ? "font-medium text-foreground" : "text-foreground/80")}>
                     {file.filename}
                   </p>
-                  <div className="flex items-center gap-1.5 mt-0.5">
-                    <Badge variant="ghost" className="text-[10px] px-1 py-0 h-3.5">
-                      {getFileTypeLabel(file.filename, file.mime_type)}
-                    </Badge>
-                    {file.file_size != null && (
-                      <span className="text-[10px] text-muted-foreground">
-                        {formatFileSize(file.file_size)}
-                      </span>
-                    )}
-                  </div>
+                  <p className="mt-0.5 text-[13px] text-muted-foreground">
+                    {getFileTypeLabel(file.filename, file.mime_type)}
+                    {file.file_size != null && <>, {formatFileSize(file.file_size)}</>}
+                  </p>
                 </div>
               </button>
             );

@@ -1,19 +1,10 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import Link from "next/link";
 import { getSessionUser } from "@/lib/firebase/server";
 import { AccountNotProvisionedError, getFavorites } from "@/lib/dashboard-data";
 import { AccountSetupState } from "@/components/account-setup-state";
-import { Heart, Star, Copy } from "lucide-react";
-import type { ShareListItem } from "@/types/share";
-
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-}
+import { LinksTable } from "@/components/links/links-table";
+import { formatShortDate, personalLinkRows } from "@/components/links/link-rows";
 
 export default async function FavoritesPage() {
   const cookieStore = await cookies();
@@ -21,7 +12,7 @@ export default async function FavoritesPage() {
 
   if (!user) redirect("/auth/login");
 
-  let shares: (ShareListItem & { favorited_at: string })[];
+  let shares: Awaited<ReturnType<typeof getFavorites>>;
   try {
     shares = await getFavorites();
   } catch (err) {
@@ -29,69 +20,27 @@ export default async function FavoritesPage() {
     throw err;
   }
 
+  // The API lists favorites most recently saved first.
+  const lastSaved = shares[0] ? formatShortDate(shares[0].favorited_at) : null;
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="font-display text-[22px] font-bold tracking-tight">Favorites</h1>
-        <p className="mt-1 text-[13px] text-muted-foreground">
-          Shares you&apos;ve bookmarked for quick access.
+    <div>
+      <h1 className="text-2xl font-semibold tracking-[-0.01em] text-card-foreground max-sm:text-[22px]">Favorites</h1>
+      {lastSaved ? (
+        <p className="mb-6 mt-1 text-sm text-muted-foreground">
+          {shares.length.toLocaleString("en")} saved {shares.length === 1 ? "link" : "links"}, the last one on {lastSaved}.
         </p>
-      </div>
+      ) : (
+        <div className="mb-5" />
+      )}
 
       {shares.length === 0 ? (
-        <div className="grid place-items-center rounded-[34px] border-2 border-dashed border-border bg-card py-16 text-center clay-raised">
-          <span className="mb-4 grid size-12 place-items-center rounded-[22px] bg-primary/9 text-primary clay-raised">
-            <Heart className="size-5" />
-          </span>
-          <p className="font-display text-lg font-bold">No favorites yet</p>
-          <p className="mb-4 mt-1 text-sm text-muted-foreground">
-            Bookmark shares to pin them here for quick access.
-          </p>
-        </div>
+        <p className="rounded-lg border border-dashed border-input px-3 py-2 text-sm text-muted-foreground">
+          No favorites yet. Bookmark a page from its share view to keep it here.
+        </p>
       ) : (
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {shares.map((share) => (
-            <div
-              key={share.id}
-              className="flex flex-col rounded-[22px] bg-card p-5 clay-raised"
-            >
-              <div className="mb-3 grid h-24 place-items-center rounded-[14px] border border-dashed border-border bg-background">
-                <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground/70">[ thumb ]</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <p className="flex-1 truncate text-[14.5px] font-semibold">
-                  {share.title || share.filename || share.slug}
-                </p>
-                <Star className="size-3.5 fill-primary text-primary" />
-              </div>
-              <div className="mt-1 flex items-center gap-2 text-[11px] text-muted-foreground">
-                <span className="rounded-full bg-surface-warm px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-[0.05em] text-fg-soft">
-                  {share.mime_type?.split("/")[1]?.toUpperCase() || "FILE"}
-                </span>
-                <span className="font-mono">{share.view_count.toLocaleString()} views</span>
-              </div>
-              <div className="mt-3.5 flex items-center gap-1.5 border-t border-border-soft pt-3">
-                <Link
-                  href={`/s/${share.slug}`}
-                  className="rounded-full bg-background px-3 py-1.5 text-xs font-semibold clay-raised transition-transform hover:-translate-y-px"
-                >
-                  Open
-                </Link>
-                <button
-                  type="button"
-                  className="flex items-center gap-1 rounded-full bg-background px-3 py-1.5 text-xs font-semibold clay-raised transition-transform hover:-translate-y-px"
-                >
-                  <Copy className="size-3" /> Copy
-                </button>
-                <span className="ml-auto font-mono text-[11px] text-muted-foreground">
-                  Added {formatDate(share.favorited_at)}
-                </span>
-              </div>
-            </div>
-          ))}
-        </div>
+        <LinksTable rows={personalLinkRows(shares)} />
       )}
     </div>
   );
 }
-

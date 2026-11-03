@@ -13,18 +13,17 @@ export const EditorPreview = forwardRef<HTMLDivElement, EditorPreviewProps>(
   function EditorPreview({ content, headings }, ref) {
     if (!content.trim()) {
       return (
-        <div
-          ref={ref}
-          className="flex h-full items-center justify-center text-muted-foreground"
-        >
-          <p>Nothing to preview yet. Start writing on the left.</p>
+        <div ref={ref} className="absolute inset-0 overflow-auto px-8 py-7 text-sm text-muted-foreground max-sm:px-4">
+          <p>Nothing to preview yet. What you write in Markdown appears here as readers will see it.</p>
         </div>
       );
     }
 
     return (
-      <div ref={ref} className="h-full overflow-auto p-4">
-        <MarkdownViewer content={content} headings={headings} />
+      <div ref={ref} className="absolute inset-0 overflow-auto px-8 pb-12 pt-7 max-sm:px-4">
+        <div className="max-w-[65ch]">
+          <MarkdownViewer content={content} headings={headings} />
+        </div>
       </div>
     );
   }

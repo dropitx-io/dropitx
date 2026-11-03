@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Check, Copy } from "lucide-react";
 import { CLI_INSTALL_COMMAND } from "@/lib/cli-install";
+import { squareButton } from "@/app/(content)/_ui/public-styles";
 
 export function CopyInstallButton() {
   const [copied, setCopied] = useState(false);
@@ -13,7 +14,7 @@ export function CopyInstallButton() {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      // Clipboard API unavailable — the command text stays visible/selectable.
+      // Clipboard API unavailable: the command text stays visible and selectable.
     }
   }
 
@@ -21,15 +22,14 @@ export function CopyInstallButton() {
     <button
       type="button"
       onClick={handleCopy}
-      aria-label={copied ? "Copied" : "Copy install command"}
-      className="inline-flex h-11 items-center gap-2 rounded-full bg-card px-4.5 text-sm font-semibold clay-raised transition-transform hover:-translate-y-px"
+      className={squareButton("quiet", "small")}
     >
       {copied ? (
-        <Check className="size-4 text-success" strokeWidth={2.4} />
+        <Check className="size-4" strokeWidth={2.4} />
       ) : (
         <Copy className="size-4" />
       )}
-      {copied ? "Copied" : "Copy"}
+      {copied ? "Copied" : "Copy the install command"}
     </button>
   );
 }

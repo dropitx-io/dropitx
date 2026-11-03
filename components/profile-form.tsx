@@ -2,16 +2,15 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { useAuth } from "@/components/auth-provider";
 import { apiErrorDetail } from "@/lib/api-client";
-import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { User, LogOut, Loader2 } from "lucide-react";
-import { toast } from "sonner";
-import { ProfilePublicSection, type ProfileSaveResult } from "@/components/profile-public-section";
+import { usernameError } from "@/lib/username";
 import { putProfile, type ProfileResponseBody } from "@/lib/profile-api";
+import { Button } from "@/components/ui/button";
+import { Field, INPUT, SettingsRow } from "@/components/team/settings-row";
+import { PersonAvatar } from "@/components/team/person-avatar";
 
 interface ProfileFormProps {
   userId: string;
@@ -20,40 +19,34 @@ interface ProfileFormProps {
   username: string | null;
   isPublic: boolean;
   email: string;
-  providers: string[];
+  /** Host shown before the username, e.g. dropitx.site. */
+  siteHost: string;
 }
 
-export function ProfileForm({
-  displayName,
-  avatarUrl,
-  username: initialUsername,
-  isPublic: initialIsPublic,
-  email,
-  providers,
-}: ProfileFormProps) {
+type SaveResult = { ok: true } | { ok: false; status: number; message: string };
+
+const SWITCH =
+  "relative h-5 w-8 shrink-0 cursor-pointer appearance-none rounded-full bg-input transition-colors duration-200 after:absolute after:top-0.5 after:left-0.5 after:size-4 after:rounded-full after:bg-sheet after:transition-transform after:duration-200 checked:bg-card-foreground checked:after:translate-x-3 disabled:cursor-not-allowed";
+
+export function ProfileForm({ userId, displayName, avatarUrl, username: initialUsername, isPublic: initialIsPublic, email, siteHost }: ProfileFormProps) {
   const router = useRouter();
   const { signOut } = useAuth();
-  const [name, setName] = useState(displayName);
-  const [saving, setSaving] = useState(false);
-  const [signingOut, setSigningOut] = useState(false);
-
-  const initial = (name || email || "U")[0].toUpperCase();
-
   // What the server last confirmed. Every save sends the display name (the API requires it) and only changes the
   // fields it names, so saving one field never resets another.
   const [saved, setSaved] = useState({ displayName, username: initialUsername, isPublic: initialIsPublic });
+  const [name, setName] = useState(displayName);
+  const [username, setUsername] = useState(initialUsername ?? "");
+  const [usernameServerError, setUsernameServerError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [toggling, setToggling] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
+  const [savedAt, setSavedAt] = useState<string | null>(null);
 
-  async function saveProfile(patch: { displayName?: string; username?: string; isPublic?: boolean }): Promise<ProfileSaveResult> {
+  async function saveProfile(patch: { displayName?: string; username?: string; isPublic?: boolean }): Promise<SaveResult> {
     const displayNameToSend = patch.displayName ?? (saved.displayName.trim() || email.split("@")[0] || "User");
     try {
-      const res = await putProfile({
-        displayName: displayNameToSend,
-        username: patch.username,
-        isPublic: patch.isPublic ?? saved.isPublic,
-      });
-      if (!res.ok) {
-        return { ok: false, status: res.status, message: await apiErrorDetail(res, "Failed to update profile") };
-      }
+      const res = await putProfile({ displayName: displayNameToSend, username: patch.username, isPublic: patch.isPublic ?? saved.isPublic });
+      if (!res.ok) return { ok: false, status: res.status, message: await apiErrorDetail(res, "Failed to update profile") };
       const body = (await res.json().catch(() => null)) as ProfileResponseBody | null;
       setSaved((prev) => ({
         displayName: typeof body?.display_name === "string" ? body.display_name : displayNameToSend,
@@ -67,21 +60,39 @@ export function ProfileForm({
     }
   }
 
-  async function handleSave() {
-    const trimmed = name.trim().slice(0, 100);
-    if (!trimmed) {
-      toast.error("Display name cannot be empty");
-      return;
-    }
+  const trimmedName = name.trim().slice(0, 100);
+  const nameError = trimmedName ? null : "Your display name can't be empty.";
+  const usernameChanged = username !== (saved.username ?? "");
+  const usernameInvalid = usernameChanged && username ? usernameError(username) : null;
+  const shownUsernameError = usernameInvalid ?? usernameServerError;
+  const dirty = trimmedName !== saved.displayName || (usernameChanged && !!username);
+
+  async function handleSave(e: React.FormEvent) {
+    e.preventDefault();
+    if (!dirty || nameError || usernameInvalid) return;
     setSaving(true);
-    const result = await saveProfile({ displayName: trimmed });
+    setUsernameServerError(null);
+    const result = await saveProfile({ displayName: trimmedName, ...(usernameChanged && username ? { username } : {}) });
     setSaving(false);
     if (result.ok) {
-      setName(trimmed);
-      toast.success("Profile updated");
+      setName(trimmedName);
+      setSavedAt(new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }));
+      toast.success("Profile saved");
+    } else if (result.status === 409) {
+      setUsernameServerError("That username is already taken.");
+    } else if (result.status === 422) {
+      setUsernameServerError(result.message || "That username is invalid or reserved.");
     } else {
       toast.error(result.message);
     }
+  }
+
+  async function handleTogglePublic(next: boolean) {
+    setToggling(true);
+    const result = await saveProfile({ isPublic: next });
+    setToggling(false);
+    if (result.ok) toast.success(next ? "Profile is now public" : "Profile is now hidden");
+    else toast.error(result.message);
   }
 
   async function handleSignOut() {
@@ -95,82 +106,84 @@ export function ProfileForm({
     }
   }
 
+  const url = saved.username ? `${siteHost}/u/${saved.username}` : null;
+  const publicNote = !url
+    ? "Choose a username below to get a public page."
+    : saved.isPublic
+      ? `On: ${url} lists your public links.`
+      : `Off: ${url} shows "Page not found".`;
+
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-display font-bold">Profile Settings</h1>
+    <div>
+      <SettingsRow rule={false} title="Public profile" description="A page that lists your public links, with their view counts.">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <label htmlFor="public-profile" className="text-sm font-medium text-card-foreground">Show my public profile</label>
+            <p id="public-note" className="mt-0.5 text-sm text-muted-foreground">{publicNote}</p>
+          </div>
+          <input
+            id="public-profile"
+            type="checkbox"
+            role="switch"
+            checked={saved.isPublic}
+            disabled={toggling}
+            aria-describedby="public-note"
+            onChange={(e) => handleTogglePublic(e.target.checked)}
+            className={SWITCH}
+          />
+        </div>
+      </SettingsRow>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <User className="size-5" />
-            Account
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-5">
-          {/* Avatar */}
-          <div className="flex items-center gap-4">
-            {avatarUrl ? (
-              <img
-                src={avatarUrl}
-                alt=""
-                referrerPolicy="no-referrer"
-                className="size-16 rounded-md"
-              />
-            ) : (
-              <div className="size-16 rounded-md bg-primary flex items-center justify-center text-white text-xl font-bold">
-                {initial}
-              </div>
-            )}
-            <div>
-              <p className="font-medium">{name || email}</p>
-              <p className="text-sm text-muted-foreground">{email}</p>
+      <form onSubmit={handleSave} noValidate>
+        <SettingsRow title="Details" description="Your name appears on your profile and beside links you publish.">
+          <div className="grid gap-2">
+            <span className="text-sm font-medium text-card-foreground">Photo</span>
+            <div className="flex items-center gap-4">
+              <PersonAvatar id={userId} name={trimmedName || email} imageUrl={avatarUrl || null} size="lg" />
+              <p className="text-xs text-muted-foreground">{avatarUrl ? "From your sign-in provider." : "Without a photo your initials are shown."}</p>
             </div>
           </div>
-
-          {/* Display name */}
-          <div className="space-y-1.5">
-            <label htmlFor="display-name" className="text-sm font-medium">
-              Display Name
-            </label>
-            <div className="flex gap-2">
-              <Input
-                id="display-name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Your display name"
-                maxLength={100}
+          <Field label="Display name" htmlFor="display-name" error={nameError}>
+            <input id="display-name" value={name} onChange={(e) => setName(e.target.value)} maxLength={100} autoComplete="name" aria-invalid={nameError ? true : undefined} className={INPUT} />
+          </Field>
+          <Field label="Username" htmlFor="username" error={shownUsernameError} hint="Lowercase letters, numbers and hyphens, 3 to 30 characters. Changing it breaks your old profile URL.">
+            <div className="flex">
+              <span className="inline-flex items-center rounded-l-md border border-r-0 border-input bg-raised px-2.5 font-mono text-[13px] text-muted-foreground">{siteHost}/u/</span>
+              <input
+                id="username"
+                value={username}
+                onChange={(e) => { setUsername(e.target.value.toLowerCase()); setUsernameServerError(null); }}
+                maxLength={30}
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
+                autoComplete="username"
+                aria-invalid={shownUsernameError ? true : undefined}
+                className={`${INPUT} rounded-l-none font-mono text-[13px]`}
               />
-              <Button onClick={handleSave} disabled={saving}>
-                {saving ? <Loader2 className="size-4 animate-spin" /> : "Save"}
-              </Button>
             </div>
+          </Field>
+          <Field label="Email" htmlFor="email" hint="You sign in with this address. It's never shown on your profile.">
+            <input id="email" type="email" value={email} readOnly className={`${INPUT} bg-raised text-muted-foreground`} />
+          </Field>
+          <div className="flex items-center justify-end gap-3 pt-1">
+            <span className="mr-auto text-xs text-muted-foreground" aria-live="polite">{dirty ? "Unsaved changes" : savedAt ? `Saved at ${savedAt}` : "All changes saved"}</span>
+            <Button type="submit" size="sm" disabled={saving || !dirty || !!nameError || !!usernameInvalid}>
+              {saving && <Loader2 className="size-4 animate-spin" />}
+              Save profile
+            </Button>
           </div>
+        </SettingsRow>
+      </form>
 
-          <ProfilePublicSection username={saved.username} isPublic={saved.isPublic} save={saveProfile} />
-
-          {/* Connected providers */}
-          {providers.length > 0 && (
-            <div className="space-y-1.5">
-              <p className="text-sm font-medium">Connected Providers</p>
-              <div className="flex gap-2">
-                {providers.map((p) => (
-                  <Badge key={p} variant="secondary">{p}</Badge>
-                ))}
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Sign out */}
-      <Button variant="outline" onClick={handleSignOut} disabled={signingOut}>
-        {signingOut ? (
-          <Loader2 className="size-4 animate-spin" />
-        ) : (
-          <LogOut className="size-4" />
-        )}
-        Sign Out
-      </Button>
+      <SettingsRow title="Session" description="Sign out of DropItX on this device.">
+        <div className="flex justify-end">
+          <Button type="button" variant="outline" size="sm" onClick={handleSignOut} disabled={signingOut}>
+            {signingOut && <Loader2 className="size-4 animate-spin" />}
+            Sign out
+          </Button>
+        </div>
+      </SettingsRow>
     </div>
   );
 }

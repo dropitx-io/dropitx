@@ -190,7 +190,7 @@ Firebase Auth owns identity. The client signs in through `lib/firebase/auth.ts`;
 ## Styling
 
 - **Tailwind CSS v4** is the only styling system. The entry point is [`app/globals.css`](../app/globals.css), which imports `tailwindcss`, `tw-animate-css`, and `shadcn/tailwind.css`. Design tokens (OKLCH colors, radii, fonts) are defined as CSS variables in the `@theme` block.
-- **Use token classes, not Tailwind's default palette**, for accents: `bg-primary`, `text-foreground`, `border-border`, etc. The brand accent is violet (`text-violet-500`). Do not reach for `bg-purple-500`-style defaults.
+- **Use token classes, not Tailwind's default palette**, for accents: `bg-primary`, `text-foreground`, `border-border`, etc. The brand accent is the olive `--primary` token (see docs/design-guidelines.md). Do not reach for `bg-purple-500`-style defaults.
 - **Merge classes with `cn()`** from [`lib/utils.ts`](../lib/utils.ts) (clsx + tailwind-merge). Never string-concatenate conditional class names.
 - **Dark mode is the default.** The `dark` class strategy is configured via `@custom-variant dark` in `globals.css`; `next-themes` (`ThemeProvider` in the root layout) is available for dynamic theme switching.
 - Fonts (Inter as `--font-sans`, Geist Mono as `--font-mono`) are loaded via `next/font/google` in `app/layout.tsx`.

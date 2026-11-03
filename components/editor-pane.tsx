@@ -13,6 +13,8 @@ interface EditorPaneProps {
   onChange: (value: string) => void;
   theme: "light" | "dark";
   onImageFile?: (file: File, view: EditorView) => void;
+  /** Called with the 1-based line and column of the cursor whenever it moves. */
+  onCursorChange?: (line: number, column: number) => void;
 }
 
 export interface EditorPaneRef {
@@ -20,15 +22,17 @@ export interface EditorPaneRef {
 }
 
 const EditorPane = forwardRef<EditorPaneRef, EditorPaneProps>(
-  function EditorPane({ content, onChange, theme, onImageFile }, ref) {
+  function EditorPane({ content, onChange, theme, onImageFile, onCursorChange }, ref) {
     const containerRef = useRef<HTMLDivElement>(null);
     const viewRef = useRef<EditorView | null>(null);
     const onChangeRef = useRef(onChange);
     const onImageFileRef = useRef(onImageFile);
+    const onCursorChangeRef = useRef(onCursorChange);
     const isLocalChange = useRef(false);
 
     onChangeRef.current = onChange;
     onImageFileRef.current = onImageFile;
+    onCursorChangeRef.current = onCursorChange;
 
     useImperativeHandle(ref, () => ({
       get editorView() {
@@ -48,6 +52,11 @@ const EditorPane = forwardRef<EditorPaneRef, EditorPaneProps>(
             if (update.docChanged) {
               isLocalChange.current = true;
               onChangeRef.current(update.state.doc.toString());
+            }
+            if (update.selectionSet || update.docChanged) {
+              const head = update.state.selection.main.head;
+              const line = update.state.doc.lineAt(head);
+              onCursorChangeRef.current?.(line.number, head - line.from + 1);
             }
           }),
         ],
@@ -93,7 +102,7 @@ const EditorPane = forwardRef<EditorPaneRef, EditorPaneProps>(
     return (
       <div
         ref={containerRef}
-        className="h-full overflow-auto [&_.cm-editor]:h-full [&_.cm-scroller]:overflow-auto"
+        className="h-full overflow-hidden [&_.cm-editor]:h-full [&_.cm-scroller]:overflow-auto"
       />
     );
   }

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { squareButton } from "@/app/(content)/_ui/public-styles";
 import {
   Dialog,
   DialogContent,
@@ -16,15 +17,9 @@ import { SITE_URL } from "@/lib/site-url";
 
 interface QrCodeButtonProps {
   slug: string;
-  variant?: "default" | "outline" | "ghost";
-  size?: "default" | "sm" | "lg" | "icon" | "icon-sm";
 }
 
-export function QrCodeButton({
-  slug,
-  variant = "outline",
-  size = "icon-sm",
-}: QrCodeButtonProps) {
+export function QrCodeButton({ slug }: QrCodeButtonProps) {
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -61,19 +56,20 @@ export function QrCodeButton({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant={variant} size={size} title="Show QR code">
-          <QrCode className="size-4" />
-        </Button>
+        <button type="button" className={squareButton("quiet", "small")}>
+          <QrCode className="size-4" aria-hidden="true" />
+          QR code
+        </button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[360px]">
         <DialogHeader>
-          <DialogTitle>QR Code</DialogTitle>
+          <DialogTitle>QR code</DialogTitle>
           <DialogDescription>
             Scan this QR code to open the share link.
           </DialogDescription>
         </DialogHeader>
         <div className="flex flex-col items-center gap-4">
-          <div className="relative size-56 rounded-lg border bg-white p-3">
+          <div className="relative size-56 bg-white p-3">
             {loading && (
               <div className="absolute inset-0 flex items-center justify-center">
                 <Loader2 className="size-6 animate-spin text-muted-foreground" />
@@ -87,17 +83,17 @@ export function QrCodeButton({
               onError={() => setLoading(false)}
             />
           </div>
-          <p className="text-xs text-muted-foreground font-mono text-center break-all px-4">
+          <p className="break-all px-4 text-center text-[13px] text-muted-foreground">
             {shareUrl}
           </p>
           <div className="flex gap-2 w-full">
             <Button variant="outline" className="flex-1 gap-1.5" onClick={handleCopy}>
               {copied ? (
-                <Check className="size-3.5 text-success" />
+                <Check className="size-3.5" />
               ) : (
                 <Copy className="size-3.5" />
               )}
-              {copied ? "Copied!" : "Copy image"}
+              {copied ? "Copied" : "Copy image"}
             </Button>
             <Button variant="outline" className="flex-1 gap-1.5" onClick={handleDownload}>
               <Download className="size-3.5" />

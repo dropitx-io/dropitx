@@ -13,7 +13,6 @@ import type { EditorPaneRef } from "@/components/editor-pane";
 import {
   useScrollSync,
   parseHeadings,
-  type HeadingInfo,
 } from "@/lib/use-scroll-sync";
 import { VersionHistory } from "@/components/version-history";
 import { nanoid } from "nanoid";
@@ -21,7 +20,8 @@ import { toast } from "sonner";
 import { useAuth } from "@/components/auth-provider";
 import { apiErrorDetail, authFetch } from "@/lib/api-client";
 import type { components } from "@/lib/api-types";
-import { Ban, Flame, History, Lock, TriangleAlert, X, type LucideIcon } from "lucide-react";
+import { Ban, History, Lock, TriangleAlert, X, type LucideIcon } from "lucide-react";
+import { EditorBlocked, EditorSkeleton, Pane } from "@/components/app-shell/editor-panes";
 import { Button } from "@/components/ui/button";
 
 const EditorPane = dynamic(
@@ -30,7 +30,9 @@ const EditorPane = dynamic(
   { ssr: false }
 );
 
-type TabMode = "write" | "preview";
+type TabMode = "write" | "preview" | "history";
+
+const timeFormat = new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
 type ShareMeta = components["schemas"]["ShareMeta"];
 
 /** Opening a share that deletes itself on its first read would destroy it, so the editor never reads its content. */
@@ -67,6 +69,10 @@ export function EditorShell() {
     () => false
   );
   const [editTitle, setEditTitle] = useState<string | undefined>();
+  const [title, setTitle] = useState("");
+  const [initialTitle, setInitialTitle] = useState("");
+  const [cursor, setCursor] = useState({ line: 1, column: 1 });
+  const handleCursorChange = useCallback((line: number, column: number) => setCursor({ line, column }), []);
   const [showVersionHistory, setShowVersionHistory] = useState(false);
   const editorPaneRef = useRef<EditorPaneRef>(null);
   const previewContainerRef = useRef<HTMLDivElement>(null);
@@ -108,7 +114,7 @@ export function EditorShell() {
         }
         if (consumedOnRead(meta)) {
           return blocked(
-            Flame,
+            TriangleAlert,
             "This document cannot be edited.",
             `${name ? `"${name}" is` : "It is"} set to delete itself the first time its content is read, so opening it in the editor would destroy it.`,
           );
@@ -127,6 +133,8 @@ export function EditorShell() {
           );
         }
         setLoadedIsPrivate(meta.is_private);
+        setTitle(meta.title ?? "");
+        setInitialTitle(meta.title ?? "");
         setContent(data.content);
         setInitialContent(data.content);
         return { status: "ready" };
@@ -240,113 +248,92 @@ export function EditorShell() {
     }
   }, []);
 
-  if (!mounted) {
-    return (
-      <div className="flex h-[calc(100vh-3rem)] items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-3">
-          <div className="size-8 rounded-xl bg-primary/10 flex items-center justify-center animate-pulse">
-            <div className="size-3 rounded-sm bg-primary" />
-          </div>
-          <p className="text-muted-foreground font-mono text-sm">Loading editor...</p>
-        </div>
-      </div>
-    );
-  }
+  const words = content.trim() ? content.trim().split(/\s+/).length : 0;
+  const status = [
+    isDirty ? "Unsaved changes" : null,
+    autoSave.savedAt ? `draft saved ${timeFormat.format(autoSave.savedAt)}` : null,
+  ].filter(Boolean);
+  const statusLine = status.length
+    ? `${status.join(", ")}.`.replace(/^./, (c) => c.toUpperCase())
+    : editSlug
+      ? "No changes since it was opened."
+      : "A draft saves in this browser as you type.";
 
-  if (gate.status === "loading") {
-    return (
-      <div className="flex h-[calc(100vh-3rem)] items-center justify-center bg-background">
-        <p className="text-muted-foreground font-mono text-sm">Loading document...</p>
-      </div>
-    );
+  if (!mounted || gate.status === "loading") {
+    return <EditorSkeleton label={mounted ? "Loading document" : "Loading editor"} />;
   }
 
   if (gate.status === "blocked") {
-    const Icon = gate.icon;
-    return (
-      <div className="flex h-[calc(100vh-3rem)] items-center justify-center bg-background px-4">
-        <div className="flex max-w-sm flex-col items-center gap-3 text-center">
-          <Icon className="size-6 text-orange-500" />
-          <p className="font-medium">{gate.title}</p>
-          <p className="text-sm text-muted-foreground">{gate.message}</p>
-          <a href="/editor">
-            <Button variant="outline" size="sm">
-              Start a new document
-            </Button>
-          </a>
-        </div>
-      </div>
-    );
+    return <EditorBlocked icon={gate.icon} title={gate.title} message={gate.message} />;
   }
 
+  const tabs: { id: TabMode; label: string }[] = [
+    { id: "write", label: "Write" },
+    { id: "preview", label: "Preview" },
+    ...(editSlug ? [{ id: "history" as const, label: "History" }] : []),
+  ];
+
   return (
-    <div className="flex h-[calc(100vh-3rem)] flex-col bg-background">
-      <div className="flex items-center border-b border-border/60 bg-surface/50">
-        <div className="flex-1">
-          <EditorToolbar
-            editorRef={editorViewRef}
-            theme={effectiveTheme}
-            onToggleTheme={toggleTheme}
-          />
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="mb-4 flex shrink-0 items-start justify-between gap-4">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-2xl font-semibold tracking-[-0.01em] text-card-foreground max-sm:text-[22px]">
+            <input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") e.currentTarget.blur();
+              }}
+              placeholder={editTitle ?? "Untitled document"}
+              aria-label="Document title"
+              spellCheck={false}
+              className="-mx-1.5 w-[calc(100%+12px)] truncate rounded-md bg-transparent px-1.5 outline-none transition-colors duration-150 placeholder:text-muted-foreground hover:bg-raised focus-visible:bg-sheet focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring"
+            />
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">{statusLine}</p>
         </div>
-        {/* Version history toggle — only in edit mode */}
         {editSlug && (
-          <div className="pr-3 flex items-center">
-            <Button
-              variant={showVersionHistory ? "default" : "ghost"}
-              size="icon-sm"
-              className="rounded-lg"
-              onClick={() => setShowVersionHistory(!showVersionHistory)}
-              title="Version history"
-            >
-              <History className="size-4" />
-            </Button>
-          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            aria-pressed={showVersionHistory}
+            onClick={() => setShowVersionHistory(!showVersionHistory)}
+            className="shrink-0 max-md:hidden"
+          >
+            <History className="size-3.5" strokeWidth={1.5} aria-hidden />
+            Version history
+          </Button>
         )}
       </div>
 
-      {/* Mobile tab bar */}
-      <div className="flex border-b border-border/60 md:hidden bg-surface/30">
-        <button
-          onClick={() => setTab("write")}
-          className={`flex-1 py-2.5 text-center text-sm font-medium transition-all duration-200 ${
-            tab === "write"
-              ? "border-b-2 border-primary text-primary bg-primary/5"
-              : "text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          Write
-        </button>
-        <button
-          onClick={() => setTab("preview")}
-          className={`flex-1 py-2.5 text-center text-sm font-medium transition-all duration-200 ${
-            tab === "preview"
-              ? "border-b-2 border-primary text-primary bg-primary/5"
-              : "text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          Preview
-        </button>
-        {editSlug && (
+      <div role="group" aria-label="Show" className="mb-3 inline-flex w-max shrink-0 rounded-lg border border-border bg-raised p-0.5 md:hidden">
+        {tabs.map((t) => (
           <button
-            onClick={() => setShowVersionHistory(!showVersionHistory)}
-            className={`flex-1 py-2.5 text-center text-sm font-medium transition-all duration-200 ${
-              showVersionHistory
-                ? "border-b-2 border-primary text-primary bg-primary/5"
-                : "text-muted-foreground hover:text-foreground"
+            key={t.id}
+            type="button"
+            aria-pressed={tab === t.id}
+            onClick={() => setTab(t.id)}
+            className={`h-9 rounded-md px-3 text-sm transition-colors duration-150 ${
+              tab === t.id ? "bg-sheet font-medium text-foreground ring-1 ring-border" : "text-muted-foreground"
             }`}
           >
-            History
+            {t.label}
           </button>
-        )}
+        ))}
       </div>
 
-      {/* Editor + Preview + Version History layout */}
-      <div className="flex flex-1 overflow-hidden">
-        <div
-          className={`flex-1 overflow-hidden bg-background ${
-            tab !== "write" ? "hidden md:block" : ""
-          }`}
+      <div
+        className={`grid min-h-0 flex-1 gap-4 ${
+          showVersionHistory && editSlug
+            ? "md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_300px]"
+            : "md:grid-cols-2"
+        }`}
+      >
+        <Pane
+          title="Markdown"
+          meta={<span className="max-lg:hidden">Line {cursor.line}, column {cursor.column}</span>}
+          actions={<EditorToolbar editorRef={editorViewRef} theme={effectiveTheme} onToggleTheme={toggleTheme} />}
+          className={tab !== "write" ? "max-md:hidden" : undefined}
         >
           <EditorPane
             ref={editorPaneRef}
@@ -354,71 +341,47 @@ export function EditorShell() {
             onChange={setContent}
             theme={effectiveTheme}
             onImageFile={handleImageFile}
+            onCursorChange={handleCursorChange}
           />
-        </div>
+        </Pane>
 
-        <div
-          className={`flex-1 overflow-hidden border-l border-border/60 bg-background ${
-            tab !== "preview" ? "hidden md:block" : ""
-          }`}
+        <Pane
+          title="Preview"
+          meta={`${words.toLocaleString("en")} ${words === 1 ? "word" : "words"}, ${content.length.toLocaleString("en")} characters${words ? `, ${Math.ceil(words / 200)} min read` : ""}`}
+          className={tab !== "preview" ? "max-md:hidden" : undefined}
         >
-          <EditorPreview
-            ref={previewContainerRef}
-            content={content}
-            headings={headings}
-          />
-        </div>
+          <EditorPreview ref={previewContainerRef} content={content} headings={headings} />
+        </Pane>
 
-        {/* Version History sidebar */}
-        {showVersionHistory && editSlug && (
-          <div className="w-[320px] shrink-0 border-l border-border/60 overflow-y-auto bg-background hidden md:block">
-            <div className="flex items-center justify-between border-b border-border/60 px-3 py-2">
-              <span className="text-sm font-medium">Version History</span>
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                className="rounded-lg"
+        {editSlug && (showVersionHistory || tab === "history") && (
+          <Pane
+            title="Version history"
+            className={`${showVersionHistory ? "" : "md:hidden"} ${tab !== "history" ? "max-md:hidden" : ""}`}
+            bodyClassName="overflow-y-auto p-4"
+            actions={
+              <button
+                type="button"
                 onClick={() => setShowVersionHistory(false)}
+                aria-label="Close version history"
+                className="grid size-7 place-items-center rounded-md text-muted-foreground hover:bg-active hover:text-foreground max-md:hidden"
               >
-                <X className="size-4" />
-              </Button>
-            </div>
-            <div className="p-3">
-              <VersionHistory slug={editSlug} />
-            </div>
-          </div>
-        )}
-
-        {/* Mobile version history panel */}
-        {showVersionHistory && editSlug && (
-          <div className="flex-1 overflow-y-auto bg-background md:hidden">
-            <div className="flex items-center justify-between border-b border-border/60 px-3 py-2">
-              <span className="text-sm font-medium">Version History</span>
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                className="rounded-lg"
-                onClick={() => setShowVersionHistory(false)}
-              >
-                <X className="size-4" />
-              </Button>
-            </div>
-            <div className="p-3">
-              <VersionHistory slug={editSlug} />
-            </div>
-          </div>
+                <X className="size-4" strokeWidth={1.5} />
+              </button>
+            }
+          >
+            <VersionHistory slug={editSlug} />
+          </Pane>
         )}
       </div>
 
       <EditorPublishBar
         content={content}
-        isDirty={isDirty}
+        title={title}
+        initialTitle={initialTitle}
         mode={editSlug ? "edit" : "create"}
         editSlug={editSlug || undefined}
-        editTitle={editTitle}
         initialIsPrivate={loadedIsPrivate}
         onPublished={(_slug, _url, saved) => setPublishedContent(saved)}
-        draftSavedAt={autoSave.savedAt}
         onClearDraft={() => {
           clearDraft();
           autoSave.clearDraft();

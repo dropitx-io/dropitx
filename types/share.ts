@@ -12,6 +12,9 @@ export type ShareListItem = Pick<
   | "view_count"
   | "created_at"
   | "has_password"
+  | "expires_at"
+  | "burn_after_reading"
+  | "burned"
 >;
 
 export interface Share {

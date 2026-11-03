@@ -1,10 +1,15 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import Link from "next/link";
+import type { ReactNode } from "react";
 import { getSessionUser } from "@/lib/firebase/server";
 import { AccountNotProvisionedError, getTopShares } from "@/lib/dashboard-data";
 import { AccountSetupState } from "@/components/account-setup-state";
-import { AnalyticsTopPerformers } from "@/components/analytics/analytics-top-performers";
-import { cn } from "@/lib/utils";
+import { TitleRow } from "@/components/analytics/title-row";
+import { KpiRow } from "@/components/analytics/kpi-row";
+import { ShareTable } from "@/components/analytics/share-table";
+import { formatInt } from "@/components/analytics/analytics-format";
+import type { ShareRow } from "@/components/analytics/share-rows";
 import type { TopSharesResponse } from "@/types/analytics";
 
 const TOP_SHARES_LIMIT = 10;
@@ -24,85 +29,72 @@ export default async function GlobalAnalyticsPage() {
   }
 
   const { totals, top } = data;
-  const avgViewsPerShare = totals.share_count > 0
-    ? Math.round((totals.total_views / totals.share_count) * 10) / 10
-    : 0;
+  const rows: ShareRow[] = top
+    .filter((s) => s.total_views > 0)
+    .map((s) => ({ label: s.title || s.slug, count: s.total_views, href: `/dashboard/analytics/${s.slug}` }));
+  const listed = rows.reduce((sum, r) => sum + r.count, 0);
+  // The listed rows add up to every 30-day view only when no share with views was left out of the ranking.
+  const total30 = rows.length >= totals.shares_with_views ? listed : null;
 
-  const hasData = top.some((s) => s.total_views > 0);
+  let finding: ReactNode;
+  if (rows.length === 0) {
+    finding = totals.total_views > 0 ? "No views in the last 30 days." : "No views yet. Share a link and its readers show up here.";
+  } else {
+    finding = (
+      <>
+        <b>{rows[0].label}</b> drew {formatInt(rows[0].count)}
+        {total30 !== null && ` of ${formatInt(total30)}`} views in the last 30 days.
+      </>
+    );
+  }
+
+  const avg = totals.share_count > 0 ? (totals.total_views / totals.share_count).toFixed(1) : null;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-end justify-between gap-4">
-        <div>
-          <h1 className="font-display text-[22px] font-bold tracking-tight">Analytics</h1>
-          <p className="mt-1 text-[13px] text-muted-foreground">
-            Track how your shares are performing.
-          </p>
-        </div>
-        <span className="rounded-full bg-card px-3 py-1.5 text-xs font-semibold text-muted-foreground clay-raised">
-          Last 30 days
-        </span>
-      </div>
-
-      <div className="grid grid-cols-2 gap-5 sm:grid-cols-4">
-        <StatTile label="Total Views" window="All time" value={totals.total_views.toLocaleString()} accent />
-        <StatTile label="Unique Visitors" window="Last 30 days" value={totals.unique_views.toLocaleString()} />
-        <StatTile label="Shares with Views" window="Last 30 days" value={totals.shares_with_views.toLocaleString()} />
-        <StatTile label="Avg Views/Share" window="All time" value={avgViewsPerShare.toLocaleString()} />
-      </div>
-
-      {/* Views-over-time placeholder */}
-      <div className="rounded-[22px] bg-card p-5 clay-raised">
-        <p className="mb-3 font-mono text-[11px] font-medium uppercase tracking-[0.07em] text-muted-foreground">
-          Views over time
-        </p>
-        <div className="grid h-[180px] place-items-center rounded-[14px] border border-dashed border-border bg-background text-xs uppercase tracking-wider text-muted-foreground/70">
-          [ views-over-time chart ]
-        </div>
-      </div>
-
-      {hasData ? (
-        <div className="space-y-3">
-          <h2 className="font-mono text-sm font-semibold">Top Performers (last 30 days)</h2>
-          <AnalyticsTopPerformers shares={top} />
-        </div>
-      ) : (
-        <div className="grid place-items-center rounded-[34px] border-2 border-dashed border-border bg-card py-16 text-center clay-raised">
-          <p className="font-display text-lg font-bold">
-            {totals.total_views > 0 ? "No views in the last 30 days" : "No data yet"}
-          </p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {totals.total_views > 0
-              ? "Shares that get views over the next 30 days will be ranked here."
-              : "Once your shares start getting views, you’ll see them ranked here."}
-          </p>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function StatTile({
-  label,
-  window,
-  value,
-  accent,
-}: {
-  label: string;
-  window: string;
-  value: string;
-  accent?: boolean;
-}) {
-  return (
-    <div className="rounded-[22px] bg-card p-5 clay-raised">
-      <p className="font-mono text-[10px] uppercase tracking-[0.06em] text-muted-foreground">{label}</p>
-      <p className={cn(
-        "mt-3.5 font-display text-[32px] font-extrabold leading-none tracking-[-0.03em]",
-        accent && "text-primary"
-      )}>
-        {value}
-      </p>
-      <p className="mt-2 text-[11px] text-muted-foreground">{window}</p>
-    </div>
+    <>
+      <TitleRow title="Analytics" finding={finding} />
+      <KpiRow
+        items={[
+          { label: "Views", value: formatInt(totals.total_views), note: "All time", lead: true },
+          { label: "Unique visitors", value: formatInt(totals.unique_views), note: "Last 30 days" },
+          {
+            label: "Links with views",
+            value: (
+              <>
+                {formatInt(totals.shares_with_views)}
+                <small>of {formatInt(totals.share_count)}</small>
+              </>
+            ),
+            note: "Last 30 days",
+          },
+          {
+            label: "Avg views per link",
+            value: avg ?? <span className="text-muted-foreground">—</span>,
+            note: `All time, across ${formatInt(totals.share_count)} ${totals.share_count === 1 ? "link" : "links"}`,
+          },
+        ]}
+      />
+      <ShareTable
+        className="max-w-3xl"
+        title="Top links"
+        description="Which pages were read most in the last 30 days."
+        head="Link"
+        rows={rows}
+        total={total30}
+        empty="No link was opened in the last 30 days."
+        aside={
+          <Link href="/dashboard" className="text-sm font-medium text-card-foreground hover:underline hover:underline-offset-[3px]">
+            All links
+          </Link>
+        }
+        note={
+          total30 === null && rows.length > 0
+            ? `The ${rows.length} most-read links. Open one for its daily views, referrers and countries.`
+            : rows.length > 0
+              ? "Open a link for its daily views, referrers and countries."
+              : undefined
+        }
+      />
+    </>
   );
 }

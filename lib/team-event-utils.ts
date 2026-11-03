@@ -34,25 +34,6 @@ export function getEventIcon(eventType: string): LucideIcon {
   return iconMap[eventType as TeamEventType] ?? Activity;
 }
 
-/** Map event type to a tailwind text-color class. */
-export function getEventColor(eventType: string): string {
-  const colorMap: Record<TeamEventType, string> = {
-    "invite.created": "text-blue-500",
-    "invite.sent": "text-blue-500",
-    "invite.accepted": "text-success",
-    "invite.declined": "text-yellow-500",
-    "invite.revoked": "text-red-500",
-    "invite.expired": "text-muted-foreground",
-    "member.joined": "text-success",
-    "member.left": "text-yellow-500",
-    "member.role_changed": "text-blue-500",
-    "member.removed": "text-red-500",
-    "share.added": "text-success",
-    "share.removed": "text-red-500",
-  };
-  return colorMap[eventType as TeamEventType] ?? "text-muted-foreground";
-}
-
 /** What a share event's payload names the share by: title, then filename, then slug. */
 function shareLabel(metadata: Record<string, unknown>): string {
   for (const key of ["title", "filename", "slug"]) {

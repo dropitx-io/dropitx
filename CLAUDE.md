@@ -77,8 +77,8 @@ Environment variable `NEXT_PUBLIC_API_URL` points to the backend (default: `http
 - **Tailwind CSS 4** utilities with OKLCH color tokens in `app/globals.css`
 - **shadcn/ui** components for consistency (button, dialog, select, etc.)
 - **Lucide icons** for iconography
-- **Dark mode default** (hardcoded `dark` class in HTML root; `next-themes` available for dynamic toggle)
-- No Tailwind default palette colors for accents; use tokens like `bg-primary`, `text-violet-500` (violet is the brand color per v1.3.0 rebranding)
+- **Theme follows the system** (`next-themes`, `defaultTheme="system"`); light is olive on bone, `.dark` is its companion
+- No Tailwind default palette colors for accents; use tokens like `bg-primary`, `text-foreground` (the olive-on-bone palette, see docs/design-guidelines.md)
 
 ### Data Fetching & State
 
