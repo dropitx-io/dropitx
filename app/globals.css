@@ -135,6 +135,10 @@
 
   --radius: 8px;
 
+  /* Widest content column on public pages; the type scale stops growing at a
+     1600px viewport, so wider screens centre this column. */
+  --page-max: 1536px;
+
   --sidebar: #ecebe7;
   --sidebar-foreground: #1f2508;
   --sidebar-primary: #38450f;
