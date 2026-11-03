@@ -6,7 +6,8 @@
 */
 @layer components {
 .landing {
-  --m: clamp(16px, 2.4vw, 32px);
+  --m-edge: clamp(16px, 2.4vw, 32px);
+  --m: var(--m-edge);
   --gutter: clamp(12px, 1.6vw, 24px);
   --section-gap: clamp(96px, 12vw, 176px);
   --step-small: clamp(13px, 0.79rem + 0.1vw, 14px);
@@ -19,6 +20,20 @@
   --accent-hover: color-mix(in oklch, var(--primary), var(--background) 16%);
   --field-soft: color-mix(in oklch, var(--field-foreground) 78%, var(--field));
   --ease-soft: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/*
+  The type scale stops growing at a 1600px viewport, so the home page holds its
+  composition at that width: past it, --m widens to centre a --frame column
+  while section fields keep running to the screen edges. The nested footer
+  carries .landing too, so it is listed to inherit the frame. cqw (not vw)
+  keeps both margins equal when a scrollbar takes width.
+*/
+.landing-home { container-type: inline-size; }
+.landing-home,
+.landing-home .landing {
+  --frame: 1536px;
+  --m: max(var(--m-edge), (100cqw - var(--frame)) / 2);
 }
 
 /* ---------- interface fragments ---------- */
@@ -97,6 +112,7 @@
   margin: 8px 0 0 calc(var(--m) - 0.04em);
   transform: translateY(24%);
 }
+.landing-home .foot-name { font-size: calc(0.28 * min(100cqw, var(--frame) + 64px)); }
 @media (max-width: 760px) {
   .landing .foot-name { font-size: 34vw; }
 }
