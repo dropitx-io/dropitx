@@ -2,7 +2,7 @@
 
 ## Overview
 
-Standards for the DropItX codebase. Next.js 16 + TypeScript strict + Tailwind CSS 4. This repository is the frontend only; the CLI is the separate Python `dropitx-cli` repository.
+Standards for the DropItX codebase. Next.js 16 + TypeScript strict + Tailwind CSS 4. This repository is the frontend only; the CLI is the separate TypeScript `dropitx-cli` repository.
 
 ## File Naming
 

@@ -38,10 +38,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Vercel Analytics integration (`@vercel/analytics`) for automatic Web Vitals and page views
 - `trackEvent()` helper with 5s throttle and typed event constants (`lib/analytics.ts`)
 - Custom event tracking: `document_uploaded`, `content_published`, `share_viewed`
-- PII sanitization via `beforeSend` (strips query params and hash from pageview URLs)
 
 ## [1.3.1] - 2026-04-26
 

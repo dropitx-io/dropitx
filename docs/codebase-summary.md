@@ -21,7 +21,7 @@
 | **Theme** | `next-themes` (light/dark mode) |
 | **Analytics** | Recorded by the API (`POST /api/analytics/track`); no third-party analytics in the frontend |
 | **Rate Limiting** | Enforced by the API; the frontend shows a toast on 429 |
-| **CLI** | Separate Python repository `dropitx-cli` (PyPI `dropitx`); not part of this repo |
+| **CLI** | Separate TypeScript repository `dropitx-cli` (npm `dropitx`); not part of this repo |
 | **Encryption** | `lib/crypto.ts` Web Crypto helpers exist, but E2E publishing/viewing is not available in the web app (planned) |
 
 ## Directory Structure
@@ -212,7 +212,7 @@ The frontend has no database access. The schema, RLS and migrations belong to `d
 
 ## Release History
 
-Entries below are historical: they describe what each release shipped, not the current stack (Supabase and Vercel Analytics have since been removed).
+Entries below are historical: they describe what each release shipped, not the current stack (Supabase and the analytics integration have since been removed).
 
 ### v1.4.1 (2026-04-26)
 
@@ -222,8 +222,7 @@ Entries below are historical: they describe what each release shipped, not the c
 - Added `AbortController` to cancel stale fetches on rapid input
 
 ### v1.4.0 (2026-04-26)
-- Vercel Analytics integration with custom event tracking
-- PII sanitization in analytics (strips query params from URLs)
+- Custom event tracking
 
 ### v1.3.1 (2026-04-26)
 - HeaderBar compound component system (responsive navigation)

@@ -83,7 +83,7 @@ Current milestone scope — hardening the feature-complete product and wiring in
 
 **Disputed features**: Comments, version history, and multi-file support are UI-complete only. Their frontend components exist and render, but backend persistence and RPC wiring are not connected. These require explicit backend work (partially in sibling repo dropitx-api/).
 
-**Architecture**: Next.js 16 (App Router) pure frontend on Vercel. FastAPI backend on Render (sibling repo dropitx-api/). Python CLI on PyPI (sibling repo dropitx-cli/). Supabase (Postgres + Storage + JWT auth). Upstash Redis for rate limiting.
+**Architecture**: Next.js 16 (App Router) pure frontend, built into a container image and deployed to the vps192 k3s cluster. FastAPI backend at api.dropitx.site on the same cluster (sibling repo dropitx-api/). TypeScript CLI and MCP server on npm (sibling repo dropitx-cli/). Supabase (Postgres + Storage + JWT auth). Upstash Redis for rate limiting.
 
 **Known tech debt (codebase/CONCERNS.md)**:
 - Build pipeline: next.config.ts disables typecheck and lint during builds (ignoreBuildErrors + ignoreDuringBuilds = true)
@@ -96,7 +96,7 @@ Current milestone scope — hardening the feature-complete product and wiring in
 
 ## Constraints
 
-- **Tech stack**: Next.js 16 App Router frontend (this repo), FastAPI backend (sibling), Python CLI (sibling) — all deployed independently. Frontend must remain a pure frontend (only /api/og-image retained).
+- **Tech stack**: Next.js 16 App Router frontend (this repo), FastAPI backend (sibling), TypeScript CLI (sibling) — all deployed independently. Frontend must remain a pure frontend (only /api/og-image retained).
 - **Authentication**: Dual model — Supabase SSR JWT cookies for browsers, SHA-256 hashed API keys for programmatic access. Both must coexist.
 - **Database**: Supabase Postgres with RLS on all tables. Schema changes via timestamped migrations only (never edit schema.sql directly). Public reads respect RLS; writes use service_role admin client server-side only.
 - **Styling**: Tailwind CSS 4 with OKLCH color tokens in app/globals.css. Clay design system (terracotta #9a5b3c primary, warm cream #f7eee6 background). No CSS-in-JS. WCAG 2.1 AA contrast required.
@@ -109,7 +109,7 @@ SPEC-locked invariants (from system-architecture.md, code-standards.md, design-g
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Next.js as pure frontend; all API logic in FastAPI | Separation of concerns; Vercel-optimized frontend, Render backend | ✓ Good (v2.3.0 migration shipped) |
+| Next.js as pure frontend; all API logic in FastAPI | Separation of concerns; frontend and backend deploy independently | ✓ Good (v2.3.0 migration shipped) |
 | Dual auth model (JWT Bearer + API key) | Browser sessions and programmatic access need different trust models | ✓ Good |
 | Supabase client factory pattern (client/server/admin) | RLS enforcement boundary; admin client server-only | ✓ Good |
 | Clay design system with WCAG AA tokens | Warm, accessible aesthetic; post-2026-07-19 contrast fixes | ✓ Good |
@@ -120,7 +120,7 @@ SPEC-locked invariants (from system-architecture.md, code-standards.md, design-g
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Disable typecheck/lint in production build | Workaround for pre-existing TS errors blocking Vercel deploy | ⚠️ Revisit (Phase 1 re-enables) |
+| Disable typecheck/lint in production build | Workaround for pre-existing TS errors blocking the production build | ⚠️ Revisit (Phase 1 re-enables) |
 | Hardcode Cloudflare tunnel URL as API fallback | Local dev convenience leaked into production default | ⚠️ Revisit (Phase 1 removes) |
 
 ---

@@ -57,8 +57,7 @@
 - nanoid 5.1.9 — Unique ID generation
 
 **Infrastructure:**
-- @vercel/analytics 2.0.1 — Web Vitals and event tracking
-- @vercel/og 0.11.1 — OG image generation (Edge runtime)
+- next/og — OG image generation (built into Next, Edge runtime)
 - @base-ui/react 1.4.1 — Base UI primitives
 - @radix-ui/react-dialog 1.1.15 — Accessible dialog component
 - @radix-ui/react-select 2.2.6 — Accessible select component
@@ -94,7 +93,7 @@
 - Supabase CLI (for local migrations: `supabase db push`)
 
 **Production:**
-- Deployment target: Vercel
+- Deployment target: container image on the vps192 k3s cluster
 - Edge runtime used for OG image generation (`app/api/og-image/[slug]/route.tsx`)
 
 ---

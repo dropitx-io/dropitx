@@ -6,10 +6,10 @@ score: 10/10 must-haves verified
 behavior_unverified: 0
 overrides_applied: 0
 human_verification:
-  - test: "Confirm the production deploy environment (Vercel Project Settings → Environment Variables → Production, and/or the Dokploy target added in commit 12ab719) defines NEXT_PUBLIC_API_URL plus all 6 NEXT_PUBLIC_FIREBASE_* vars, then trigger one production deploy"
+  - test: "Confirm the production deploy environment (the production build variables, and/or the Dokploy target added in commit 12ab719) defines NEXT_PUBLIC_API_URL plus all 6 NEXT_PUBLIC_FIREBASE_* vars, then trigger one production deploy"
     expected: "Production build completes and prerenders /dashboard/analytics; no module-load throw from lib/api-client.ts or lib/firebase/client"
     why_human: "Deployment-environment fact — cannot be read from the repo. The build-time module-load guards (lib/api-client.ts lines 3-7) crash the prerender pass when these vars are absent; the phase hit exactly this class of failure locally (Firebase checkpoint in 01-04)"
-  - test: "Decide the HYG-02 enforcement surface on Next 16: accept `npm run lint` (0 errors) + the AGENTS.md push convention as the gate, and fix the broken `check:hygiene` script; or wire ESLint into an automated pre-deploy pipeline (GitHub Actions / Vercel build command)"
+  - test: "Decide the HYG-02 enforcement surface on Next 16: accept `npm run lint` (0 errors) + the AGENTS.md push convention as the gate, and fix the broken `check:hygiene` script; or wire ESLint into an automated pre-deploy pipeline (GitHub Actions / build command)"
     expected: "Either an accepted convention with a repaired `check:hygiene` (`tsc --noEmit && eslint .`), or a CI/deploy step that fails on ESLint errors"
     why_human: "Next 16 removed build-time ESLint entirely (verified: `next lint` exits with 'Invalid project directory ... /lint'; the `eslint` NextConfig key no longer exists). In-build enforcement is a platform impossibility, not an implementation gap — the residual choice (convention vs CI) is a workflow decision"
   - test: "Acknowledge routing of the 10 advisory review warnings (01-REVIEW.md WR-01..WR-10) to later phases — especially WR-04 (dead invite components import the service-role client + Node crypto into \"use client\" files) and WR-09 (fabricated analytics deltas on the dashboard)"
@@ -61,7 +61,7 @@ All gates were **re-executed by the verifier** (not trusted from SUMMARYs). Envi
 - AGENTS.md codifies "Lint and build must pass before pushing";
 - the deviation is documented in 01-04-SUMMARY (decision 1 + deviation 4), not hidden.
 
-**Residual risk requiring a human decision:** nothing automated runs lint before a production deploy — the repo has **no CI workflows, no vercel.json, no husky hooks** (verified). On Vercel/Dokploy, `next build` alone does not lint. So today ESLint enforcement is convention, not pipeline. Options: repair `check:hygiene` to `tsc --noEmit && eslint .` and rely on convention, or add a CI/build-command gate (see Human Verification #2). This residual — not the literal-vs-intent question — is why SC-2 carries a human item.
+**Residual risk requiring a human decision:** nothing automated runs lint before a production deploy — the repo has **no CI workflows and no husky hooks** (verified). On Dokploy, `next build` alone does not lint. So today ESLint enforcement is convention, not pipeline. Options: repair `check:hygiene` to `tsc --noEmit && eslint .` and rely on convention, or add a CI/build-command gate (see Human Verification #2). This residual — not the literal-vs-intent question — is why SC-2 carries a human item.
 
 **Override suggestion** (to formalize the platform deviation):
 
@@ -145,7 +145,7 @@ Step 7c: SKIPPED — no `scripts/*/tests/probe-*.sh` declared by any PLAN/SUMMAR
 | HYG-02 | 01-01, 01-02, 01-04 | ESLint enforced in production builds | ✓ SATISFIED (platform-adjusted intent; residual → Human #2) | Next 16 platform impossibility verified; `npm run lint` 0 errors is the delivered surface; no CI wiring yet |
 | HYG-03 | 01-01, 01-02 | Zero @ts-nocheck in codebase | ✓ SATISFIED | repo-wide grep empty; all 5 original files typed |
 | HYG-04 | 01-03, 01-04 | Dashboard queries use typed Supabase responses | ✓ SATISFIED | 0 eslint-disable/no-explicit-any/any-casts in app/(dashboard); typecheck 0 errors through the Database generic |
-| HYG-05 | 01-03 | No ephemeral/hardcoded URLs in production defaults (tunnel removed) | ✓ SATISFIED (code level) — human deploy-confirm pending | 0 trycloudflare repo-wide; module-load throw present; REQUIREMENTS.md still shows `[ ] Pending` — consistent with the pending Vercel/Dokploy env confirmation (Human #1); the requirement text itself is code-scoped and done |
+| HYG-05 | 01-03 | No ephemeral/hardcoded URLs in production defaults (tunnel removed) | ✓ SATISFIED (code level) — human deploy-confirm pending | 0 trycloudflare repo-wide; module-load throw present; REQUIREMENTS.md still shows `[ ] Pending` — consistent with the pending Dokploy env confirmation (Human #1); the requirement text itself is code-scoped and done |
 
 Orphaned requirements: none — REQUIREMENTS.md maps exactly HYG-01..05 to Phase 1 and every ID appears in plan frontmatter (P1/P2: HYG-01,02,03; P3: HYG-04,05; P4: HYG-01,02,04).
 
@@ -163,15 +163,15 @@ Debt markers: zero `TBD`/`FIXME`/`XXX`/`TODO`/`HACK`/`PLACEHOLDER` in all 15 pha
 
 ### 1. Production deploy environment check (blocking for next deploy)
 
-**Test:** Confirm `NEXT_PUBLIC_API_URL` **and** all 6 `NEXT_PUBLIC_FIREBASE_*` vars exist in the production build environment (Vercel Project Settings → Environment Variables → Production; note commit `12ab719` also added a Dockerfile for Dokploy — confirm whichever target is live), then trigger one production deploy.
+**Test:** Confirm `NEXT_PUBLIC_API_URL` **and** all 6 `NEXT_PUBLIC_FIREBASE_*` vars exist in the production build environment (the production build variables; note commit `12ab719` also added a Dockerfile for Dokploy — confirm whichever target is live), then trigger one production deploy.
 **Expected:** Build completes; `/dashboard/analytics` prerenders without a module-load throw.
 **Why human:** Deployment-environment fact, unreadable from the repo. `lib/api-client.ts:3-7` and the Firebase client init throw at module load during prerender — the phase already hit this failure class locally.
 
 ### 2. HYG-02 enforcement-surface decision (escalated)
 
-**Test:** Choose: (a) accept `npm run lint` + push convention as the ESLint gate and repair `check:hygiene` to `tsc --noEmit && eslint .`, or (b) add automated pre-deploy lint enforcement (GitHub Actions / Vercel build command override).
+**Test:** Choose: (a) accept `npm run lint` + push convention as the ESLint gate and repair `check:hygiene` to `tsc --noEmit && eslint .`, or (b) add automated pre-deploy lint enforcement (GitHub Actions / build command override).
 **Expected:** A working, documented gate; ideally an accepted `overrides:` entry (suggested above) for the SC-2 literal text.
-**Why human:** In-build ESLint cannot exist on Next 16 (verified); repo currently has no CI/vercel.json/husky, so lint-before-deploy is convention only.
+**Why human:** In-build ESLint cannot exist on Next 16 (verified); repo currently has no CI/husky, so lint-before-deploy is convention only.
 
 ### 3. Advisory review findings triage
 

@@ -111,7 +111,7 @@ Since no test framework exists, verification is done through:
 
 3. **`npm run dev`** -- Manual interactive testing at `http://localhost:3000`. Server-side errors appear in the terminal console; client-side errors appear in the browser console.
 
-4. **Vercel deployment** -- Acts as an additional verification gate (deployment succeeds only if the build passes).
+4. **Container image build** -- Acts as an additional verification gate (the image is built only if the build passes).
 
 ## Testing-Adjacent Tooling
 

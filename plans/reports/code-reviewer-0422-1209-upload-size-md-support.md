@@ -57,7 +57,7 @@ Export `extractTextFromMarkdown` and call it directly when file is `.md`.
 
 **File:** `/Users/ddphuong/Projects/next-labs/share-html/app/api/upload/route.ts:94-108`
 
-HTML files get no content sanitization before storage either (they render in a sandboxed iframe). For markdown, this is fine since react-markdown sanitizes on render. However, `fileContent` (up to 50MB) is loaded entirely into memory as a string via `arrayBuffer` + `TextDecoder`, then stored. For Vercel serverless functions with 1024MB default, 50MB files are within limits, but concurrent large uploads could pressure memory.
+HTML files get no content sanitization before storage either (they render in a sandboxed iframe). For markdown, this is fine since react-markdown sanitizes on render. However, `fileContent` (up to 50MB) is loaded entirely into memory as a string via `arrayBuffer` + `TextDecoder`, then stored. For a server process with typical memory limits, 50MB files are within limits, but concurrent large uploads could pressure memory.
 
 **Impact:** Memory pressure under concurrent uploads of large files.
 **Suggestion:** Consider streaming uploads to storage instead of buffering the full file in memory. Not blocking for current scale.
@@ -106,15 +106,9 @@ Each `CodeBlock` mounts a `MutationObserver` on `document.documentElement`. For 
 
 **File:** `/Users/ddphuong/Projects/next-labs/share-html/app/api/upload/route.ts:31`
 
-Comment says "rightmost is trusted proxy" — correct for Vercel's infrastructure, but the code takes `entries[entries.length - 1]` which is the rightmost. This is correct for Vercel but would be wrong for other proxy chains where leftmost is the client. Fine for this deployment target.
+Comment says "rightmost is trusted proxy" — correct for the proxy in front of the app, but the code takes `entries[entries.length - 1]` which is the rightmost. This is correct for that proxy but would be wrong for other proxy chains where leftmost is the client. Fine for this deployment target.
 
-### L2. `maxDuration = 60` is set but not needed on Vercel hobby plan
-
-**File:** `/Users/ddphuong/Projects/next-labs/share-html/app/api/upload/route.ts:15`
-
-Vercel hobby plan serverless functions cap at 10s for HTTP. Pro plan allows 60s. This is a no-op on hobby — uploads of large files may timeout. Not a code bug, but worth documenting the deployment requirement.
-
-### L3. Upload dropzone accepts `"text/markdown"` MIME but browsers rarely send it
+### L2. Upload dropzone accepts `"text/markdown"` MIME but browsers rarely send it
 
 **File:** `/Users/ddphuong/Projects/next-labs/share-html/components/upload-dropzone.tsx:84`
 
@@ -142,7 +136,6 @@ Browsers typically send `application/octet-stream` or `text/plain` for `.md` fil
 2. **[High]** Consider defense-in-depth DOMPurify pass on Shiki output before `dangerouslySetInnerHTML`.
 3. **[Medium]** Extract theme detection into a shared context/hook to avoid N MutationObservers.
 4. **[Medium]** Fix table CSS `display: block` to preserve column alignment.
-5. **[Low]** Document that `maxDuration = 60` requires Vercel Pro plan for large uploads.
 
 ## Metrics
 
@@ -153,6 +146,5 @@ Browsers typically send `application/octet-stream` or `text/plain` for `.md` fil
 
 ## Unresolved Questions
 
-1. Is the Vercel deployment on Pro plan? Hobby plan 10s timeout may be insufficient for 50MB uploads.
-2. Is there a Supabase Storage bucket size limit configured server-side to enforce 50MB at the infrastructure level, or is it only enforced in application code?
-3. Should expired shares show a distinct "expired" message instead of a generic 404?
+1. Is there a Supabase Storage bucket size limit configured server-side to enforce 50MB at the infrastructure level, or is it only enforced in application code?
+2. Should expired shares show a distinct "expired" message instead of a generic 404?

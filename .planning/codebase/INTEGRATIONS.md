@@ -11,15 +11,14 @@
 - Base URL: `NEXT_PUBLIC_API_URL` env var (default: cloudflare tunnel URL)
 - Endpoints consumed: `/api/v1/documents`, and others via `authFetch()`
 
-**Vercel Analytics:**
-- Purpose: Web Vitals, page views, custom event tracking
-- SDK: `@vercel/analytics` (loaded in `components/vercel-analytics.tsx`)
-- Client-side tracking: `trackEvent()` from `lib/analytics.ts` with 5s throttle per event
+**Analytics events:**
+- Purpose: Custom event tracking hook
+- Client-side tracking: `trackEvent()` from `lib/analytics.ts` with 5s throttle per event; no third-party sink
 - Events: `document_uploaded`, `content_published`, `share_viewed`, `embed_viewed`, `analytics_viewed`
 
-**Vercel OG Image:**
+**OG Image:**
 - Purpose: Dynamic Open Graph image generation for social sharing
-- SDK: `@vercel/og` (`ImageResponse`)
+- SDK: `next/og` (`ImageResponse`, built into Next)
 - Endpoint: `app/api/og-image/[slug]/route.tsx`
 - Runtime: Edge
 
@@ -71,19 +70,18 @@
 - None (no Sentry or equivalent configured)
 
 **Logs:**
-- Vercel platform logs (deployment logs)
+- Container logs from the vps192 k3s cluster
 - `console.log` / `console.error` in application code (no structured logging framework)
 
 **Analytics:**
-- Vercel Analytics for Web Vitals and custom events (see above)
 - Custom share view tracking: RPC calls to `record_and_increment_share_view` and `increment_view_count`
 
 ## CI/CD & Deployment
 
 **Hosting:**
-- Vercel (frontend)
-- Render (API backend — separate repo `dropitx-api/`)
-- PyPI (CLI tool — separate repo `dropitx-cli/`)
+- vps192 k3s cluster at `https://dropitx.site` (frontend; container image `ghcr.io/dropitx-io/dropitx:<sha>` built from `Dockerfile`)
+- vps192 k3s cluster at `https://api.dropitx.site` (API backend — separate repo `dropitx-api/`)
+- npm (CLI tool and MCP server — separate repo `dropitx-cli/`)
 
 **CI Pipeline:**
 - Not detected (no GitHub Actions workflows in this repo)
@@ -101,7 +99,7 @@
 
 **Secrets location:**
 - `.env.local` (local development, not committed)
-- Vercel environment variables (production)
+- GitHub repository variables (`NEXT_PUBLIC_*` build args) and the vps192 Kubernetes Secret (server-side secrets) for production
 
 ## Webhooks & Callbacks
 

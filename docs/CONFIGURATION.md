@@ -67,10 +67,6 @@ Flat-config ESLint extending `eslint-config-next/core-web-vitals` and `eslint-co
 
 Next.js middleware redirects `/dashboard/*` to `/auth/login?next=...` when the `session` cookie is absent (a presence check only; server components verify the cookie with `firebase-admin`), and applies security headers on every response except static assets and `/api/og-image`. HSTS is added only when `NODE_ENV === "production"`. Matchers: `/((?!_next/static|_next/image|favicon.ico|api/og-image).*)`.
 
-### `.vercelignore`
-
-Legacy file from a Vercel deployment; the Docker deployment does not use it (see `.dockerignore` for what the image context excludes).
-
 ## Required vs. Optional Settings
 
 Settings that cause runtime failure when missing or invalid:

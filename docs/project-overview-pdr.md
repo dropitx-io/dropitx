@@ -150,7 +150,7 @@ Existing file sharing platforms excel in one dimension (simplicity, privacy, or 
 - **Auth**: Firebase Auth
 - **Styling**: Tailwind CSS 4, shadcn/ui, OKLCH color tokens
 - **Rate limiting**: enforced by the API
-- **CLI**: `dropitx-cli` — Python, published to PyPI as `dropitx`
+- **CLI**: `dropitx-cli` — TypeScript CLI and MCP server, published to npm as `dropitx`
 - **Analytics**: recorded by the API; no third-party analytics in the frontend
 
 ### Infrastructure Constraints
@@ -165,7 +165,7 @@ Existing file sharing platforms excel in one dimension (simplicity, privacy, or 
 
 ## Project Milestones
 
-_Historical: this section records what each phase shipped at the time; it describes neither the current stack (Supabase, RLS, Vercel Analytics and the TypeScript CLI have since been replaced or removed) nor what is currently available._
+_Historical: this section records what each phase shipped at the time; it describes neither the current stack (Supabase, RLS, the analytics integration and the original CLI have since been replaced or removed) nor what is currently available._
 
 ### Phase 1: Core Functionality (Complete)
 - [x] HTML file upload interface
@@ -191,7 +191,7 @@ _Historical: this section records what each phase shipped at the time; it descri
 - [x] API key management (create, list, revoke)
 - [x] REST API v1 for programmatic document management
 - [x] Inline image upload for editor
-- [x] CLI tool (now the separate Python `dropitx-cli` repository, published as `dropitx`)
+- [x] CLI tool (now the separate TypeScript `dropitx-cli` repository, published to npm as `dropitx`)
 - [x] Private shares (`is_private` flag)
 - [x] RLS hardening
 
@@ -201,7 +201,6 @@ _Historical: this section records what each phase shipped at the time; it descri
 - [x] Collaborative content sharing and management
 - [x] oEmbed support for rich content embedding
 - [x] Password protection for shares
-- [x] Vercel Analytics integration
 
 ### Phase 5: Production Hardening (In Progress)
 - [x] Enhanced team invite system with role selection and email validation

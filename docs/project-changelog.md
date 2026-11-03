@@ -16,9 +16,9 @@ All notable changes to DropItX.
 - **Env and scripts**: `NEXT_PUBLIC_SUPABASE_URL` is no longer a Docker build arg; `check:hygiene` is `tsc --noEmit && eslint`.
 
 ### Removed
-- `@supabase/ssr`, `@supabase/supabase-js` and `@vercel/analytics`, the `generate-db-types` script, `utils/supabase/`, `supabase/` (schema and migrations), `types/database.generated.ts`.
+- `@supabase/ssr`, `@supabase/supabase-js` and an unused analytics package, the `generate-db-types` script, `utils/supabase/`, `supabase/` (schema and migrations), `types/database.generated.ts`.
 - `lib/team-rpc.ts`, `lib/token-security.ts`, `lib/supabase-untyped.ts`, `lib/analytics-track.ts` (and with it `ANALYTICS_TOKEN_SECRET`), `lib/share-access-cookie.ts`, `lib/referrer-parser.ts`.
-- Unused components: multi-file upload, dashboard share card, encrypted content viewer, tag manager, the Supabase invite forms, the Vercel analytics mount.
+- Unused components: multi-file upload, dashboard share card, encrypted content viewer, tag manager, the Supabase invite forms, the analytics mount.
 
 Earlier entries below are historical and describe the stack as it was at the time.
 
@@ -433,4 +433,3 @@ New compound pattern improves:
 - Next.js 16 with App Router, React 19, TypeScript 5
 - Supabase (PostgreSQL + Storage)
 - Tailwind CSS 4, shadcn/ui
-- Vercel deployment

@@ -61,7 +61,7 @@ created: 2026-08-10
 
 | Behavior | Requirement | Why Manual | Test Instructions |
 |----------|-------------|------------|-------------------|
-| NEXT_PUBLIC_API_URL set in Vercel Production | HYG-05 | Deployment env — not visible from code | Confirm in Vercel Project Settings → Environment Variables that `NEXT_PUBLIC_API_URL` is set for Production |
+| NEXT_PUBLIC_API_URL set in the production build environment | HYG-05 | Deployment env — not visible from code | Confirm in the production build variables that `NEXT_PUBLIC_API_URL` is set |
 
 ---
 
