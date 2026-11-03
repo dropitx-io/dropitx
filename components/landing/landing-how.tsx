@@ -41,7 +41,7 @@ export function LandingHow({ fragments }: { fragments: ReactNode[] }) {
       aria-labelledby="how-clause"
       className="mt-(--section-gap) grid min-h-[88svh] grid-cols-2 grid-rows-[1fr_auto] max-[760px]:min-h-0 max-[760px]:grid-cols-1 max-[760px]:grid-rows-[auto_auto_auto]"
     >
-      <div className="col-start-1 row-start-1 flex flex-col gap-5 bg-surface px-(--m) pt-[clamp(40px,5vw,72px)] pb-10 max-[760px]:row-start-3 max-[760px]:pt-7">
+      <div className="col-start-1 row-start-1 flex flex-col gap-5 bg-surface pr-(--m-edge) pl-(--m) pt-[clamp(40px,5vw,72px)] pb-10 max-[760px]:row-start-3 max-[760px]:pt-7">
         <h2 id="how-clause" data-reveal aria-live="polite" className={cn(displayS, "min-h-[1.95em] max-w-[7.5em]")}>
           {current.clause}
         </h2>
@@ -50,7 +50,7 @@ export function LandingHow({ fragments }: { fragments: ReactNode[] }) {
         </p>
       </div>
 
-      <div className="col-start-2 row-start-1 grid place-items-center bg-field px-(--m) py-12 max-[760px]:col-start-1 max-[760px]:min-h-[46svh] max-[760px]:py-8">
+      <div className="col-start-2 row-start-1 grid place-items-center bg-field pr-(--m) pl-(--m-edge) py-12 max-[760px]:col-start-1 max-[760px]:min-h-[46svh] max-[760px]:py-8">
         <div data-reveal style={reveal(2)} className="grid w-full max-w-[440px]">
           {fragments.map((f, i) => (
             <div
