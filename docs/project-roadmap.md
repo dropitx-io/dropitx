@@ -5,7 +5,7 @@
 **Version**: 1.4.1 (released 2026-04-26)  
 **Phase**: Production Ready — Core features complete, hardening phase in progress
 
-**Platform note**: the frontend now reads and writes only through the FastAPI backend and signs in with Firebase. Supabase, Upstash and Vercel Analytics references in the phase history below describe the stack at the time each phase shipped.
+**Platform note**: the frontend now reads and writes only through the FastAPI backend and signs in with Firebase. Supabase, Upstash and analytics references in the phase history below describe the stack at the time each phase shipped.
 
 ---
 
@@ -81,7 +81,6 @@
 - oEmbed support for standardized embedding (WordPress/Medium)
 - Share Analytics Dashboard with real-time metrics
 - Team Workspaces with role-based access control
-- Vercel Analytics integration
 
 ### Phase 5: Advanced Features & UI Redesign — COMPLETE ✅
 **May–Jun 2026**

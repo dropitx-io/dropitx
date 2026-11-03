@@ -66,10 +66,10 @@ npm run dev                  # http://localhost:3000
 
 ## CLI Tool
 
-The CLI is the separate `dropitx-cli` repository (Python, published to PyPI as `dropitx`). It talks to the same backend with an API key generated from `/dashboard`.
+The CLI is the separate `dropitx-cli` repository (TypeScript, published to npm as `dropitx`). It talks to the same backend with an API key generated from `/dashboard`.
 
 ```bash
-pip install dropitx
+npm install -g dropitx
 dropitx login
 dropitx publish my-file.md -t "My Doc"
 ```

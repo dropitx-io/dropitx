@@ -10,7 +10,7 @@ DropItX is a file/text sharing product with team collaboration. This repository 
 
 - `dropitx/` (this repo) — Next.js frontend, shipped as a Docker image.
 - `dropitx-api/` — FastAPI backend (shares, dashboard, teams, invites, analytics, API keys) on Postgres and MinIO, called via REST.
-- `dropitx-cli/` — Python/Click CLI published to PyPI as `dropitx`; a separate client, not bundled here.
+- `dropitx-cli/` — TypeScript CLI and MCP server published to npm as `dropitx`; a separate client, not bundled here.
 
 The frontend is a **thin client with one data backend**. Identity is Firebase Auth; every read and write goes to the **FastAPI backend**:
 

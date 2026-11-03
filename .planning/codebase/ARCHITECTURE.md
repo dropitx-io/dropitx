@@ -41,19 +41,19 @@
 
 | Component | Responsibility | File |
 |-----------|----------------|------|
-| Root Layout | Fonts (Inter, Geist Mono), ThemeProvider, ErrorBoundary, Toaster, VercelAnalytics | `app/layout.tsx` |
+| Root Layout | Fonts (Inter, Geist Mono), ThemeProvider, ErrorBoundary, Toaster | `app/layout.tsx` |
 | Middleware | Session refresh via Supabase SSR, security headers (HSTS, CSP, X-Frame-Options) | `middleware.ts` |
 | Public Layout | Minimal wrapper for unauthenticated routes | `app/(public)/layout.tsx` |
 | Dashboard Layout | Auth guard (redirect if no user), fetches user profile + teams, renders DashboardShell | `app/(dashboard)/dashboard/layout.tsx` |
 | API Client | Authenticated fetch to FastAPI backend with JWT injection and 401 retry | `lib/api-client.ts` |
 | Session Middleware | Creates Supabase server client, refreshes JWT via `getClaims()`, writes rotated cookies | `utils/supabase/middleware.ts` |
 | Share Page | Access control (private/password/owner checks), view recording, file rendering (Markdown/HTML) | `app/(public)/s/[slug]/page.tsx` |
-| OG Image Generator | Dynamic social card image via `@vercel/og` (Edge runtime) | `app/api/og-image/[slug]/route.tsx` |
+| OG Image Generator | Dynamic social card image via `next/og` (Edge runtime) | `app/api/og-image/[slug]/route.tsx` |
 | Access Cookie | HMAC-SHA256 signed cookie for password-protected share access | `app/api/shares/[slug]/access-cookie/route.ts` |
 | Crypto Utils | AES-256-GCM E2E encryption/decryption with Web Crypto API | `lib/crypto.ts` |
 | Password Utils | bcryptjs hashing for share password protection | `lib/password.ts` |
 | Team RPC | Supabase RPC calls for team CRUD, invites, role management, rate limiting | `lib/team-rpc.ts` |
-| Analytics Tracking | Vercel Analytics event tracking with throttle | `lib/analytics.ts` |
+| Analytics Tracking | `trackEvent` hook with throttle, no third-party sink | `lib/analytics.ts` |
 
 ## Pattern Overview
 
@@ -93,7 +93,7 @@
 - Purpose: Minimal server-side endpoints
 - Location: `app/api/`
 - Contains: OG image generation (`og-image/[slug]`), access cookie setting (`shares/[slug]/access-cookie`)
-- Depends on: `@vercel/og`, Supabase admin client, `lib/share-access-cookie.ts`
+- Depends on: `next/og`, Supabase admin client, `lib/share-access-cookie.ts`
 - Used by: Social media crawlers (OG images), password gate flow (access cookie)
 
 **Components Layer:**
@@ -181,7 +181,7 @@
 **Application Root:**
 - Location: `app/layout.tsx`
 - Triggers: Every page load
-- Responsibilities: Font loading (Inter, Geist Mono), ThemeProvider, ErrorBoundary, Toaster, VercelAnalytics wrapper
+- Responsibilities: Font loading (Inter, Geist Mono), ThemeProvider, ErrorBoundary, Toaster
 
 **Middleware:**
 - Location: `middleware.ts`
@@ -252,7 +252,7 @@
 
 ## Cross-Cutting Concerns
 
-**Logging:** No structured logging. Application uses `console.log`/`console.error` as needed. Platform-level logs via Vercel.
+**Logging:** No structured logging. Application uses `console.log`/`console.error` as needed. Container logs come from the vps192 cluster.
 
 **Validation:**
 - Client-side: Email regex validation in `lib/team-rpc.ts`, custom slug validation in `lib/validate-custom-slug.ts`, general validation in `lib/validation.ts`

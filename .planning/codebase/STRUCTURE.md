@@ -84,12 +84,12 @@ dropitx/
 
 **`public/` — Static assets:**
 - Purpose: Static files served at root
-- Contains: SVG icons (`file.svg`, `globe.svg`, `next.svg`, `vercel.svg`, `window.svg`)
+- Contains: SVG icons (`file.svg`, `globe.svg`, `next.svg`, `window.svg`)
 
 ## Key File Locations
 
 **Entry Points:**
-- `app/layout.tsx`: Root layout with fonts, ThemeProvider, ErrorBoundary, Toaster, VercelAnalytics
+- `app/layout.tsx`: Root layout with fonts, ThemeProvider, ErrorBoundary, Toaster
 - `middleware.ts`: Edge middleware for session refresh and security headers
 - `app/(public)/page.tsx`: Landing page (renders `HomePage` component)
 - `app/(dashboard)/dashboard/layout.tsx`: Auth-guarded dashboard layout
@@ -107,7 +107,7 @@ dropitx/
 - `lib/password.ts`: bcryptjs password hashing/verification
 - `lib/share-access-cookie.ts`: HMAC-SHA256 signed access cookie management
 - `lib/team-rpc.ts`: Team management RPC wrappers (TeamRPC + TeamService classes)
-- `lib/analytics.ts`: Vercel Analytics event tracking with throttle
+- `lib/analytics.ts`: `trackEvent` hook with throttle, no third-party sink
 
 **Supabase Clients:**
 - `utils/supabase/client.ts`: Browser client factory
@@ -152,7 +152,7 @@ dropitx/
 
 **New API endpoint:**
 - Implementation: `app/api/<endpoint>/route.ts` or `app/api/<endpoint>/[param]/route.ts`
-- Note: Most API logic belongs in the FastAPI backend (`dropitx-api/`). Only add Next.js API routes for Vercel-specific features (Edge runtime, cookies).
+- Note: Most API logic belongs in the FastAPI backend (`dropitx-api/`). Only add Next.js API routes for frontend-specific features (Edge runtime, cookies).
 
 **New UI component (feature):**
 - Implementation: `components/<component-name>.tsx`

@@ -21,7 +21,7 @@ The work is sequential and dependency-ordered, not parallelizable en masse: the 
 | HYG-02 | ESLint enforced in production builds (`ignoreDuringBuilds` disabled) | Next.js 16 docs confirm `ignoreDuringBuilds` defaults to false. Debt to clear: 7 `no-explicit-any` disables + 6 `catch (err: any)` + 2 other disables. See Common Pitfalls. |
 | HYG-03 | Zero `@ts-nocheck` directives (5 files: team-invite-form, enhanced-invite-dialog, invite-accept-form, bulk-invite-dialog, team-rpc) | Quantified: 37 `.message` accesses on `unknown` errors, 3 `Promise<any>` returns, untyped RPC results. Fix order: team-rpc.ts first (shared dependency). See Code Examples. |
 | HYG-04 | Dashboard queries use typed Supabase responses (no `any` casts with `eslint-disable`) | Root cause: no generated `Database` type — `createClient()` called without generic. Two fix paths documented; Supabase CLI is installed. See Architecture Patterns. |
-| HYG-05 | No ephemeral/hardcoded URLs in production code defaults (Cloudflare tunnel fallback removed) | Replace fallback with fail-fast throw. Vercel NEXT_PUBLIC inlining caveat documented. See Code Examples + Common Pitfalls. |
+| HYG-05 | No ephemeral/hardcoded URLs in production code defaults (Cloudflare tunnel fallback removed) | Replace fallback with fail-fast throw. NEXT_PUBLIC inlining caveat documented. See Code Examples + Common Pitfalls. |
 </phase_requirements>
 
 ## Architectural Responsibility Map
@@ -155,11 +155,11 @@ Source: postgrest-js typed-query docs [CITED: github.com/supabase/postgrest-js �
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 if (!API_URL) {
   throw new Error(
-    "NEXT_PUBLIC_API_URL is not set. Set it in your environment (Vercel Project Settings → Environment Variables) and redeploy."
+    "NEXT_PUBLIC_API_URL is not set. Set it in your environment (build arg or .env.local) and rebuild."
   );
 }
 ```
-Source: Next.js docs — `NEXT_PUBLIC_*` vars are inlined at build time [CITED: next.js docs 01-app/03-api-reference/05-config/01-next-config-js/typescript.mdx]. See Common Pitfalls for the Vercel inlining caveat.
+Source: Next.js docs — `NEXT_PUBLIC_*` vars are inlined at build time [CITED: next.js docs 01-app/03-api-reference/05-config/01-next-config-js/typescript.mdx]. See Common Pitfalls for the inlining caveat.
 
 ### Pattern 3: Narrow catch-block errors without `any` (HYG-03 enabler)
 
@@ -226,11 +226,11 @@ Source: TypeScript docs [CITED: github.com/microsoft/typescript — useUnknownIn
 **How to avoid:** Add the `getErrorMessage(e: unknown)` helper first. Fix `lib/team-rpc.ts` (the shared dependency) in isolation, confirm `npx tsc --noEmit` on that file passes, then proceed to the components.
 **Warning signs:** A single `tsc` run returning 100+ errors after removing one `@ts-nocheck`.
 
-### Pitfall 2: Vercel does not inline a missing `NEXT_PUBLIC_API_URL`
-**What goes wrong:** Replacing the tunnel fallback with `throw` causes the Vercel build itself to crash — because the env var is absent or misnamed in the Vercel project settings.
-**Why it happens:** `NEXT_PUBLIC_*` variables are statically inlined at build time. The git log entry "hardcode tunnel API URL as fallback (Vercel env not inlining)" [VERIFIED: git log commit 7e0309f] shows this project already hit this failure mode. If the var is missing from Vercel's build environment, the throw fires during the build, which is the *correct* behavior (fail loud) — but it means the deploy will fail until the var is added in Vercel.
-**How to avoid:** Before merging HYG-05, confirm `NEXT_PUBLIC_API_URL` is set in Vercel Project Settings → Environment Variables → Production. This is a deployment-environment task, not just a code task.
-**Warning signs:** Vercel deploy fails with the custom error message after the code change.
+### Pitfall 2: A missing `NEXT_PUBLIC_API_URL` fails the production build
+**What goes wrong:** Replacing the tunnel fallback with `throw` causes the production build itself to crash — because the env var is absent or misnamed in the build environment.
+**Why it happens:** `NEXT_PUBLIC_*` variables are statically inlined at build time. The git log entry that hardcoded the tunnel API URL as a fallback because the env var was not being inlined [VERIFIED: git log commit 7e0309f] shows this project already hit this failure mode. If the var is missing from the build environment, the throw fires during the build, which is the *correct* behavior (fail loud) — but it means the deploy will fail until the var is added to the build variables.
+**How to avoid:** Before merging HYG-05, confirm `NEXT_PUBLIC_API_URL` is set in the production build variables. This is a deployment-environment task, not just a code task.
+**Warning signs:** The production deploy fails with the custom error message after the code change.
 
 ### Pitfall 3: Removing `@ts-nocheck` reveals untyped Supabase RPC return shapes
 **What goes wrong:** `supabase.rpc('create_team', {...})` returns `data` typed as `unknown` (without generated types) or a generated row shape that may not match the hand-written `InviteResult`/`AcceptInviteResult` interfaces in `team-rpc.ts`. The existing `data as InviteResult` casts may fail if the generated shape differs.
@@ -275,7 +275,7 @@ import { createClient } from "@/utils/supabase/client";
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 if (!API_URL) {
   throw new Error(
-    "NEXT_PUBLIC_API_URL is required. Set it in Vercel Project Settings → Environment Variables and redeploy."
+    "NEXT_PUBLIC_API_URL is required. Set it as a build arg (or in .env.local for development) and rebuild."
   );
 }
 
@@ -350,7 +350,7 @@ Note: The exact field names of `GlobalRateLimitResult` are `[ASSUMED]` — they 
 |---|-------|---------|---------------|
 | A1 | The RPC return shapes for `check_global_invite_rate_limit`, `get_rate_limiting_stats`, `cleanup_rate_limiting_data` match `GlobalRateLimitResult` / similar interfaces | Code Examples (HYG-03) | The `as GlobalRateLimitResult` cast hides shape mismatch → runtime fields undefined. Must verify against the RPC definitions in `dropitx-api` or generated types before finalizing. |
 | A2 | The Supabase project ref / connection needed for `supabase gen types typescript` is accessible from this machine | Architecture Patterns (Pattern 1) | If not accessible, fall back to manual row interfaces (Path B) for HYG-04. The CLI is installed but DB access/auth is unverified. |
-| A3 | `NEXT_PUBLIC_API_URL` is already set in Vercel Production environment | Common Pitfalls #2 | The Vercel deploy will fail on the first build after HYG-05 if it is not set. This is a deployment-environment prerequisite, not a code task. |
+| A3 | `NEXT_PUBLIC_API_URL` is already set in the production build environment | Common Pitfalls #2 | The production deploy will fail on the first build after HYG-05 if it is not set. This is a deployment-environment prerequisite, not a code task. |
 | A4 | The remaining `eslint-disable` comments (`react-hooks/exhaustive-deps` in editor-pane.tsx:67, `@next/next/no-img-element` in team-member-row.tsx:94) are the only non-`any` lint suppressions | Phase Requirements (HYG-02) | If there are more, they surface when `ignoreDuringBuilds` is removed. Low risk — grep was thorough. |
 
 ## Open Questions
@@ -376,11 +376,11 @@ Note: The exact field names of `GlobalRateLimitResult` are `[ASSUMED]` — they 
 | Node.js | build, lint, type-check | ✓ | 26.0.0 | — |
 | npm | dependency management | ✓ | 11.12.1 | — |
 | Supabase CLI | HYG-04 (type generation) | ✓ | 2.95.4 | Manual row interfaces if DB access fails |
-| `NEXT_PUBLIC_API_URL` (Vercel env) | HYG-05 (runtime API calls) | [ASSUMED] | — | None — must be set before merge; deploy fails otherwise |
+| `NEXT_PUBLIC_API_URL` (build env) | HYG-05 (runtime API calls) | [ASSUMED] | — | None — must be set before merge; deploy fails otherwise |
 | Remote Supabase project | HYG-04 type generation | [ASSUMED] | — | Manual row interfaces (Path B) |
 
 **Missing dependencies with no fallback:**
-- None that block the code work. The only hard blocker is A3 (`NEXT_PUBLIC_API_URL` in Vercel) which is a deployment-environment task, not a local-environment dependency.
+- None that block the code work. The only hard blocker is A3 (`NEXT_PUBLIC_API_URL` in the build environment) which is a deployment-environment task, not a local-environment dependency.
 
 ## Validation Architecture
 

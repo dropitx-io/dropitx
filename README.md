@@ -33,7 +33,7 @@ Drop HTML and Markdown files, write in the built-in editor, and get short sharea
 - **Firebase Auth** (Google, GitHub, email/password)
 - **CodeMirror 6** (Markdown editor, SSR-disabled)
 - **Tailwind CSS 4** + shadcn/ui (Olive on bone design system, see docs/design-guidelines.md)
-- **CLI**: `dropitx-cli` — Python, published to PyPI as `dropitx`
+- **CLI**: `dropitx-cli` — TypeScript CLI and MCP server, published to npm as `dropitx`
 
 ## Getting Started
 
@@ -72,7 +72,7 @@ The database schema belongs to `dropitx-api`; this repository has no migrations.
 
 ```bash
 # Install the CLI
-pip install dropitx
+npm install -g dropitx
 
 # Authenticate (generate an API key at /dashboard first)
 dropitx login

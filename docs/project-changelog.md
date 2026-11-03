@@ -16,9 +16,9 @@ All notable changes to DropItX.
 - **Env and scripts**: `NEXT_PUBLIC_SUPABASE_URL` is no longer a Docker build arg; `check:hygiene` is `tsc --noEmit && eslint`.
 
 ### Removed
-- `@supabase/ssr`, `@supabase/supabase-js` and `@vercel/analytics`, the `generate-db-types` script, `utils/supabase/`, `supabase/` (schema and migrations), `types/database.generated.ts`.
+- `@supabase/ssr`, `@supabase/supabase-js` and an unused analytics package, the `generate-db-types` script, `utils/supabase/`, `supabase/` (schema and migrations), `types/database.generated.ts`.
 - `lib/team-rpc.ts`, `lib/token-security.ts`, `lib/supabase-untyped.ts`, `lib/analytics-track.ts` (and with it `ANALYTICS_TOKEN_SECRET`), `lib/share-access-cookie.ts`, `lib/referrer-parser.ts`.
-- Unused components: multi-file upload, dashboard share card, encrypted content viewer, tag manager, the Supabase invite forms, the Vercel analytics mount.
+- Unused components: multi-file upload, dashboard share card, encrypted content viewer, tag manager, the Supabase invite forms, the analytics mount.
 
 Earlier entries below are historical and describe the stack as it was at the time.
 
@@ -100,7 +100,7 @@ Earlier entries below are historical and describe the stack as it was at the tim
 ## [v2.3.0] — 2026-05-02
 
 ### Changed
-- **Migrated all frontend API calls to FastAPI backend**: All 24 Next.js API route handlers (~2,400 lines) removed. Frontend now calls `dropitx-api.onrender.com` directly via `authFetch()` with JWT Bearer auth
+- **Migrated all frontend API calls to FastAPI backend**: All 24 Next.js API route handlers (~2,400 lines) removed. Frontend now calls the FastAPI backend directly via `authFetch()` with JWT Bearer auth
 - **`lib/api-client.ts`**: Added `authFetch()` with singleton Supabase client, JWT Bearer token injection, and 401 retry with session refresh
 - **17 client components updated**: All authenticated fetch calls migrated from `fetch(getApiUrl(...))` to `authFetch()`
 - **Analytics tracker**: Updated to snake_case fields (`tracking_token`, `share_id`, `is_embed`) for FastAPI compatibility
@@ -113,7 +113,7 @@ Earlier entries below are historical and describe the stack as it was at the tim
 
 ### Architecture
 - Next.js is now a pure frontend — zero API routes (except OG image generation)
-- `NEXT_PUBLIC_API_URL=https://dropitx-api.onrender.com` set as build-time env var
+- `NEXT_PUBLIC_API_URL` (the backend URL) set as build-time env var
 - Rollback via `git revert` if needed
 
 ## [v2.2.1] — 2026-04-29
@@ -433,4 +433,3 @@ New compound pattern improves:
 - Next.js 16 with App Router, React 19, TypeScript 5
 - Supabase (PostgreSQL + Storage)
 - Tailwind CSS 4, shadcn/ui
-- Vercel deployment

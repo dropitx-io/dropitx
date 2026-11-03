@@ -59,7 +59,7 @@
 **Order (observed in source files):**
 1. External packages (`react`, `next`, `next/server`, `next/navigation`)
 2. Supabase packages (`@supabase/ssr`, `@supabase/supabase-js`)
-3. Third-party libraries (`lucide-react`, `sonner`, `@vercel/analytics`, `@codemirror/*`)
+3. Third-party libraries (`lucide-react`, `sonner`, `@codemirror/*`)
 4. Internal `@/` aliased imports -- grouped by:
    - `@/components/ui/*` (shadcn primitives)
    - `@/components/*` (feature components)
@@ -105,7 +105,7 @@
 
 **Patterns:**
 - No explicit logging in application code
-- Analytics events tracked via `@vercel/analytics` `track()` function (not console logs)
+- Analytics events tracked via the `trackEvent()` hook in `lib/analytics.ts` (not console logs)
 - No debug logging found
 - Errors silently caught in non-critical paths (localStorage, analytics)
 

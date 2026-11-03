@@ -11,7 +11,7 @@ Default is **INTEGRATE**. This table is the *subtraction record* — every `OPT-
 | # | capability | decision | plan | reason (OPT-OUT only) |
 |---|-----------|----------|------|------------------------|
 | 1 | `GET /health` (liveness smoke) | INTEGRATE | 01.1-01 | — |
-| 2 | `NEXT_PUBLIC_API_URL` per-Vercel-environment resolution | INTEGRATE | 01.1-01 | — |
+| 2 | `NEXT_PUBLIC_API_URL` build-environment resolution | INTEGRATE | 01.1-01 | — |
 | 3 | `GET /api/shares/{slug}/star` | INTEGRATE | 01.1-01 | — |
 | 4 | `POST /api/shares/{slug}/star` | INTEGRATE | 01.1-01 | — |
 | 5 | `DELETE /api/shares/{slug}/star` | INTEGRATE | 01.1-01 | — |
@@ -47,7 +47,7 @@ Default is **INTEGRATE**. This table is the *subtraction record* — every `OPT-
 | 35 | `POST /api/upload/batch` (group upload) | INTEGRATE | 01.1-04 | — |
 | 36 | `GET /api/shares/{slug}/files` | INTEGRATE | 01.1-04 | — |
 | 37 | `POST /api/images/upload` | INTEGRATE (already wired — confirm-only) | 01.1-04 | — |
-| 38 | `POST /api/cli/upload*` | OPT-OUT | — | Explicitly out of scope: consumed by the separate `dropitx-cli` PyPI tool, not this Next.js app (RESEARCH.md §Architectural Responsibility Map). |
+| 38 | `POST /api/cli/upload*` | OPT-OUT | — | Explicitly out of scope: consumed by the separate `dropitx-cli` npm tool, not this Next.js app (RESEARCH.md §Architectural Responsibility Map). |
 | 39 | `GET /api/download/group/{group_slug}` (bulk zip) | INTEGRATE (link-only) | 01.1-04 | — |
 | 40 | `GET /api/v1/*` (API-key / CLI-authenticated document routes) | OPT-OUT | — | Explicitly out of scope: parallel API-key-authenticated surface for programmatic clients; API-05 covers the JWT publish path only, and RESEARCH.md forbids merging the two flows without a separate user decision. |
 

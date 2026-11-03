@@ -8,7 +8,7 @@
 ## Architecture: Next.js pure frontend + FastAPI backend
 - source: docs/system-architecture.md
 - type: protocol
-- content: DropItX is a Next.js 16 (App Router) pure frontend deployed on Vercel with only one remaining API route (`/api/og-image/[slug]`). All API logic runs on a FastAPI backend at `dropitx-api.onrender.com` (Render). Frontend calls backend via `authFetch()` injecting the Supabase JWT Bearer token; 401 triggers session refresh + retry. Backing services: Supabase (PostgreSQL + Storage, RLS enforced) and Upstash Redis (rate limiting).
+- content: DropItX is a Next.js 16 (App Router) pure frontend, built into a container image and deployed to the vps192 k3s cluster, with only one remaining API route (`/api/og-image/[slug]`). All API logic runs on a FastAPI backend at `api.dropitx.site`. Frontend calls backend via `authFetch()` injecting the Supabase JWT Bearer token; 401 triggers session refresh + retry. Backing services: Supabase (PostgreSQL + Storage, RLS enforced) and Upstash Redis (rate limiting).
 
 ## Authentication: dual auth model (JWT Bearer + API key)
 - source: docs/system-architecture.md

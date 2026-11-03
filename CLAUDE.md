@@ -9,7 +9,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### Building & Deployment
 - `npm run build` — Perform TypeScript type checking and build Next.js app for production.
-- `npm start` — Run the production server (used by Vercel).
+- `npm start` — Run the production server (runs inside the container image).
 
 ### Code Quality
 - `npm run lint` — Run ESLint (next/core-web-vitals + TypeScript config). No formatters configured; lint errors must pass before committing.
@@ -36,7 +36,7 @@ No test framework is currently configured. Verify changes manually by running `n
 **Components & Styling**:
 - `components/` — Feature components (kebab-case filenames, under 200 lines each); `components/team/` holds the team-collaboration UI
 - `components/ui/` — shadcn/ui primitive components (button, dialog, select, etc.)
-- `lib/` — Utility modules: `api-client.ts` (authenticated fetch), `crypto.ts` (AES-256-GCM), `password.ts` (bcryptjs hashing), `team-rpc.ts` (Supabase RPC wrappers for team ops), `rate-limit.ts`, `token-security.ts`, `analytics.ts` (Vercel Analytics), CodeMirror extensions
+- `lib/` — Utility modules: `api-client.ts` (authenticated fetch), `crypto.ts` (AES-256-GCM), `password.ts` (bcryptjs hashing), `team-rpc.ts` (Supabase RPC wrappers for team ops), `rate-limit.ts`, `token-security.ts`, `analytics.ts` (`trackEvent` hook, no third-party sink), CodeMirror extensions
 - `hooks/` — Custom React hooks (`use-auth-user.ts`, `use-team.ts`, `use-toast.ts`, etc.)
 - `types/` — Hand-authored domain types (`team.ts`, `team-event.ts`, `share.ts`, `analytics.ts`) plus `database.generated.ts` (generated — see Type Generation below)
 - `public/` — Static assets
@@ -128,7 +128,6 @@ Apply migrations locally with `supabase db push` after editing.
 | `shadcn` | shadcn/ui component registry (not a direct dependency; managed via CLI) |
 | `shiki@4.0.2` | Syntax highlighting for code blocks |
 | `bcryptjs@3.0.3` | Password hashing for protected shares |
-| `@vercel/analytics` | Web Vitals and event tracking |
 | `recharts` | Analytics charts in the dashboard |
 | `sonner` | Toast notifications |
 | `react-markdown` + `remark-gfm` | Rendered markdown output (share/embed views) |

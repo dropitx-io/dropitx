@@ -32,7 +32,7 @@ if (forwarded) {
 
 ```ts
 function getClientIp(request: NextRequest): string {
-  // Prefer x-real-ip set by trusted reverse proxy (Vercel sets this)
+  // Prefer x-real-ip set by trusted reverse proxy
   const realIp = request.headers.get("x-real-ip");
   if (realIp) return realIp;
   // Fallback: trust first entry only behind a known proxy
@@ -226,7 +226,7 @@ text = text.replace(/&#x([0-9a-f]+);/gi, (_, code) => String.fromCharCode(parseI
 **File:** `/Users/ddphuong/Projects/next-labs/share-html/app/api/upload/route.ts` line 149
 **Severity:** Medium
 
-The share URL is constructed using `x-forwarded-proto` header, which can be set by the client. On Vercel this is set correctly, but in self-hosted scenarios this could produce incorrect URLs (http instead of https, or vice versa).
+The share URL is constructed using `x-forwarded-proto` header, which can be set by the client. Behind a proxy that overwrites it this is set correctly, but elsewhere this could produce incorrect URLs (http instead of https, or vice versa).
 
 **Fix:** In production, prefer `NEXTAUTH_URL` or `NEXT_PUBLIC_BASE_URL` env var. Fallback to `x-forwarded-proto` only in known proxy environments.
 
@@ -365,6 +365,6 @@ The 3 critical issues (rate limit bypass, iframe sandbox + CSP, missing security
 
 ## Unresolved Questions
 
-- Is this deployed on Vercel or self-hosted? Affects IP header trust and CSP header strategy.
+- Which proxy fronts the deployment? Affects IP header trust and CSP header strategy.
 - Is there a scheduled job for expired share cleanup, or is it truly manual-only? Manual-only means orphaned storage objects accumulate.
 - Is the `SUPABASE_SERVICE_ROLE_KEY` only available server-side? No middleware to enforce this -- relies entirely on not importing `server.ts` in client code.

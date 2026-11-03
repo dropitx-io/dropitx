@@ -17,7 +17,7 @@
 **Stale tunnel URL in production default:**
 - Issue: `lib/api-client.ts` line 3 falls back to a Cloudflare tunnel URL (`https://overcome-sterling-senator-clinics.trycloudflare.com`) when `NEXT_PUBLIC_API_URL` is not set. This tunnel URL is ephemeral and will stop working.
 - Files: `lib/api-client.ts`
-- Impact: If the Vercel env var is missing or fails to resolve, all API calls route to a dead tunnel endpoint. Production users see silent failures with no error feedback.
+- Impact: If the build-time variable is missing or fails to resolve, all API calls route to a dead tunnel endpoint. Production users see silent failures with no error feedback.
 - Fix approach: Replace the fallback with a production URL (e.g., `https://api.dropitx.com`) or throw a build-time error when `NEXT_PUBLIC_API_URL` is unset. Never commit ephemeral tunnel URLs.
 
 ### @ts-nocheck on Critical Modules
@@ -178,7 +178,7 @@
 - Issue: `app/(public)/embed/[slug]/page.tsx` downloads the full file content into memory via `adminClient.storage.from("html-files").download()` and passes it as `srcDoc` to an iframe.
 - Files: `app/(public)/embed/[slug]/page.tsx` (lines 79-85)
 - Current capacity: Works for reasonable file sizes.
-- Limit: Large HTML files (>5MB) will consume significant server memory during SSR. Concurrent embed views of large files could strain Vercel serverless function memory limits.
+- Limit: Large HTML files (>5MB) will consume significant server memory during SSR. Concurrent embed views of large files could strain server memory.
 - Scaling path: Stream file content or use a redirect to a pre-signed storage URL instead of `srcDoc`. Set a file size limit on HTML uploads.
 
 ## Dependencies at Risk

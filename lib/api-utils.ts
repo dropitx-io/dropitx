@@ -4,7 +4,7 @@
 
 import { type NextRequest } from "next/server";
 
-/** Extract client IP from proxy headers (Vercel / reverse proxy). */
+/** Extract client IP from reverse-proxy headers. */
 export function getClientIp(request: NextRequest): string {
   const realIp = request.headers.get("x-real-ip");
   if (realIp) return realIp;

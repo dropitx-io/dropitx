@@ -57,7 +57,7 @@ key-decisions:
 patterns-established:
   - "Untyped Supabase access is allowed ONLY through lib/supabase-untyped.ts — any new drifted RPC goes there, never an inline as-cast"
   - "Build gates on Next 16: npm run build (TypeScript + bundle) and npm run lint (ESLint) are separate surfaces; both must be run, neither covers the other"
-  - "All NEXT_PUBLIC_* vars consumed at module load must exist in the Vercel Production environment — production prerendering executes that code at build time"
+  - "All NEXT_PUBLIC_* vars consumed at module load must exist in the production build environment — production prerendering executes that code at build time"
 
 requirements-completed: [HYG-01, HYG-02, HYG-04]
 
@@ -94,10 +94,10 @@ coverage:
         status: pass
     human_judgment: false
   - id: D5
-    description: "Vercel Production environment includes all 6 NEXT_PUBLIC_FIREBASE_* vars alongside NEXT_PUBLIC_API_URL (build-time prerender of /dashboard/analytics initializes Firebase at module load)"
+    description: "The production build environment includes all 6 NEXT_PUBLIC_FIREBASE_* vars alongside NEXT_PUBLIC_API_URL (build-time prerender of /dashboard/analytics initializes Firebase at module load)"
     verification: []
     human_judgment: true
-    rationale: "Cannot be verified from the repo — it is a deployment-environment fact. The local .env.local has all 6 vars (build passed); the Vercel Production env must be confirmed by a human before the next deploy or the production build will fail on the Firebase module-load init."
+    rationale: "Cannot be verified from the repo — it is a deployment-environment fact. The local .env.local has all 6 vars (build passed); the production build env must be confirmed by a human before the next deploy or the production build will fail on the Firebase module-load init."
 
 # Metrics
 duration: 40min
@@ -187,7 +187,7 @@ Modified (key files; 30 total):
 
 **4. Next-16 ESLint fact changes HYG-02's surface** — plan assumed `next build` runs ESLint; on Next 16 it does not. HYG-02 is satisfied by the `npm run lint` gate (0 errors), not by the build.
 
-**5. Firebase env prerequisite discovered** — production prerendering of `/dashboard/analytics` initializes Firebase at module load; the build crashed until `.env.local` carried all 6 `NEXT_PUBLIC_FIREBASE_*` vars. Surfaced as a CHECKPOINT (human-verify, blocking); user resolved it. Vercel Production env carries the same requirement.
+**5. Firebase env prerequisite discovered** — production prerendering of `/dashboard/analytics` initializes Firebase at module load; the build crashed until `.env.local` carried all 6 `NEXT_PUBLIC_FIREBASE_*` vars. Surfaced as a CHECKPOINT (human-verify, blocking); user resolved it. The production build environment carries the same requirement.
 
 ---
 
@@ -202,7 +202,7 @@ Modified (key files; 30 total):
 
 ## User Setup Required
 
-None generated (plan has no `user_setup` block). Deployment note: **Vercel Production environment must include all 6 `NEXT_PUBLIC_FIREBASE_*` vars alongside `NEXT_PUBLIC_API_URL`** before the next production deploy — see coverage D5.
+None generated (plan has no `user_setup` block). Deployment note: **The production build environment must include all 6 `NEXT_PUBLIC_FIREBASE_*` vars alongside `NEXT_PUBLIC_API_URL`** before the next production deploy — see coverage D5.
 
 ## Known Stubs
 
@@ -214,7 +214,7 @@ None — no stub patterns introduced; all data flows are wired.
 - Phase 01.1 (api-integration-migration) can execute immediately — planning already verified
 - WINDOWS.md entries 1-2 (RPC drift / team_invites column drift) intentionally remain OPEN — the untyped boundary contains them; actual reconciliation is cross-repo scope (dropitx-api/)
 - 44 pre-existing lint warnings remain (locked out-of-scope decision)
-- Vercel Production env: 6 Firebase vars + NEXT_PUBLIC_API_URL required at next deploy (D5)
+- Production build env: 6 Firebase vars + NEXT_PUBLIC_API_URL required at next deploy (D5)
 
 ## Self-Check: PASSED
 

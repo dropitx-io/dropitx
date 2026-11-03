@@ -65,7 +65,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 **Wave 1**
 
-- [ ] 01.1-01-PLAN.md — Tracer: live-API smoke + Stars toggle swap (D-01 toggle half) + Vercel env checkpoint [API-01, API-03]
+- [ ] 01.1-01-PLAN.md — Tracer: live-API smoke + Stars toggle swap (D-01 toggle half) + deploy env checkpoint [API-01, API-03]
 - [ ] 01.1-02-PLAN.md — Profile read column fix (D-03) + PUT /api/profile Route Handler (D-02) + call-site repoint [API-02]
 - [ ] 01.1-03-PLAN.md — Interface-first: shadcn primitives (tabs/avatar/separator/label) + 4 typed API contract modules [API-03, API-04]
 - [ ] 01.1-04-PLAN.md — Batch upload + multi-file listing (D-04) + confirm-only pass on publish/upload/images [API-05]

@@ -81,11 +81,11 @@ coverage:
         status: pass
     human_judgment: false
   - id: D5
-    description: "Deployment prerequisite: NEXT_PUBLIC_API_URL confirmed set in Vercel Production before merge"
+    description: "Deployment prerequisite: NEXT_PUBLIC_API_URL confirmed set in the production build environment before merge"
     requirement: HYG-05
     verification:
       - kind: manual
-        ref: "Manual check in Vercel Project Settings → Environment Variables → Production. Required before merging the fail-fast change or the production build will crash at SSR."
+        ref: "Manual check of the production build variables. Required before merging the fail-fast change or the production build will crash at SSR."
         status: pending
     human_judgment: true
 
@@ -167,7 +167,7 @@ Threading the `Database` generic surfaced a significant pre-existing drift that 
 Full drift table recorded in `.planning/phases/01-build-hygiene/deferred-items.md`.
 
 ## User Setup Required
-- **Deployment prerequisite (blocking for production deploy):** Confirm `NEXT_PUBLIC_API_URL` is set in **Vercel Project Settings → Environment Variables → Production** before merging this change. With the fail-fast throw, a production build without this var will crash at the SSR pass. (The current production value is `https://dropitx-api.onrender.com` per the existing Vercel config — verify it is present and correct.)
+- **Deployment prerequisite (blocking for production deploy):** Confirm `NEXT_PUBLIC_API_URL` is set in the **production build variables** before merging this change. With the fail-fast throw, a production build without this var will crash at the SSR pass.
 
 ## Threat Surface
 
@@ -175,13 +175,13 @@ The changes match the plan's threat model exactly — no new surface introduced 
 
 | Threat ID | Status | Notes |
 |-----------|--------|-------|
-| T-03-01 (DoS / build crash on missing env) | mitigated | Fail-fast throw is intentional; gated by the Vercel env-var prerequisite above |
+| T-03-01 (DoS / build crash on missing env) | mitigated | Fail-fast throw is intentional; gated by the build env-var prerequisite above |
 | T-03-02 (Spoofing / tunnel URL) | mitigated | trycloudflare.com reference fully removed; no attacker-controllable ephemeral endpoint remains |
 | T-03-03 (Tampering / generated types) | accept | Types are a compile-time aid; runtime RLS policies enforce data access regardless |
 
 ## Next Phase Readiness
 - **Ready for Plan 04** (re-enable typecheck/lint gate + fix dashboard): the typed Supabase clients are in place. Plan 04 must decide how to handle the 34 deferred tsc errors — the 3 dashboard errors are in-scope for Plan 04; the 30 team-rpc/token-security errors require the RPC-drift decision (see Deferred Findings) OR an interim `as unknown as` widening to unblock the build gate.
-- **Not yet complete:** HYG-04 and HYG-05 are functionally implemented but NOT marked complete in REQUIREMENTS.md — the build gate (ignoreBuildErrors) is still disabled (Plan 04), and the Vercel env-var prerequisite (D5) is a manual check still pending.
+- **Not yet complete:** HYG-04 and HYG-05 are functionally implemented but NOT marked complete in REQUIREMENTS.md — the build gate (ignoreBuildErrors) is still disabled (Plan 04), and the build env-var prerequisite (D5) is a manual check still pending.
 - **Pre-existing next.config.ts TS error** (`'eslint' does not exist in type 'NextConfig'`) remains — explicitly Plan 04 scope.
 
 *Phase: 01-build-hygiene*
