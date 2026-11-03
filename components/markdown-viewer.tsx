@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef, createElement } from "react";
+import { useEffect, useState, useRef, createElement, isValidElement } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { Components } from "react-markdown";
@@ -35,19 +35,17 @@ function useTheme(): "dark" | "light" {
 }
 
 interface CodeBlockProps {
-  inline?: boolean;
   className?: string;
   children?: React.ReactNode;
 }
 
-function CodeBlock({ inline, className, children }: CodeBlockProps) {
+function CodeBlock({ className, children }: CodeBlockProps) {
   const theme = useTheme();
   const [html, setHtml] = useState<string | null>(null);
   const lang = /language-(\w+)/.exec(className ?? "")?.[1] ?? "text";
   const code = String(children ?? "").replace(/\n$/, "");
 
   useEffect(() => {
-    if (inline) return;
     let cancelled = false;
     getHighlighter().then((hl) => {
       if (cancelled) return;
@@ -68,11 +66,7 @@ function CodeBlock({ inline, className, children }: CodeBlockProps) {
     return () => {
       cancelled = true;
     };
-  }, [code, lang, theme, inline]);
-
-  if (inline) {
-    return <code className={className}>{children}</code>;
-  }
+  }, [code, lang, theme]);
 
   if (html) {
     return (
@@ -88,6 +82,16 @@ function CodeBlock({ inline, className, children }: CodeBlockProps) {
       <code>{code}</code>
     </pre>
   );
+}
+
+/**
+ * A fenced block. react-markdown (v9+) no longer tells `code` whether it is inline, so the block is
+ * highlighted here from the `<pre>` wrapper and inline `code` keeps the default element.
+ */
+function PreBlock({ children }: { children?: React.ReactNode }) {
+  const child = Array.isArray(children) ? children[0] : children;
+  if (!isValidElement<CodeBlockProps>(child)) return <pre>{children}</pre>;
+  return <CodeBlock className={child.props.className}>{child.props.children}</CodeBlock>;
 }
 
 // Custom heading components that inject data-heading-line for scroll sync
@@ -177,7 +181,7 @@ export function MarkdownViewer({ content, headings }: MarkdownViewerProps) {
   const headingComponents = createHeadingComponents(headings);
 
   const mdComponents: Components = {
-    code: CodeBlock as Components["code"],
+    pre: PreBlock,
     ...headingComponents,
   };
 
