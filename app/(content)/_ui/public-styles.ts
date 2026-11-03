@@ -10,8 +10,12 @@ import { cn } from "@/lib/utils";
 /** Page root: Newsreader, bone ground, olive ink, at least the small viewport tall. */
 export const page = "type-page flex min-h-svh flex-col bg-background text-foreground";
 
-/** The outer margin, the same on both sides at every width. */
-export const gutter = "px-[clamp(16px,2.4vw,32px)]";
+/**
+ * The outer margin, the same on both sides at every width. Past a 1600px
+ * viewport it widens to centre a --page-max column; apply it to full-width
+ * elements, since the percentage resolves against the element's container.
+ */
+export const gutter = "px-[max(clamp(16px,2.4vw,32px),calc((100%-var(--page-max))/2))]";
 
 /** Column gap of the 12 (desktop) / 4 (phone) column grid. */
 export const grid =

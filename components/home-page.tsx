@@ -21,7 +21,7 @@ import "@/components/landing/landing.css";
 export function HomePage() {
   const host = new URL(SITE_URL).host;
   return (
-    <div className="landing landing-home type-page overflow-x-clip bg-background text-(length:--step-body) leading-[1.6] text-foreground">
+    <div className="landing type-page overflow-x-clip bg-background text-(length:--step-body) leading-[1.6] text-foreground">
       <LandingNav />
       <main id="main">
         <LandingHero host={host} />
