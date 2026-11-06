@@ -171,26 +171,8 @@ export function EditorShell() {
     },
   } as RefObject<EditorView | null>;
 
-  const toggleTheme = useCallback(() => {
-    document.documentElement.classList.toggle("dark");
-  }, []);
-
-  const [effectiveTheme, setEffectiveTheme] = useState<"light" | "dark">("light");
-  useEffect(() => {
-    if (!mounted) return;
-    const update = () => {
-      setEffectiveTheme(
-        document.documentElement.classList.contains("dark") ? "dark" : "light"
-      );
-    };
-    update();
-    const observer = new MutationObserver(update);
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ["class"],
-    });
-    return () => observer.disconnect();
-  }, [mounted]);
+  // The site is light only: the editor always uses its light theme.
+  const effectiveTheme = "light" as const;
 
   // Heading parsing + scroll sync
   const headings = useMemo(() => parseHeadings(content), [content]);
@@ -332,7 +314,7 @@ export function EditorShell() {
         <Pane
           title="Markdown"
           meta={<span className="max-lg:hidden">Line {cursor.line}, column {cursor.column}</span>}
-          actions={<EditorToolbar editorRef={editorViewRef} theme={effectiveTheme} onToggleTheme={toggleTheme} />}
+          actions={<EditorToolbar editorRef={editorViewRef} />}
           className={tab !== "write" ? "max-md:hidden" : undefined}
         >
           <EditorPane

@@ -10,7 +10,7 @@ interface EmbedPageProps {
 
 function OpenOnDropItX({ slug, message }: { slug: string; message: string }) {
   return (
-    <div className="type-page flex min-h-svh items-center justify-center bg-background p-6 text-center text-[18px] leading-[1.6] text-foreground">
+    <div className="type-page flex min-h-svh items-center justify-center bg-background p-6 text-center text-lg leading-[1.5] text-foreground">
       <p className="max-w-[34em]">
         {message}{" "}
         <a href={`/s/${slug}`} target="_top" className={textLink}>
@@ -57,7 +57,7 @@ export default async function EmbedPage({ params }: EmbedPageProps) {
     <div className="min-h-svh bg-background text-foreground">
       <EmbedViewedTracker slug={slug} />
       {isMarkdown ? (
-        <div className="p-4">
+        <div className="mx-auto max-w-[680px] px-4 py-6">
           <MarkdownViewerWrapper content={fileContent} />
         </div>
       ) : (

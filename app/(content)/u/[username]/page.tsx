@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { PublicNav } from "@/app/(content)/_ui/public-nav";
+import { LandingFooter } from "@/components/landing-footer";
 import { body, displayS, gutter, head, page as pageRoot, small, textLink } from "@/app/(content)/_ui/public-styles";
 import { cn } from "@/lib/utils";
 import { getPublicProfile, getPublicProfileShares } from "@/lib/public-profile-data";
@@ -49,14 +50,14 @@ export default async function ProfilePage({ params, searchParams }: ProfilePageP
         <header className="flex items-end gap-[clamp(16px,2.4vw,32px)]">
           {profile.avatar_url ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={profile.avatar_url} alt="" referrerPolicy="no-referrer" className="size-[clamp(72px,9vw,128px)] shrink-0 object-cover" />
+            <img src={profile.avatar_url} alt="" referrerPolicy="no-referrer" className="size-[clamp(72px,9vw,128px)] shrink-0 rounded-md object-cover" />
           ) : (
-            <div aria-hidden="true" className="flex size-[clamp(72px,9vw,128px)] shrink-0 items-center justify-center bg-field font-serif text-[clamp(36px,4.5vw,64px)] font-light text-field-foreground">
+            <div aria-hidden="true" className="flex size-[clamp(72px,9vw,128px)] shrink-0 items-center justify-center rounded-md bg-foreground font-sans text-[clamp(36px,4.5vw,64px)] text-background">
               {name[0].toUpperCase()}
             </div>
           )}
           <div className="min-w-0">
-            <h1 className={cn(displayS, "break-words text-[clamp(40px,6vw,96px)]")}>{name}</h1>
+            <h1 className={cn(displayS, "break-words text-[clamp(36px,1.2rem+3vw,56px)]")}>{name}</h1>
             <p className={cn(body, "mt-2 text-muted-foreground")}>@{profile.username}</p>
           </div>
         </header>
@@ -87,8 +88,8 @@ export default async function ProfilePage({ params, searchParams }: ProfilePageP
             <ul className="grid gap-[clamp(28px,3.5vw,44px)]">
               {shares.map((share) => (
                 <li key={share.slug}>
-                  <Link href={`/s/${share.slug}`} className="group block">
-                    <span className={cn(head, "break-words underline-offset-[0.18em] group-hover:underline")}>
+                  <Link href={`/s/${share.slug}`} className="group block no-underline hover:text-inherit">
+                    <span className={cn(head, "break-words decoration-[var(--meta)] underline-offset-[0.2em] group-hover:underline group-hover:decoration-current")}>
                       {share.title || share.filename}
                     </span>
                     <span className={cn(small, "mt-2 flex flex-wrap gap-x-4 gap-y-1 text-muted-foreground")}>
@@ -127,6 +128,7 @@ export default async function ProfilePage({ params, searchParams }: ProfilePageP
           )}
         </section>
       </main>
+      <LandingFooter />
     </div>
   );
 }

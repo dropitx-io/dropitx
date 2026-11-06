@@ -1,15 +1,15 @@
 /*
-  A shared Markdown document as a reader sees it: Newsreader at the body step,
-  olive on bone, separated by space and tone rather than rules. Code keeps
-  monospace; every colour comes from the theme tokens, so `.dark` follows.
+  A shared Markdown document as a reader sees it, after the redesign's
+  `.reader-body`: the body serif at 19.2px / 1.65, display-face headings,
+  tinted quotes, white-on-ink code blocks and hairline table rules. Every
+  colour comes from the tokens in app/globals.css (light only).
 */
 .markdown-body {
-  font-family: var(--font-serif), Georgia, serif;
-  font-optical-sizing: auto;
-  font-size: clamp(18px, 1.05rem + 0.3vw, 21px);
-  line-height: 1.6;
+  font-family: var(--font-body);
+  font-size: var(--text-lg);
+  line-height: 1.65;
   overflow-wrap: break-word;
-  color: var(--foreground);
+  color: var(--fg);
   max-width: 100%;
 }
 
@@ -21,21 +21,22 @@
 .markdown-body h4,
 .markdown-body h5,
 .markdown-body h6 {
-  margin-top: 2em;
+  margin-top: 1.8em;
   margin-bottom: 0.5em;
-  font-family: inherit;
+  font-family: var(--font-display);
   font-weight: 400;
-  line-height: 1.2;
-  letter-spacing: -0.015em;
-  color: var(--foreground);
+  line-height: 1.25;
+  letter-spacing: -0.0125em;
+  color: var(--fg);
+  scroll-margin-top: 88px;
 }
 
-.markdown-body h1 { font-size: clamp(30px, 1.5rem + 1.6vw, 44px); line-height: 1.1; letter-spacing: -0.02em; }
-.markdown-body h2 { font-size: clamp(24px, 1.3rem + 1.1vw, 36px); }
-.markdown-body h3 { font-size: 1.2em; font-weight: 500; }
-.markdown-body h4 { font-size: 1em; font-weight: 500; }
-.markdown-body h5 { font-size: 0.9em; font-weight: 500; }
-.markdown-body h6 { font-size: 0.9em; font-weight: 500; color: var(--muted-foreground); }
+.markdown-body h1 { font-size: clamp(30px, 1.2rem + 1.8vw, 40px); line-height: var(--leading-tight); letter-spacing: var(--tracking-display); }
+.markdown-body h2 { font-size: var(--text-2xl); }
+.markdown-body h3 { font-size: var(--text-xl); letter-spacing: -0.005em; line-height: 1.3; }
+.markdown-body h4 { font-size: 18px; font-weight: 500; letter-spacing: 0; }
+.markdown-body h5 { font-size: var(--text-base); font-weight: 500; letter-spacing: 0; }
+.markdown-body h6 { font-size: var(--text-sm); font-weight: 500; letter-spacing: 0.01em; color: var(--fg-2); }
 
 .markdown-body p {
   margin-top: 0;
@@ -44,13 +45,16 @@
 
 .markdown-body a {
   color: inherit;
-  text-decoration: underline;
-  text-decoration-thickness: 0.07em;
-  text-underline-offset: 0.22em;
-  text-decoration-color: color-mix(in oklch, currentColor 45%, transparent);
-  transition: text-decoration-color 150ms ease;
+  text-decoration-line: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
+  text-decoration-color: var(--meta);
+  transition: color var(--motion-fast) var(--ease-standard), text-decoration-color var(--motion-fast) var(--ease-standard);
 }
-.markdown-body a:hover { text-decoration-color: currentColor; }
+.markdown-body a:hover {
+  color: color-mix(in oklab, var(--danger), var(--fg) 30%);
+  text-decoration-color: currentColor;
+}
 
 .markdown-body ul,
 .markdown-body ol {
@@ -60,77 +64,93 @@
 }
 .markdown-body ul { list-style: disc; }
 .markdown-body ol { list-style: decimal; }
-.markdown-body li + li { margin-top: 0.35em; }
+.markdown-body li + li { margin-top: 0.3em; }
 .markdown-body ul.contains-task-list { list-style: none; padding-left: 0; }
 .markdown-body li input[type="checkbox"] {
   margin-right: 0.4em;
-  accent-color: var(--primary);
+  accent-color: var(--fg);
 }
 
 .markdown-body blockquote {
   margin: 0 0 1em;
-  padding: 20px 24px;
+  padding: var(--space-4) var(--space-5);
   background: var(--surface);
+  border-radius: var(--radius-sm);
 }
 .markdown-body blockquote > :last-child { margin-bottom: 0; }
 
 /* inline code */
 .markdown-body :not(pre) > code:not([class]) {
-  font-family: var(--font-mono), ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.86em;
-  padding: 0.05em 0.3em;
-  background: var(--surface);
-  color: var(--foreground);
+  padding: 0.08em 0.36em;
+  background: var(--surface-warm);
+  box-shadow: var(--elev-ring);
+  border-radius: 4px;
+  color: var(--fg);
 }
 
-/* code blocks, including shiki output, whose inline theme background is replaced by the surface tone */
+/* Code blocks. Shiki's light theme keeps its token colours on a white panel framed by a ring. */
 .markdown-body pre,
 .markdown-body pre.shiki {
   margin: 0 0 1em;
-  padding: 18px 22px;
+  padding: var(--space-4) var(--space-5);
   overflow-x: auto;
-  font-family: var(--font-mono), ui-monospace, monospace;
-  font-size: 15px;
+  font-family: var(--font-mono);
+  font-size: 14px;
   line-height: 1.65;
-  background-color: var(--surface) !important;
+  border-radius: var(--radius-sm);
+  background-color: white !important;
+  box-shadow: var(--elev-ring);
 }
-.markdown-body pre code { padding: 0; background: transparent; font-size: inherit; }
+.markdown-body pre code { padding: 0; background: transparent; box-shadow: none; font-size: inherit; }
 
 .markdown-body table {
   width: 100%;
   border-collapse: collapse;
   margin-bottom: 1em;
-  font-size: 0.9em;
+  font-size: var(--text-base);
   overflow-x: auto;
   display: block;
 }
 .markdown-body th,
 .markdown-body td {
-  padding: 10px 12px 10px 0;
-  border-bottom: 1px solid color-mix(in oklch, var(--foreground) 20%, transparent);
+  padding: var(--space-3) var(--space-3) var(--space-3) 0;
+  border-bottom: 1px solid var(--border);
   text-align: left;
   vertical-align: top;
 }
-.markdown-body th { font-weight: 500; }
+.markdown-body th {
+  font-family: var(--font-display);
+  font-size: var(--text-sm);
+  font-weight: 500;
+}
 
-.markdown-body img { max-width: 100%; }
+.markdown-body img { max-width: 100%; border-radius: var(--radius-sm); }
 
-/* a thematic break reads as a pause: space, not a rule */
+.markdown-body figcaption {
+  font-family: var(--font-display);
+  font-size: var(--text-sm);
+  color: var(--fg-2);
+  margin-top: var(--space-2);
+}
+
 .markdown-body hr {
   border: 0;
-  height: 0;
+  border-top: 1px solid var(--border);
   margin: 2.5em 0;
 }
 
 pre.markdown-raw {
   /* raw mode: the Markdown source */
-  font-family: var(--font-mono), ui-monospace, monospace;
-  font-size: 15px;
+  font-family: var(--font-mono);
+  font-size: 14px;
   line-height: 1.65;
   white-space: pre-wrap;
   word-break: break-word;
   background: var(--surface);
-  color: var(--foreground);
-  padding: 18px 22px;
+  color: var(--fg);
+  border-radius: var(--radius-sm);
+  padding: var(--space-4) var(--space-5);
   overflow-x: auto;
 }

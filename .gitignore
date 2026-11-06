@@ -48,3 +48,7 @@ next-env.d.ts
 # scratch files from scripts
 /.tmp
 .taste-skill/
+
+# local CLI state for retired services (project refs, pooler URL, org IDs)
+/supabase/.temp/
+/.vercel/

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef, createElement, isValidElement } from "react";
+import { useEffect, useState, createElement, isValidElement } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { Components } from "react-markdown";
@@ -15,24 +15,8 @@ interface MarkdownViewerProps {
 
 type ViewMode = "preview" | "raw";
 
-function useTheme(): "dark" | "light" {
-  const [theme, setTheme] = useState<"dark" | "light">("light");
-  useEffect(() => {
-    const update = () => {
-      setTheme(
-        document.documentElement.classList.contains("dark") ? "dark" : "light"
-      );
-    };
-    update();
-    const observer = new MutationObserver(update);
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ["class"],
-    });
-    return () => observer.disconnect();
-  }, []);
-  return theme;
-}
+/** The site is light only, so code blocks always use the light Shiki theme. */
+const CODE_THEME = "github-light";
 
 interface CodeBlockProps {
   className?: string;
@@ -40,33 +24,30 @@ interface CodeBlockProps {
 }
 
 function CodeBlock({ className, children }: CodeBlockProps) {
-  const theme = useTheme();
   const [html, setHtml] = useState<string | null>(null);
   const lang = /language-(\w+)/.exec(className ?? "")?.[1] ?? "text";
   const code = String(children ?? "").replace(/\n$/, "");
 
   useEffect(() => {
     let cancelled = false;
-    getHighlighter().then((hl) => {
-      if (cancelled) return;
-      try {
-        const result = hl.codeToHtml(code, {
-          lang,
-          theme: theme === "dark" ? "github-dark" : "github-light",
-        });
-        setHtml(result);
-      } catch {
-        const result = hl.codeToHtml(code, {
-          lang: "text",
-          theme: theme === "dark" ? "github-dark" : "github-light",
-        });
-        setHtml(result);
-      }
-    });
+    getHighlighter()
+      .then((hl) => {
+        if (cancelled) return;
+        try {
+          setHtml(hl.codeToHtml(code, { lang, theme: CODE_THEME }));
+        } catch {
+          // Unknown language: highlight as plain text rather than failing the block.
+          setHtml(hl.codeToHtml(code, { lang: "text", theme: CODE_THEME }));
+        }
+      })
+      .catch((err: unknown) => {
+        // The plain <pre> fallback below stays on screen.
+        console.error("Code highlighting failed", err);
+      });
     return () => {
       cancelled = true;
     };
-  }, [code, lang, theme]);
+  }, [code, lang]);
 
   if (html) {
     return (

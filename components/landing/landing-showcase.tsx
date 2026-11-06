@@ -1,135 +1,115 @@
 "use client";
 
-import { useState, useSyncExternalStore } from "react";
-import { DocBody, DocLine } from "@/components/landing/showcase-doc";
+import { useCallback, useMemo, useRef, useState } from "react";
+import { DocBlocks } from "@/components/landing/showcase-doc";
 import { SAMPLES } from "@/components/landing/showcase-samples";
-import { blocksToMarkdown, byteCount, formatBytes, slugify } from "@/components/landing/markdown-line";
-import { head, reveal, small } from "@/components/landing/landing-styles";
-
-const noop = () => () => {};
-const lineType =
-  "font-light tracking-[-0.045em] text-(length:--step-display-s) leading-[1.05] pt-[0.06em] pb-[0.12em]";
+import { ACCEPT, readFileForPreview } from "@/components/landing/file-preview";
+import { useFileIntake } from "@/components/landing/use-file-intake";
+import { documentTitle, formatBytes, parseDocument, slugify } from "@/components/landing/markdown-line";
 
 /**
- * One line of Markdown becomes a rendered page and the link it would get.
- * Runs entirely in the browser and never calls the API; the server render
- * with the first sample is the no-script fallback.
+ * The hero's live studio: Markdown on the left, the rendered page and the link
+ * it would get on the right. Chips load examples, "Upload a file" opens a file
+ * picker, and a file dropped anywhere on the page is previewed here. It runs
+ * entirely in the browser and never calls the API; the server render with the
+ * first sample is what a reader without script sees.
  */
 export function LandingShowcase({ host }: { host: string }) {
-  const [sample, setSample] = useState(0);
-  const [line, setLine] = useState(SAMPLES[0].line);
-  const [copied, setCopied] = useState("");
-  const hydrated = useSyncExternalStore(noop, () => true, () => false);
+  const [text, setText] = useState(SAMPLES[0].text);
+  const [file, setFile] = useState(SAMPLES[0].file);
+  const [kind, setKind] = useState("Markdown page");
+  const [sample, setSample] = useState<number | null>(0);
+  const [copyLabel, setCopyLabel] = useState("Copy link");
+  const [status, setStatus] = useState("");
+  const studioRef = useRef<HTMLDivElement>(null);
 
-  const current = SAMPLES[sample];
-  const link = `${host}/s/${slugify(line)}`;
-  const size = formatBytes(byteCount(line, blocksToMarkdown(current.body)));
+  const blocks = useMemo(() => parseDocument(text), [text]);
+  const slug = slugify(documentTitle(text, file));
+  const size = formatBytes(new TextEncoder().encode(text).length);
 
-  function pick(i: number) {
+  const takeFile = useCallback(async (f: File) => {
+    const result = await readFileForPreview(f, formatBytes);
+    if (!result.ok) {
+      setStatus(result.message);
+      return;
+    }
+    setText(result.text);
+    setFile(f.name);
+    setKind(result.kind === "html" ? "HTML page" : "Markdown page");
+    setSample(null);
+    setStatus(`Previewing ${f.name} below. Sign in to publish it.`);
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    studioRef.current?.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+  }, []);
+
+  const pickerRef = useFileIntake(takeFile);
+
+  function loadSample(i: number) {
+    setText(SAMPLES[i].text);
+    setFile(SAMPLES[i].file);
+    setKind("Markdown page");
     setSample(i);
-    setLine(SAMPLES[i].line);
-    setCopied("");
   }
 
   async function copy() {
     try {
-      await navigator.clipboard.writeText(`https://${link}`);
-      setCopied("Copied. It goes live once you share.");
-    } catch {
-      setCopied("Copy failed; select the link instead.");
+      await navigator.clipboard.writeText(`https://${host}/s/${slug}`);
+      setCopyLabel("Copied");
+    } catch (err: unknown) {
+      console.error("Copying the preview link failed", err);
+      setCopyLabel("Copy failed");
     }
+    window.setTimeout(() => setCopyLabel("Copy link"), 1800);
   }
 
   return (
-    <section id="showcase" className="mt-(--section-gap) px-(--m)">
-      <h2 data-reveal className={`${head} mb-[clamp(16px,2vw,28px)]`}>
-        <label htmlFor="landing-line">Or write it right here.</label>
-      </h2>
-      <div data-reveal style={reveal(1)} className="group relative focus-within:bg-surface has-[input:focus-visible]:outline-3 has-[input:focus-visible]:outline-offset-[6px] has-[input:focus-visible]:outline-foreground">
-        <input
-          id="landing-line"
-          type="text"
-          value={line}
-          onChange={(e) => {
-            setLine(e.target.value);
-            setCopied("");
-          }}
-          spellCheck={false}
-          autoComplete="off"
-          aria-describedby="landing-line-help"
-          className={`${lineType} block w-full rounded-none bg-transparent caret-foreground outline-none`}
-        />
-        <span aria-hidden="true" className={`${lineType} pointer-events-none absolute inset-0 overflow-hidden whitespace-pre group-focus-within:hidden`}>
-          <span className="invisible">{line}</span>
-          <span className="line-caret" />
-        </span>
-      </div>
-      <p id="landing-line-help" className="sr-only">
-        One line of Markdown. The preview and the link below update as you type.
-      </p>
-
-      <div className="mt-12 grid grid-cols-12 items-start gap-x-(--gutter) gap-y-7 max-[760px]:mt-7 max-[760px]:grid-cols-4">
-        <article
-          data-ui
-          data-reveal
-          style={reveal(2)}
-          aria-label="Rendered preview"
-          className="ui col-span-6 max-w-[560px] max-[760px]:col-span-full max-[760px]:max-w-none"
-        >
-          <div className="ui-bar">
-            <span className="ui-url">{link}</span>
-            <span>Preview</span>
+    <>
+      <p className="ui-text fg-2 upload-status" role="status" aria-live="polite">{status}</p>
+      <input
+        ref={pickerRef}
+        type="file"
+        accept={ACCEPT}
+        hidden
+        data-testid="landing-file-input"
+        onChange={(e) => {
+          const picked = e.target.files?.[0];
+          if (picked) void takeFile(picked);
+          e.target.value = "";
+        }}
+      />
+      <div ref={studioRef} id="studio" className="studio rise" style={{ "--i": 3 } as React.CSSProperties}>
+        <div className="studio-top">
+          <div className="studio-samples" role="group" aria-label="Example documents">
+            <span className="ui-text">Try an example</span>
+            {SAMPLES.map((s, i) => (
+              <button key={s.file} className="pill" type="button" aria-pressed={sample === i} onClick={() => loadSample(i)} data-testid={`landing-sample-${s.file.replace(/\.md$/, "")}`}>
+                {s.label}
+              </button>
+            ))}
           </div>
-          <div className="ui-pad doc min-h-[360px] px-8 pt-7 pb-8 max-[760px]:min-h-0 max-[760px]:p-5">
-            <DocLine line={line} />
-            <p className="doc-meta">{current.file}</p>
-            <DocBody blocks={current.body} />
+          <span className="badge">Preview only, nothing is uploaded</span>
+        </div>
+        <div className="studio-frame card-featured">
+          <div className="studio-src editor-dark">
+            <div className="tabbar"><span className="tab is-active">{file}</span></div>
+            <label className="sr-only" htmlFor="studio-src">Markdown source</label>
+            <textarea id="studio-src" value={text} onChange={(e) => { setText(e.target.value); setSample(null); }} spellCheck={false} autoComplete="off" data-testid="landing-studio-source" />
           </div>
-        </article>
-
-        <div className="col-span-5 col-start-8 grid gap-7 max-[760px]:col-span-full max-[760px]:col-start-1">
-          <div data-ui data-reveal style={reveal(3)} aria-label="The link that would be created" className="ui">
-            <div className="ui-pad">
-              <p className="ui-label">Your link would be</p>
-              <p className="link-big">{link}</p>
-              <div className="mt-4">
-                <div className="ui-row"><span className="ui-label">Renders as</span><span className="ui-value">Markdown page</span></div>
-                <div className="ui-row"><span className="ui-label">Size</span><span className="ui-value">{size} of 50 MB</span></div>
-                <div className="ui-row"><span className="ui-label">Who can open it</span><span className="ui-value">Anyone with the link</span></div>
-              </div>
-              {hydrated && (
-                <div className="mt-4 flex flex-wrap items-center gap-3">
-                  <button type="button" onClick={copy} className="ui-btn press">Copy link</button>
-                  <span className="ui-label" aria-live="polite">{copied}</span>
-                </div>
-              )}
+          <div className="studio-view paper">
+            <div className="urlbar">
+              <span className="url">{host}/s/<b>{slug}</b></span>
+              <button className="btn btn-secondary copy-btn" type="button" onClick={copy} data-testid="landing-studio-copy">{copyLabel}</button>
+            </div>
+            <div className="doc" aria-live="polite" aria-label="Rendered preview">
+              <DocBlocks blocks={blocks} />
             </div>
           </div>
-          <p data-reveal style={reveal(4)} className={`${small} text-muted-foreground`}>
-            This is a preview. Nothing is uploaded or published until you sign in and press Share.
-          </p>
-          {hydrated ? (
-            <div role="group" aria-labelledby="landing-chips" className="flex flex-wrap gap-x-3 gap-y-2.5">
-              <p id="landing-chips" className="mb-1 w-full text-(length:--step-small)">Try another first line</p>
-              {SAMPLES.map((s, i) => (
-                <button
-                  key={s.label}
-                  type="button"
-                  aria-pressed={i === sample && line === s.line}
-                  onClick={() => pick(i)}
-                  className="press min-h-11 rounded-none bg-surface px-4 text-(length:--step-body) hover:bg-(--tone-3) aria-pressed:bg-foreground aria-pressed:text-background"
-                >
-                  {s.label}
-                </button>
-              ))}
-            </div>
-          ) : (
-            <noscript>
-              <p className="text-(length:--step-small)">With JavaScript off, the preview shows the example above.</p>
-            </noscript>
-          )}
+          <div className="studio-status">
+            <span className="live-link">Your link: {host}/s/<b>{slug}</b></span>
+            <span>{kind}, {size} of 50 MB</span>
+          </div>
         </div>
       </div>
-    </section>
+    </>
   );
 }

@@ -1,67 +1,71 @@
 import { cn } from "@/lib/utils";
 
 /*
-  Class recipes for the public pages that sit outside the landing page:
-  developers, sign-in, the share view, search, invites, profiles and the
-  error screens. One serif face, five type steps, square controls, and one
-  outer margin on every side.
+  Class recipes for the public pages outside the landing page: developers,
+  sign-in, the share view, search, invites, profiles and the error screens.
+  They map onto the redesign's kit in components/site/site.css (the `site`
+  root, the 1200px `wrap`, `btn` buttons, `field-input` fields) so every page
+  that imports them shares one look. The export names are kept stable.
 */
 
-/** Page root: Newsreader, bone ground, olive ink, at least the small viewport tall. */
-export const page = "type-page flex min-h-svh flex-col bg-background text-foreground";
+/** Page root: the design's ground, ink and body serif, at least the small viewport tall. */
+export const page = "site";
 
-/**
- * The outer margin, the same on both sides at every width. Past a 1600px
- * viewport it widens to centre a --page-max column; apply it to full-width
- * elements, since the percentage resolves against the element's container.
- */
-export const gutter = "px-[max(clamp(16px,2.4vw,32px),calc((100%-var(--page-max))/2))]";
+/** The 1200px content column with the design's side gutters (24px, 16px under 900px). */
+export const gutter = "wrap";
 
 /** Column gap of the 12 (desktop) / 4 (phone) column grid. */
-export const grid =
-  "grid grid-cols-4 gap-x-[clamp(12px,1.6vw,24px)] min-[861px]:grid-cols-12";
+export const grid = "grid grid-cols-4 gap-x-6 min-[861px]:grid-cols-12";
 
-/** Section statements and page titles one step under the landing hero. */
+/** Page titles: the auth/status title step in the display face. */
 export const displayS =
-  "font-serif font-light text-[clamp(44px,8vw,132px)] leading-[0.95] tracking-[-0.045em]";
+  "font-sans font-normal text-[clamp(32px,1rem+2.4vw,48px)] leading-[1.12] tracking-[-0.025em] text-foreground";
 
-/** The hero step. */
-export const display =
-  "font-serif font-light text-[clamp(72px,10.5vw,168px)] leading-[0.9] tracking-[-0.05em]";
+/** The hero step (72px at its widest). */
+export const display = "h-hero";
 
-export const head = "text-[clamp(24px,1.3rem+1.1vw,36px)] leading-[1.15] tracking-[-0.015em]";
-export const body = "text-[clamp(18px,1.05rem+0.3vw,21px)] leading-[1.6]";
-export const small = "text-[clamp(13px,0.79rem+0.1vw,14px)] leading-[1.5] tracking-[0.01em]";
+/** Section and card headings. */
+export const head = "font-sans font-normal text-xl leading-[1.3] tracking-[-0.005em]";
+
+/** Reading text at the design's body size. */
+export const body = "text-[1.08rem] leading-[1.5]";
+
+/** UI captions and labels in the display face. */
+export const small = "font-sans text-sm leading-[1.5] tracking-[0.01em]";
 
 /** Underlined text link whose underline darkens on hover. */
 export const textLink =
-  "underline decoration-[color-mix(in_oklch,currentColor_45%,transparent)] decoration-[0.07em] underline-offset-[0.22em] transition-colors hover:decoration-current";
+  "underline decoration-[var(--meta)] decoration-1 underline-offset-[0.2em] transition-colors hover:decoration-current hover:text-[color-mix(in_oklab,var(--danger),var(--fg)_30%)]";
 
-type ButtonVariant = "solid" | "quiet" | "inverse";
+type ButtonVariant = "solid" | "quiet" | "inverse" | "accent";
 
 const BUTTON_VARIANTS: Record<ButtonVariant, string> = {
-  solid: "border-transparent bg-primary text-primary-foreground hover:bg-primary/88",
-  quiet: "border-foreground bg-transparent text-foreground hover:bg-surface",
-  inverse: "border-transparent bg-field-foreground text-field hover:bg-surface",
+  // The one solid action per screen.
+  solid: "btn-dark",
+  // The design's default button: warm surface with a ring.
+  quiet: "btn-primary",
+  // Ghost button for secondary actions.
+  inverse: "btn-secondary",
+  // Accent fill for emphasis (white on --accent-ink).
+  accent: "btn-accent",
 };
 
-/** Square buttons: 52px tall (44px small) with a 2px edge. Works on <button>, <a> and <Link>. */
+/**
+ * The design's buttons (8px radius, display face): `solid` is btn-dark,
+ * `quiet` btn-primary, `inverse` btn-secondary, `accent` btn-accent; `default`
+ * is the 48px large size, `small` the 44px one. Works on <button>, <a> and <Link>.
+ * (The name is kept from the earlier square buttons so callers do not change.)
+ */
 export function squareButton(variant: ButtonVariant = "solid", size: "default" | "small" = "default") {
-  return cn(
-    "press inline-flex shrink-0 items-center justify-center gap-2 rounded-none border-2 font-medium leading-none whitespace-nowrap",
-    "disabled:pointer-events-none disabled:opacity-55 aria-busy:cursor-progress",
-    size === "small" ? "min-h-11 px-[18px] text-[14px]" : "min-h-[52px] px-7 text-[clamp(18px,1.05rem+0.3vw,21px)]",
-    BUTTON_VARIANTS[variant],
-  );
+  return cn("btn shrink-0", BUTTON_VARIANTS[variant], size === "default" && "btn-lg", "disabled:pointer-events-none");
 }
 
-/** Text fields on public pages: square, 52px tall, a 2px edge that darkens on hover and focus. */
-export const field =
-  "h-auto min-h-[52px] rounded-none border-2 border-[color-mix(in_oklch,var(--foreground)_45%,var(--background))] bg-card px-4 text-[clamp(18px,1.05rem+0.3vw,21px)] md:text-[clamp(18px,1.05rem+0.3vw,21px)] hover:border-foreground focus-visible:border-foreground";
+/** Text fields on public pages: 44px, 8px radius, a hairline that darkens on hover and focus. */
+export const field = "field-input w-full";
 
-/** A filled notice block (no outline): error, success or caution. */
+/** A filled notice block: error, success or caution. */
 export const notice = {
-  error: "bg-pill-negative px-5 py-4 text-pill-negative-foreground",
-  success: "bg-pill-positive px-5 py-4 text-pill-positive-foreground",
-  warning: "bg-pill-warning px-5 py-4 text-pill-warning-foreground",
+  error: "notice notice-error",
+  success: "notice notice-success",
+  warning: "notice notice-warning",
 };

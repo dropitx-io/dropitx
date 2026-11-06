@@ -4,21 +4,22 @@ import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { tags as t } from "@lezer/highlight";
 
 /*
- * The editor's look, built from the app's CSS tokens so it follows light and dark on its own:
- * ink text on the sheet, muted syntax, olive kept off the code. The `dark` flag only tells
- * CodeMirror which base styles to start from.
+ * The editor's look, built from the design tokens (light only): warm-ink text on the
+ * sheet, muted syntax, and the accent kept to the caret as in the design's studio.
+ * The `dark` flag only tells CodeMirror which base styles to start from; the app
+ * always passes false.
  */
 const chrome = {
-  "&": { height: "100%", backgroundColor: "var(--sheet)", color: "var(--card-foreground)", fontSize: "13px" },
+  "&": { height: "100%", backgroundColor: "var(--sheet)", color: "var(--card-foreground)", fontSize: "13.5px" },
   "&.cm-focused": { outline: "none" },
-  ".cm-scroller": { fontFamily: "var(--font-mono)", lineHeight: "21px" },
-  ".cm-content": { padding: "14px 0", caretColor: "var(--card-foreground)" },
+  ".cm-scroller": { fontFamily: "var(--font-mono)", lineHeight: "1.75" },
+  ".cm-content": { padding: "14px 0", caretColor: "var(--accent)" },
   ".cm-line": { padding: "0 16px" },
   ".cm-gutters": { backgroundColor: "var(--sheet)", color: "var(--muted-foreground)", borderRight: "1px solid var(--rule)" },
   ".cm-lineNumbers .cm-gutterElement": { padding: "0 10px 0 12px", fontVariantNumeric: "tabular-nums" },
   ".cm-foldGutter .cm-gutterElement": { color: "var(--muted-foreground)" },
   ".cm-activeLine, .cm-activeLineGutter": { backgroundColor: "var(--raised)" },
-  ".cm-cursor, .cm-dropCursor": { borderLeft: "2px solid var(--card-foreground)" },
+  ".cm-cursor, .cm-dropCursor": { borderLeft: "2px solid var(--accent)" },
   "&.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground, .cm-selectionBackground, .cm-content ::selection":
     { backgroundColor: "var(--active)" },
   ".cm-matchingBracket, &.cm-focused .cm-matchingBracket": { backgroundColor: "var(--active)", outline: "none" },

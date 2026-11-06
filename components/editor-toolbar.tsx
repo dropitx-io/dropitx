@@ -11,16 +11,12 @@ import {
   List,
   ListOrdered,
   Minus,
-  Sun,
-  Moon,
   Image as ImageIcon,
   type LucideIcon,
 } from "lucide-react";
 
 interface EditorToolbarProps {
   editorRef: RefObject<EditorView | null>;
-  theme: "light" | "dark";
-  onToggleTheme: () => void;
 }
 
 /** Insert text at cursor position, wrapping selection if any */
@@ -78,8 +74,8 @@ const GROUPS: Action[][] = [
 const buttonClass =
   "grid size-7 shrink-0 place-items-center rounded-md text-muted-foreground transition-colors duration-150 hover:bg-active hover:text-foreground";
 
-/** Formatting buttons for the Markdown pane head, plus the light/dark switch. */
-export function EditorToolbar({ editorRef, theme, onToggleTheme }: EditorToolbarProps) {
+/** Formatting buttons for the Markdown pane head. (The site is light only, so there is no theme switch.) */
+export function EditorToolbar({ editorRef }: EditorToolbarProps) {
   return (
     <div role="toolbar" aria-label="Formatting" className="flex min-w-0 items-center gap-0.5 overflow-x-auto [scrollbar-width:none]">
       {GROUPS.map((group, i) => (
@@ -102,16 +98,6 @@ export function EditorToolbar({ editorRef, theme, onToggleTheme }: EditorToolbar
           ))}
         </div>
       ))}
-      <span aria-hidden className="mx-1 h-4 w-px bg-rule" />
-      <button
-        type="button"
-        title={theme === "dark" ? "Light theme" : "Dark theme"}
-        aria-label={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
-        className={buttonClass}
-        onClick={onToggleTheme}
-      >
-        {theme === "dark" ? <Sun className="size-4" strokeWidth={1.5} /> : <Moon className="size-4" strokeWidth={1.5} />}
-      </button>
     </div>
   );
 }

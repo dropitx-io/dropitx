@@ -26,7 +26,7 @@ export function FileTabs({ files, activeSlug, onSelect, onClose, className }: Fi
   return (
     <div
       className={cn(
-        "flex items-center gap-1 overflow-x-auto bg-surface p-1 scrollbar-thin",
+        "flex items-center gap-1 overflow-x-auto rounded-sm bg-surface p-1 font-sans scrollbar-thin",
         className
       )}
     >
@@ -41,16 +41,16 @@ export function FileTabs({ files, activeSlug, onSelect, onClose, className }: Fi
             onClick={() => onSelect(file.slug)}
             aria-current={isActive ? "true" : undefined}
             className={cn(
-              "group flex min-h-10 items-center gap-2 px-3 text-[15px] whitespace-nowrap transition-colors",
+              "group flex min-h-10 items-center gap-2 rounded-[6px] px-3 text-sm whitespace-nowrap transition-colors",
               isActive
-                ? "bg-background text-foreground"
+                ? "bg-white text-foreground shadow-[var(--elev-ring)]"
                 : "text-muted-foreground hover:bg-active hover:text-foreground"
             )}
           >
             <Icon className="size-3.5 shrink-0" />
             <span className="max-w-[160px] truncate">{file.filename}</span>
             {file.file_size != null && (
-              <span className="text-[13px] text-muted-foreground">{formatFileSize(file.file_size)}</span>
+              <span className="text-xs text-muted-foreground">{formatFileSize(file.file_size)}</span>
             )}
             {onClose && files.length > 1 && (
               <span

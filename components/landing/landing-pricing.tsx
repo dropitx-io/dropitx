@@ -1,48 +1,38 @@
 import Link from "next/link";
-import { body, displayS, landingButton, reveal, textLink } from "@/components/landing/landing-styles";
+import { reveal } from "@/components/landing/reveal";
+import { SIGN_UP_HREF } from "@/components/site/site-links";
 import { cn } from "@/lib/utils";
 
-/** One plan said as a sentence; the other two follow in plain prose. */
+const PLANS = [
+  { name: "Free", price: "$0", per: "forever", features: ["10 active links", "1 GB of storage", "Basic view counts"], cta: "Start free", featured: false },
+  { name: "Pro", price: "$9", per: "a month", features: ["Unlimited links", "5 GB of storage", "Full analytics with referrers", "Passwords, expiry and burn after reading"], cta: "Start Pro", featured: true },
+  { name: "Team", price: "$29", per: "a month", features: ["Everything in Pro", "Shared team spaces", "Roles and invites"], cta: "Start Team", featured: false },
+];
+
+/**
+ * The design's Pricing section. Rendered only when the pricing switch is on
+ * (NEXT_PUBLIC_SHOW_PRICING, see lib/feature-flags.ts); off by default.
+ */
 export function LandingPricing() {
   return (
-    <section
-      id="pricing"
-      aria-labelledby="price-title"
-      className="mt-(--section-gap) bg-surface px-(--m) py-[clamp(72px,9vw,140px)]"
-    >
-      <h2 id="price-title" data-reveal className={displayS}>
-        Pro is{" "}
-        <span className="mx-[0.04em] inline-block bg-primary px-[0.15em] leading-[0.95] text-primary-foreground">$9</span>{" "}
-        a month.
-      </h2>
-      <div className="mt-16 grid grid-cols-12 items-end gap-x-(--gutter) gap-y-7 max-[760px]:mt-8 max-[760px]:grid-cols-4">
-        <p data-reveal style={reveal(1)} className={cn(body, "col-span-6 max-[760px]:col-span-full")}>
-          Unlimited links, 5 GB of storage, full analytics with referrers, and passwords, expiry and burn after
-          reading on every link.
-        </p>
-        <div
-          data-reveal
-          style={reveal(2)}
-          className="col-span-3 col-start-10 justify-self-end max-[760px]:col-span-full max-[760px]:col-start-1 max-[760px]:justify-self-stretch"
-        >
-          <Link href="/dashboard" className={cn(landingButton(), "max-[760px]:w-full")}>
-            Start Pro
-          </Link>
+    <section className="sec tone-warm" id="pricing" aria-labelledby="pricing-title" data-testid="landing-pricing">
+      <div className="wrap">
+        <div className="section-head" data-reveal>
+          <h2 className="h-section" id="pricing-title">Pricing</h2>
+          <p className="lead">Start free. Upgrade when you need more links, more storage or the full picture of who is reading.</p>
         </div>
-      </div>
-      <div className="mt-12 grid grid-cols-12 gap-x-(--gutter) gap-y-3 max-[760px]:grid-cols-4">
-        <p data-reveal style={reveal(3)} className={cn(body, "col-span-6 max-w-[30em] max-[760px]:col-span-full")}>
-          <Link href="/dashboard" className={textLink}>
-            Free
-          </Link>{" "}
-          costs nothing: 10 active links, 1 GB of storage and basic view counts.
-        </p>
-        <p data-reveal style={reveal(4)} className={cn(body, "col-span-6 max-w-[30em] max-[760px]:col-span-full")}>
-          <Link href="/dashboard" className={textLink}>
-            Team
-          </Link>{" "}
-          is $29 a month: everything in Pro, plus shared team spaces with roles and invites.
-        </p>
+        <div className="plans">
+          {PLANS.map((plan, i) => (
+            <article key={plan.name} className={cn("card plan", plan.featured && "card-featured")} data-reveal style={reveal(i)}>
+              <h3 className="h-title">{plan.name}</h3>
+              <p className="plan-price"><span className="stat">{plan.price}</span><span>{plan.per}</span></p>
+              <ul>{plan.features.map((f) => <li key={f}>{f}</li>)}</ul>
+              <Link className={cn("btn btn-block", plan.featured ? "btn-dark" : "btn-primary")} href={SIGN_UP_HREF}>
+                {plan.cta}
+              </Link>
+            </article>
+          ))}
+        </div>
       </div>
     </section>
   );

@@ -1,29 +1,45 @@
 import type { Metadata, Viewport } from "next";
-import "@fontsource-variable/roboto";
-import "@fontsource-variable/roboto-mono";
-import "@fontsource-variable/newsreader/opsz.css";
+import "@fontsource-variable/inter";
+import "@fontsource-variable/eb-garamond";
+import "@fontsource-variable/eb-garamond/wght-italic.css";
+import "@fontsource-variable/jetbrains-mono";
 import { AuthProvider } from "@/components/auth-provider";
 import { ErrorBoundary } from "@/components/error-boundary";
-import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
-// Fonts ship inside the build (Fontsource), so builds and page loads never fetch from Google Fonts.
+/*
+  Three open-source faces, self-hosted through Fontsource so no page load or
+  build fetches a third-party font host:
+  - display (headings, UI labels, buttons): Inter
+  - body (reading text): EB Garamond, with its italic for emphasis
+  - mono (code, slugs, keys): JetBrains Mono
+  --font-sans and --font-serif stay as aliases so existing font-sans / font-serif
+  classes resolve to the display and body faces.
+*/
+const DISPLAY = '"Inter Variable", system-ui, "Helvetica Neue", Helvetica, Arial, sans-serif';
+const BODY = '"EB Garamond Variable", "Iowan Old Style", "Palatino Linotype", Georgia, Cambria, "Times New Roman", serif';
+const MONO = '"JetBrains Mono Variable", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace';
+
 const fontVariables = {
-  "--font-sans": '"Roboto Variable", ui-sans-serif, system-ui, sans-serif',
-  "--font-mono": '"Roboto Mono Variable", ui-monospace, SFMono-Regular, monospace',
-  "--font-serif": '"Newsreader Variable", Georgia, serif',
+  "--font-display": DISPLAY,
+  "--font-body": BODY,
+  "--font-mono": MONO,
+  "--font-sans": DISPLAY,
+  "--font-serif": BODY,
 } as React.CSSProperties;
 
 export const metadata: Metadata = {
   title: "DropItX",
-  description: "Instant file drops, shareable links.",
+  description: "Drop a file, get a link: Markdown and HTML files as pages behind short links.",
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
+  colorScheme: "light",
+  themeColor: "#f2f1ed",
 };
 
 export default function RootLayout({
@@ -38,14 +54,12 @@ export default function RootLayout({
       style={fontVariables}
     >
       <body className="min-h-full flex flex-col">
-        <ThemeProvider>
-          <AuthProvider>
-            <ErrorBoundary>
-              {children}
-            </ErrorBoundary>
-            <Toaster />
-          </AuthProvider>
-        </ThemeProvider>
+        <AuthProvider>
+          <ErrorBoundary>
+            {children}
+          </ErrorBoundary>
+          <Toaster />
+        </AuthProvider>
       </body>
     </html>
   );
