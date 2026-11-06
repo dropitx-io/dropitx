@@ -7,6 +7,7 @@ import { SearchResults } from "@/components/search-results";
 import type { SearchResult } from "@/types/share";
 import { apiErrorDetail, getApiUrl } from "@/lib/api-client";
 import { PublicNav } from "@/app/(content)/_ui/public-nav";
+import { LandingFooter } from "@/components/landing-footer";
 import { body, displayS, gutter, notice, page } from "@/app/(content)/_ui/public-styles";
 import { cn } from "@/lib/utils";
 
@@ -95,6 +96,7 @@ export default function SearchPage() {
           <SearchResults results={results} isLoading={isLoading} searched={query.length >= 2} />
         </div>
       </main>
+      <LandingFooter />
     </div>
   );
 }

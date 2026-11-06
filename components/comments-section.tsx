@@ -26,9 +26,9 @@ interface CommentsResponse {
   per_page: number;
 }
 
-/** Comment inputs: square, a 2px edge, body-size text. */
+/** Comment inputs: the design's field (44px, 8px radius, a hairline that darkens on hover and focus). */
 const commentField =
-  "h-auto min-h-11 rounded-none border-2 border-[color-mix(in_oklch,var(--foreground)_35%,var(--background))] bg-card px-3.5 text-[17px] md:text-[17px] hover:border-foreground focus-visible:border-foreground";
+  "h-auto min-h-11 rounded-sm border border-[color-mix(in_oklab,var(--fg)_20%,transparent)] bg-transparent px-3 font-body text-base md:text-base hover:border-[var(--muted)] focus-visible:border-foreground";
 
 interface CommentsSectionProps {
   slug: string;

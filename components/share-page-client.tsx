@@ -89,7 +89,7 @@ export function SharePageClient({
                 onRevealed={(content) => handleRevealed(activeSlug, content)}
               />
             ) : (
-              <div className={isMarkdown && activeContent?.encoding !== "base64" ? "max-w-[720px] py-2 md:pl-8" : undefined}>
+              <div className={isMarkdown && activeContent?.encoding !== "base64" ? "max-w-[680px] py-2" : undefined}>
                 {activeContent !== undefined ? (
                   <ShareFileContent
                     content={activeContent}
@@ -97,7 +97,7 @@ export function SharePageClient({
                     mimeType={activeFile?.mime_type}
                   />
                 ) : (
-                  <div className="flex items-center justify-center py-20 text-[17px] text-muted-foreground">
+                  <div className="flex items-center justify-center py-20 font-sans text-sm text-muted-foreground">
                     {activeNotice ?? "Select a file to view"}
                   </div>
                 )}

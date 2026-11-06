@@ -56,9 +56,9 @@ export function QrCodeButton({ slug }: QrCodeButtonProps) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <button type="button" className={squareButton("quiet", "small")}>
+        <button type="button" className={squareButton("quiet", "small")} aria-label="QR code" data-testid="share-qr-button">
           <QrCode className="size-4" aria-hidden="true" />
-          QR code
+          <span className="btn-label">QR code</span>
         </button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[360px]">

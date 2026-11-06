@@ -8,18 +8,23 @@ updated: 2026-08-16T07:05:00Z
 
 ## Current Test
 
-number: 1
-name: Production deploy environment check (NEXT_PUBLIC_API_URL + 6 NEXT_PUBLIC_FIREBASE_* vars in Vercel/Dokploy Production, then one production deploy)
+number: 2
+name: HYG-02 enforcement surface decision (Next 16)
 expected: |
-  Production build completes and prerenders /dashboard/analytics; no module-load
-  throw from lib/api-client.ts or lib/firebase/client.ts
+  Either (a) accept `npm run lint` (currently 0 errors) + push convention as the
+  gate and repair the broken `check:hygiene` script to `tsc --noEmit && eslint .`,
+  or (b) wire ESLint into an automated pre-deploy pipeline (GitHub Actions /
+  Vercel build command). Next 16 removed build-time ESLint — in-build enforcement
+  is a platform impossibility, not an implementation gap.
 awaiting: user response
 
 ## Tests
 
 ### 1. Production deploy environment check
 expected: Vercel/Dokploy Production defines `NEXT_PUBLIC_API_URL` and all 6 `NEXT_PUBLIC_FIREBASE_*` vars; a triggered production build completes (module-load guards in `lib/api-client.ts` and `lib/firebase/client.ts` crash the prerender otherwise).
-result: [pending]
+result: blocked
+blocked_by: third-party
+reason: "Agent check: last production deployment is 2026-07-20 (7e0309f, predates Firebase migration 12ab719 pushed Aug 15 — never deployed); Phase 01's 20 commits unpushed; Vercel CLI has no credentials so production env vars could not be read. Deploy + env confirmation pending user action."
 
 ### 2. HYG-02 enforcement surface decision (Next 16)
 expected: Either (a) accept `npm run lint` (currently 0 errors) + push convention as the gate and repair the broken `check:hygiene` script to `tsc --noEmit && eslint .`, or (b) wire ESLint into an automated pre-deploy pipeline (GitHub Actions / Vercel build command). Next 16 removed build-time ESLint — in-build enforcement is a platform impossibility, not an implementation gap.
@@ -34,8 +39,8 @@ result: [pending]
 total: 3
 passed: 0
 issues: 0
-pending: 3
+pending: 2
 skipped: 0
-blocked: 0
+blocked: 1
 
 ## Gaps

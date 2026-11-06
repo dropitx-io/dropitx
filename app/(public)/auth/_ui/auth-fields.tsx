@@ -1,39 +1,39 @@
 "use client";
 
-import { useState } from "react";
-import { Input } from "@/components/ui/input";
-import { field, small } from "@/app/(content)/_ui/public-styles";
-import { cn } from "@/lib/utils";
-import { fieldLabel } from "./auth-shell";
+import { forwardRef, useState } from "react";
 
-interface EmailFieldProps {
+interface FieldProps {
   value: string;
   onChange: (value: string) => void;
+  /** Inline message under the field; the input is marked invalid while it is set. */
+  error?: string | null;
 }
 
-export function EmailField({ value, onChange }: EmailFieldProps) {
+/** The design's email field: label, input and an inline error. */
+export const EmailField = forwardRef<HTMLInputElement, FieldProps>(function EmailField({ value, onChange, error }, ref) {
   return (
-    <div className="grid gap-2">
-      <label htmlFor="email" className={fieldLabel}>
-        Email
-      </label>
-      <Input
+    <div className="field">
+      <label htmlFor="email">Email</label>
+      <input
+        ref={ref}
         id="email"
+        name="email"
         type="email"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        required
-        className={field}
         autoComplete="email"
+        placeholder="you@company.com"
+        aria-invalid={Boolean(error)}
+        aria-describedby="email-err"
+        data-testid="auth-email-input"
       />
+      <p className="field-error" id="email-err">{error ?? ""}</p>
     </div>
   );
-}
+});
 
-interface PasswordFieldProps {
+interface PasswordFieldProps extends FieldProps {
   label: string;
-  value: string;
-  onChange: (value: string) => void;
   autoComplete: "current-password" | "new-password";
   /** Shown under the field, e.g. the length rule when choosing a password. */
   hint?: string;
@@ -41,44 +41,47 @@ interface PasswordFieldProps {
   aside?: React.ReactNode;
 }
 
-/** A password field with a Show / Hide switch; minimum length 6, as Firebase requires. */
-export function PasswordField({ label, value, onChange, autoComplete, hint, aside }: PasswordFieldProps) {
+/** A password field with a Show / Hide switch, a hint and an inline error. */
+export const PasswordField = forwardRef<HTMLInputElement, PasswordFieldProps>(function PasswordField(
+  { label, value, onChange, autoComplete, hint, aside, error },
+  ref,
+) {
   const [showPassword, setShowPassword] = useState(false);
+  const describedBy = [hint ? "password-help" : null, "password-err"].filter(Boolean).join(" ");
 
   return (
-    <div className="grid gap-2">
-      <div className="flex items-baseline justify-between gap-4">
-        <label htmlFor="password" className={fieldLabel}>
-          {label}
-        </label>
+    <div className="field">
+      <div className="label-row">
+        <label htmlFor="password">{label}</label>
         {aside}
       </div>
       <div className="relative">
-        <Input
+        {/* No name attribute: the password is only ever read by the submit handler, never serialised into a URL. */}
+        <input
+          ref={ref}
           id="password"
           type={showPassword ? "text" : "password"}
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          required
-          minLength={6}
-          className={cn(field, "pr-20")}
           autoComplete={autoComplete}
-          aria-describedby={hint ? "password-hint" : undefined}
+          aria-invalid={Boolean(error)}
+          aria-describedby={describedBy}
+          className="w-full pr-20"
+          data-testid="auth-password-input"
         />
         <button
           type="button"
-          onClick={() => setShowPassword(!showPassword)}
+          onClick={() => setShowPassword((s) => !s)}
           aria-pressed={showPassword}
-          className="absolute inset-y-0 right-1 min-w-11 px-3 text-[14px] text-muted-foreground transition-colors hover:text-foreground"
+          aria-label={showPassword ? "Hide password" : "Show password"}
+          className="absolute inset-y-0 right-1 min-w-11 px-3 font-sans text-sm text-fg-2 transition-colors hover:text-foreground"
+          data-testid="auth-password-toggle"
         >
           {showPassword ? "Hide" : "Show"}
         </button>
       </div>
-      {hint && (
-        <p id="password-hint" className={cn(small, "text-muted-foreground")}>
-          {hint}
-        </p>
-      )}
+      {hint && <p className="field-help" id="password-help">{hint}</p>}
+      <p className="field-error" id="password-err">{error ?? ""}</p>
     </div>
   );
-}
+});

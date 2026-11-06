@@ -70,9 +70,10 @@ export function BookmarkToggle({ shareId, slug }: BookmarkToggleProps) {
         href={`/auth/login?next=/s/${slug}`}
         className={squareButton("quiet", "small")}
         title="Sign in to add to favorites"
+        aria-label="Sign in to add to favorites"
       >
         <Heart className="size-4" aria-hidden="true" />
-        Favorite
+        <span className="btn-label">Favorite</span>
       </Link>
     );
   }
@@ -83,13 +84,14 @@ export function BookmarkToggle({ shareId, slug }: BookmarkToggleProps) {
       onClick={toggle}
       disabled={loading}
       aria-pressed={isFavorited}
+      aria-label="Favorite"
       className={squareButton("quiet", "small")}
     >
       <Heart
         aria-hidden="true"
         className={cn("size-4 transition-colors duration-200", isFavorited && "fill-current")}
       />
-      {isFavorited ? "Favorited" : "Favorite"}
+      <span className="btn-label">{isFavorited ? "Favorited" : "Favorite"}</span>
     </button>
   );
 }

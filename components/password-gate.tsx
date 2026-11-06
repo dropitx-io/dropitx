@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Input } from "@/components/ui/input";
-import { body, field, notice, small, squareButton, textLink } from "@/app/(content)/_ui/public-styles";
+import { notice } from "@/app/(content)/_ui/public-styles";
 import { cn } from "@/lib/utils";
 import { OnceOnlyNotice } from "@/components/reveal-share-content";
 import { ShareContentArea } from "@/components/share-content-area";
@@ -51,7 +50,12 @@ export function PasswordGate({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!password || loading) return;
+    if (loading) return;
+    if (!password) {
+      setError("Enter the password you were given.");
+      inputRef.current?.focus();
+      return;
+    }
 
     setLoading(true);
     setError(null);
@@ -68,7 +72,7 @@ export function PasswordGate({
         }
         break;
       case "wrong":
-        setError("Incorrect password");
+        setError("That password is not right. Check it with whoever shared the page.");
         break;
       case "limited":
         setError(result.message);
@@ -97,58 +101,49 @@ export function PasswordGate({
   }
 
   return (
-    <section aria-labelledby="gate-title" className="grid max-w-[34em] gap-6">
-      <div className="grid gap-2">
-        <h2 id="gate-title" className="text-[clamp(24px,1.3rem+1.1vw,36px)] leading-[1.15] tracking-[-0.015em]">
-          This page is locked.
-        </h2>
-        <p className={body}>
-          Whoever shared {filename ?? "it"} set a password. Ask them for it, then enter it here.
+    <section aria-labelledby="gate-title" className="gate card-featured" data-testid="share-gate">
+      {/* noValidate + onSubmit: the password goes only to the unlock request body, never into a URL. */}
+      <form onSubmit={handleSubmit} noValidate className="card-pad paper rounded-[inherit]">
+        <div className="gate-lock" aria-hidden="true" />
+        <h2 id="gate-title" className="h-title">This page is locked</h2>
+        <p className="lead">
+          Whoever shared <strong>{filename ?? "this page"}</strong> set a password. Ask them for it, then enter it here.
         </p>
-      </div>
 
-      {selfDeleting && (
-        <div className={cn(body, notice.warning, "grid gap-1")}>
-          <OnceOnlyNotice />
-        </div>
-      )}
+        {selfDeleting && (
+          <div className={cn(notice.warning, "grid gap-1")}>
+            <OnceOnlyNotice />
+          </div>
+        )}
 
-      <form onSubmit={handleSubmit} className="grid gap-6">
-        <div className="grid gap-2">
-          <label htmlFor="share-password" className={cn(body, "font-medium")}>
-            Password
-          </label>
-          <Input
+        <div className="field">
+          <label htmlFor="share-password">Password</label>
+          <input
             ref={inputRef}
             id="share-password"
             type="password"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(e) => {
+              setPassword(e.target.value);
+              if (error) setError(null);
+            }}
             disabled={loading}
-            autoComplete="current-password"
+            autoComplete="off"
             aria-invalid={error ? true : undefined}
-            aria-describedby={error ? "share-password-error" : undefined}
-            className={field}
+            aria-describedby="share-password-error"
+            data-testid="share-gate-password"
           />
-          {error && (
-            <p id="share-password-error" role="alert" className={cn(small, "font-medium text-destructive")}>
-              {error}
-            </p>
-          )}
+          <p id="share-password-error" role="alert" className="field-error">{error ?? ""}</p>
         </div>
-        <div>
-          <button type="submit" disabled={loading || !password} aria-busy={loading} className={squareButton()}>
-            {loading ? "Opening the page" : "Open the page"}
-          </button>
-        </div>
-      </form>
+        <button type="submit" disabled={loading} aria-busy={loading} className="btn btn-dark btn-lg btn-block" data-testid="share-gate-submit">
+          {loading ? "Opening the page" : "Open the page"}
+        </button>
 
-      <p className={cn(small, "text-muted-foreground")}>
-        The password is checked before the page renders. Have an account with access?{" "}
-        <a href={`/auth/login?next=/s/${slug}`} className={textLink}>
-          Sign in to view
-        </a>
-      </p>
+        <p className="auth-note">
+          The password is checked before the page renders. Nothing of the document is sent until it matches. Have an
+          account with access? <a href={`/auth/login?next=/s/${slug}`}>Sign in to view</a>
+        </p>
+      </form>
     </section>
   );
 }

@@ -108,7 +108,7 @@ export function RevealShareContent({
   }
 
   return (
-    <div className={cn(body, "grid max-w-[34em] justify-items-start gap-4 bg-surface p-[clamp(24px,4vw,48px)]")}>
+    <div className={cn(body, "card card-pad grid max-w-[34em] justify-items-start gap-4")} data-testid="share-reveal">
       {state.status === "unavailable" ? (
         <p>This content is no longer available.</p>
       ) : state.status === "protected" ? (
@@ -128,7 +128,7 @@ export function RevealShareContent({
             {state.status === "loading" ? "Revealing the content" : "Reveal the content"}
           </button>
           {state.status === "failed" && (
-            <p role="alert" className="font-medium text-destructive">
+            <p role="alert" className="field-error">
               Could not load the content. Try again.
             </p>
           )}

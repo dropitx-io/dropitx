@@ -1,17 +1,57 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+/* The design's component kit (nav, footer, buttons, cards, fields, the public pages).
+   Layered so Tailwind utilities can still adjust any element. */
+@import "../components/site/site.css" layer(components);
+@import "../components/landing/landing.css" layer(components);
 
+/* Class-based on purpose: nothing sets `.dark` any more, so a leftover `dark:` utility is inert.
+   It must never fall back to the system colour scheme; the site is light only. */
 @custom-variant dark (&:is(.dark *));
+
+/*
+  Type scale and radii from the design. Declared as theme tokens so Tailwind's
+  text-* and rounded-* utilities use the same steps as the kit in site.css.
+*/
+@theme {
+  --text-xs: 11px;
+  --text-xs--line-height: 1.45;
+  --text-sm: 14px;
+  --text-sm--line-height: 1.5;
+  --text-base: 16px;
+  --text-base--line-height: 1.5;
+  --text-lg: 19.2px;
+  --text-lg--line-height: 1.5;
+  --text-xl: 22px;
+  --text-xl--line-height: 1.3;
+  --text-2xl: 26px;
+  --text-2xl--line-height: 1.25;
+  --text-3xl: 36px;
+  --text-3xl--line-height: 1.2;
+  --text-4xl: 72px;
+  --text-4xl--line-height: 1.1;
+
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
+  --radius-xl: 12px;
+  --radius-2xl: 16px;
+  --radius-card: 8px;
+  --radius-sheet: 12px;
+  --radius-pill: 9999px;
+}
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  /* Font roles are set on <html> in app/layout.tsx; sans/serif are aliases of display/body. */
   --font-sans: var(--font-sans);
   --font-mono: var(--font-mono);
   --font-serif: var(--font-serif);
-  --font-display: var(--font-serif);
-  --font-heading: var(--font-sans);
+  --font-display: var(--font-display);
+  --font-body: var(--font-body);
+  --font-heading: var(--font-display);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -20,7 +60,7 @@
   --color-sidebar-primary: var(--sidebar-primary);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar: var(--sidebar);
-  --color-success: var(--success);
+  --color-success: var(--success-ink);
   --color-success-foreground: var(--success-foreground);
   --color-warning: var(--warning);
   --color-chart-5: var(--chart-5);
@@ -33,10 +73,15 @@
   --color-border: var(--border);
   --color-rule: var(--rule);
   --color-destructive: var(--destructive);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-accent: var(--accent);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-muted: var(--muted);
+  /* shadcn's "accent" is a quiet hover surface; the design's orange is "brand". */
+  --color-accent-foreground: var(--fg);
+  --color-accent: var(--surface-warm);
+  --color-brand: var(--accent);
+  --color-brand-hover: var(--accent-hover);
+  --color-brand-ink: var(--accent-ink);
+  /* shadcn's "muted" is a surface; the design's --muted is secondary text. */
+  --color-muted-foreground: var(--muted);
+  --color-muted: var(--surface);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-secondary: var(--secondary);
   --color-primary-foreground: var(--primary-foreground);
@@ -52,173 +97,166 @@
   --color-field: var(--field);
   --color-field-foreground: var(--field-foreground);
   --color-fg-soft: var(--fg-soft);
+  --color-fg-2: var(--fg-2);
   --color-surface: var(--surface);
-  --color-meta: var(--meta);
+  --color-surface-warm: var(--surface-warm);
+  --color-meta: var(--muted);
   --color-pill-positive: var(--pill-positive-bg);
   --color-pill-positive-foreground: var(--pill-positive-ink);
   --color-pill-negative: var(--pill-negative-bg);
   --color-pill-negative-foreground: var(--pill-negative-ink);
   --color-pill-warning: var(--pill-warning-bg);
   --color-pill-warning-foreground: var(--pill-warning-ink);
-  /* App radii: tight cards and controls; marketing buttons are square. */
-  --radius-sm: 4px;
-  --radius-md: 6px;
-  --radius-lg: 8px;
-  --radius-xl: 12px;
-  --radius-2xl: 16px;
-  --radius-card: 8px;
-  --radius-sheet: 16px;
-  --radius-pill: 9999px;
-  --animate-fade-in: fade-in 150ms cubic-bezier(0.2, 0, 0, 1);
-  --animate-slide-up: slide-up 240ms cubic-bezier(0.2, 0, 0, 1);
+  --animate-fade-in: fade-in 150ms ease;
+  --animate-slide-up: slide-up 200ms ease;
 }
 
 /*
-  "Olive on bone": one ground, one ink, one accent.
-  Marketing pages read --background/--foreground; the app shell reads
-  --frame (the tinted L-frame) and --sheet (the page). Surfaces are separated
-  by a tone step or a 1px --border, never by a shadow.
+  The design's tokens (light only). Every value below the "App mapping" line
+  points back at these, so components that still use the shadcn/app names
+  (bg-frame, bg-sheet, text-muted-foreground, bg-pill-positive ...) take the
+  new palette without being rewritten.
 */
 :root {
-  --background: #ecebe7;
-  --foreground: #38450f;
-  --surface: #e1dfd9;
-  --field: #38450f;
-  --field-foreground: #ecebe7;
+  color-scheme: light;
 
-  --frame: #ecebe7;
-  --sheet: #fbfaf7;
-  --raised: #f3f2ee;
-  --active: #e4e2dc;
+  /* Surface (3 levels) */
+  --bg: #f2f1ed;
+  --surface: #e6e5e0;
+  --surface-warm: #ebeae5;
 
-  --card: #fbfaf7;
-  --card-foreground: #1f2508;
-  --popover: #fbfaf7;
-  --popover-foreground: #1f2508;
+  /* Foreground ramp */
+  --fg: #26251e;
+  --fg-2: rgba(38, 37, 30, 0.9);
+  /* The design sets 0.55, which measures 3.5:1 on --bg. 0.68 is the lightest step
+     that reaches WCAG AA 4.5:1 for secondary text (5.1:1 on --bg, 4.8:1 on --surface). */
+  --muted: rgba(38, 37, 30, 0.68);
+  /* Decoration only (link underlines, hairlines): never use it for text. */
+  --meta: rgba(38, 37, 30, 0.4);
 
-  --primary: #38450f;
-  --primary-foreground: #ecebe7;
-  --secondary: #e4e2dc;
-  --secondary-foreground: #1f2508;
-  --muted: #e4e2dc;
-  --muted-foreground: #4f5733;
-  --accent: #e4e2dc;
-  --accent-foreground: #1f2508;
+  /* Borders */
+  --border: rgba(38, 37, 30, 0.1);
+  --border-soft: rgba(38, 37, 30, 0.06);
 
-  --fg-soft: #4f5733;
-  --meta: #4f5733;
+  /* Accent: #f54e00 measures 3.1:1 on --bg and 3.5:1 under white, so it is for
+     fills, large text and icons only. --accent-ink carries small accent text and
+     white labels on an accent fill (5.1:1 on --bg, 5.8:1 under white). */
+  --accent: #f54e00;
+  --accent-on: #ffffff;
+  --accent-hover: color-mix(in oklab, var(--accent), black 8%);
+  --accent-active: color-mix(in oklab, var(--accent), black 14%);
+  --accent-ink: #b83a00;
 
-  --border: #dedcd5;
-  --rule: #ebe9e3;
-  --input: #c9c6bd;
-  --ring: #38450f;
+  /* Semantic (fills, dots, bars) */
+  --success: #1f8a65;
+  --warn: #eab308;
+  --danger: #cf2d56;
 
-  --success: #247b50;
+  /* Spacing */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  --section-y-desktop: 80px;
+  --section-y-tablet: 48px;
+  --section-y-phone: 32px;
+
+  /* Type rhythm (sizes are the --text-* theme tokens) */
+  --leading-body: 1.5;
+  --leading-tight: 1.1;
+  --tracking-display: -0.03em;
+
+  /* Elevation */
+  --elev-flat: none;
+  --elev-ring: 0 0 0 1px var(--border);
+  --elev-raised:
+    0 28px 70px rgba(0, 0, 0, 0.14),
+    0 14px 32px rgba(0, 0, 0, 0.1),
+    0 0 0 1px var(--border);
+
+  /* Focus */
+  --focus-ring: 0 4px 12px rgba(0, 0, 0, 0.1);
+
+  /* Motion */
+  --motion-fast: 150ms;
+  --motion-base: 200ms;
+  --ease-standard: ease;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* Layout */
+  --container-max: 1200px;
+  --container-gutter-desktop: 24px;
+  --container-gutter-tablet: 16px;
+  --container-gutter-phone: 12px;
+  /* Widest content column on public pages (kept for existing recipes). */
+  --page-max: var(--container-max);
+
+  /* ── App mapping: shadcn / dashboard names resolved onto the tokens above ── */
+  --background: var(--bg);
+  --foreground: var(--fg);
+  --field: var(--fg);
+  --field-foreground: var(--bg);
+
+  --frame: var(--bg);
+  --sheet: #f8f7f4;
+  --raised: var(--surface-warm);
+  --active: var(--surface);
+
+  --card: var(--surface);
+  --card-foreground: var(--fg);
+  --popover: #f8f7f4;
+  --popover-foreground: var(--fg);
+
+  /* The design's one solid action is dark (btn-dark). */
+  --primary: var(--fg);
+  --primary-foreground: var(--bg);
+  --secondary: var(--surface-warm);
+  --secondary-foreground: var(--fg);
+
+  --fg-soft: var(--fg-2);
+
+  --rule: var(--border-soft);
+  --input: rgba(38, 37, 30, 0.2);
+  --ring: var(--fg);
+
+  /* Text-safe shades of the semantic colours (AA on --bg, --surface and under white). */
+  --success-ink: #17704f;
   --success-foreground: #ffffff;
-  --warning: #92400e;
-  --destructive: #c4242a;
+  --warning: #8a5a00;
+  --destructive: #b02448;
   --destructive-foreground: #ffffff;
-  --pill-positive-bg: #dcfae5;
-  --pill-positive-ink: #04250e;
-  --pill-negative-bg: #ffedea;
-  --pill-negative-ink: #831c1e;
-  --pill-warning-bg: #fffbeb;
-  --pill-warning-ink: #92400e;
+  --pill-positive-bg: color-mix(in oklab, var(--success) 12%, var(--bg));
+  --pill-positive-ink: #145c41;
+  --pill-negative-bg: color-mix(in oklab, var(--danger) 12%, var(--bg));
+  --pill-negative-ink: #8f1d3a;
+  --pill-warning-bg: color-mix(in oklab, var(--warn) 16%, var(--bg));
+  --pill-warning-ink: #6e4800;
 
-  /* One data hue: the brand olive on the main series; the rest are greys. */
-  --chart-1: #38450f;
-  --chart-2: #8a8f78;
-  --chart-3: #b7b9ab;
-  --chart-4: #5d683a;
-  --chart-5: #d3d4ca;
-  --grid: #e5e4de;
+  /* Charts: the ink on the main series, the accent for a highlight, greys after. */
+  --chart-1: var(--fg);
+  --chart-2: var(--accent);
+  --chart-3: rgba(38, 37, 30, 0.45);
+  --chart-4: rgba(38, 37, 30, 0.25);
+  --chart-5: rgba(38, 37, 30, 0.12);
+  --grid: var(--border);
 
   --radius: 8px;
 
-  /* Widest content column on public pages; the type scale stops growing at a
-     1600px viewport, so wider screens centre this column. */
-  --page-max: 1536px;
-
-  --sidebar: #ecebe7;
-  --sidebar-foreground: #1f2508;
-  --sidebar-primary: #38450f;
-  --sidebar-primary-foreground: #ecebe7;
-  --sidebar-accent: #e1dfd9;
-  --sidebar-accent-foreground: #1f2508;
-  --sidebar-border: #dedcd5;
-  --sidebar-ring: #38450f;
+  --sidebar: var(--bg);
+  --sidebar-foreground: var(--fg);
+  --sidebar-primary: var(--fg);
+  --sidebar-primary-foreground: var(--bg);
+  --sidebar-accent: var(--surface);
+  --sidebar-accent-foreground: var(--fg);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--fg);
 
   --shadow: none;
-  --shadow-float: 0 8px 24px rgba(31, 37, 8, 0.12);
-
-  --motion-fast: 150ms;
-  --motion-base: 240ms;
-  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
-  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-/* Dark companion: the same proportions inverted, olive ground and bone ink. */
-.dark {
-  --background: #1b2007;
-  --foreground: #ecebe7;
-  --surface: #262c10;
-  --field: #ecebe7;
-  --field-foreground: #1b2007;
-
-  --frame: #1b2007;
-  --sheet: #12160a;
-  --raised: #20250e;
-  --active: #2c3214;
-
-  --card: #12160a;
-  --card-foreground: #ecebe7;
-  --popover: #20250e;
-  --popover-foreground: #ecebe7;
-
-  --primary: #d9dfb4;
-  --primary-foreground: #1b2007;
-  --secondary: #2c3214;
-  --secondary-foreground: #ecebe7;
-  --muted: #2c3214;
-  --muted-foreground: #b9bca8;
-  --accent: #2c3214;
-  --accent-foreground: #ecebe7;
-
-  --fg-soft: #b9bca8;
-  --meta: #b9bca8;
-
-  --border: #2e3418;
-  --rule: #232811;
-  --input: #4a5030;
-  --ring: #d9dfb4;
-
-  --success: #3fc07a;
-  --warning: #f2b450;
-  --destructive: #e5566f;
-  --pill-positive-bg: #172a1d;
-  --pill-positive-ink: #3fc07a;
-  --pill-negative-bg: #2c1a20;
-  --pill-negative-ink: #e5566f;
-  --pill-warning-bg: #2d2412;
-  --pill-warning-ink: #f2b450;
-
-  --chart-1: #d9dfb4;
-  --chart-2: #7d826a;
-  --chart-3: #5a5f48;
-  --chart-4: #b9bca8;
-  --chart-5: #3d4229;
-  --grid: #2b3016;
-
-  --sidebar: #1b2007;
-  --sidebar-foreground: #ecebe7;
-  --sidebar-primary: #d9dfb4;
-  --sidebar-primary-foreground: #1b2007;
-  --sidebar-accent: #2c3214;
-  --sidebar-accent-foreground: #ecebe7;
-  --sidebar-border: #2e3418;
-  --sidebar-ring: #d9dfb4;
-
-  --shadow-float: 0 8px 24px rgba(0, 0, 0, 0.45);
+  --shadow-float: 0 14px 32px rgba(0, 0, 0, 0.1), 0 0 0 1px var(--border);
 }
 
 @layer base {
@@ -226,20 +264,40 @@
     @apply border-border outline-ring/50;
   }
   html {
-    @apply font-sans;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    /* Anchor jumps land below the 64px sticky nav. */
+    scroll-padding-top: 80px;
+    font-family: var(--font-body);
   }
   body {
-    @apply bg-background text-foreground;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--font-body);
     font-size: 16px;
-    line-height: 1.5;
+    line-height: var(--leading-body);
   }
-  *:focus-visible {
-    outline: 2px solid var(--ring);
+  :focus-visible {
+    outline: 2px solid var(--fg);
     outline-offset: 2px;
+    box-shadow: var(--focus-ring);
   }
   ::selection {
-    background: var(--foreground);
-    color: var(--background);
+    background: var(--fg);
+    color: var(--bg);
+  }
+  code,
+  kbd,
+  pre,
+  samp {
+    font-family: var(--font-mono);
+  }
+  kbd {
+    font-size: var(--text-sm);
+    background: var(--surface);
+    box-shadow: var(--elev-ring);
+    border-radius: 4px;
+    padding: 1px 6px;
   }
   .num,
   td,
@@ -249,25 +307,41 @@
 }
 
 @layer utilities {
-  /* The marketing pages' one face: Newsreader with optical sizes. */
+  /* The reading face (body serif) for pages and long text. */
   .type-page {
-    font-family: var(--font-serif);
-    font-optical-sizing: auto;
+    font-family: var(--font-body);
   }
-  .display {
-    font-family: var(--font-serif);
-    font-optical-sizing: auto;
-    font-weight: 300;
-    letter-spacing: -0.05em;
-    line-height: 0.9;
+  /* The display face with the design's tracking, for headings set by hand. */
+  .type-display {
+    font-family: var(--font-display);
+    font-weight: 400;
+    letter-spacing: var(--tracking-display);
+    line-height: var(--leading-tight);
   }
   .press {
-    transition: transform var(--motion-fast) var(--ease-standard),
+    transition: transform 90ms var(--ease-standard),
       background-color var(--motion-fast) var(--ease-standard),
       color var(--motion-fast) var(--ease-standard);
   }
   .press:active {
-    transform: translateY(1px) scale(0.99);
+    transform: translateY(1px);
+  }
+  /* Skip link: hidden above the page until it takes focus. */
+  .skip {
+    position: absolute;
+    left: var(--space-4);
+    top: -80px;
+    z-index: 50;
+    background: var(--fg);
+    color: var(--bg);
+    padding: var(--space-2) var(--space-4);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-display);
+    font-size: var(--text-sm);
+    text-decoration: none;
+  }
+  .skip:focus {
+    top: var(--space-3);
   }
 }
 
@@ -286,52 +360,47 @@
   to { opacity: 1; transform: scale(1); }
 }
 
-/* Entrances: content is visible without script; JS adds .is-armed before observing. */
-.reveal-armed [data-reveal] {
-  opacity: 0;
-  transform: translateY(24px);
-  transition: opacity 600ms var(--ease-out), transform 600ms var(--ease-out);
-  transition-delay: calc(var(--reveal-i, 0) * 75ms);
-}
-.reveal-armed [data-reveal].is-in {
-  opacity: 1;
-  transform: none;
+@keyframes rise {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: none; }
 }
 
-@keyframes shutter-open {
-  from { clip-path: inset(0 100% 0 0); }
-  to { clip-path: inset(0 0 0 0); }
-}
-@keyframes shutter-settle {
-  from { transform: scale(1.12); }
-  to { transform: scale(1); }
-}
-.shutter {
-  animation: shutter-open 1.1s var(--ease-out) both;
-}
-.shutter > * {
-  animation: shutter-settle 1.1s var(--ease-out) both;
+/*
+  Motion. Content is visible without script: RevealOnScroll adds .reveal-armed
+  to <html> before it observes, and only then do [data-reveal] elements start
+  hidden. .rise is a load entrance that needs no script. Both run only when the
+  reader has not asked for reduced motion.
+*/
+@media (prefers-reduced-motion: no-preference) {
+  .reveal-armed [data-reveal] {
+    opacity: 0;
+    transform: translateY(16px);
+    transition: opacity 500ms var(--ease-standard), transform 600ms var(--ease-standard);
+    transition-delay: calc(var(--reveal-i, 0) * 70ms);
+  }
+  .reveal-armed [data-reveal].is-in {
+    opacity: 1;
+    transform: none;
+  }
+  .rise {
+    animation: rise 600ms var(--ease-standard) both;
+    animation-delay: calc(var(--i, 0) * 80ms);
+  }
+  /* Load entrance for a short stack (auth forms): each child rises in turn. */
+  .stagger-in > * {
+    animation: rise 600ms var(--ease-standard) both;
+  }
+  .stagger-in > :nth-child(2) { animation-delay: 80ms; }
+  .stagger-in > :nth-child(3) { animation-delay: 160ms; }
+  .stagger-in > :nth-child(4) { animation-delay: 240ms; }
+  .stagger-in > :nth-child(5) { animation-delay: 320ms; }
+  .stagger-in > :nth-child(n + 6) { animation-delay: 400ms; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
-    animation-duration: 0.01ms !important;
+    animation-duration: 1ms !important;
     animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
-  .reveal-armed [data-reveal] {
-    opacity: 1;
-    transform: none;
+    transition-duration: 1ms !important;
   }
 }
-
-/* Load entrance for a short stack (auth forms): each child rises in turn; no script needed. */
-.stagger-in > * {
-  animation: slide-up 600ms var(--ease-out) both;
-}
-.stagger-in > :nth-child(2) { animation-delay: 75ms; }
-.stagger-in > :nth-child(3) { animation-delay: 150ms; }
-.stagger-in > :nth-child(4) { animation-delay: 225ms; }
-.stagger-in > :nth-child(5) { animation-delay: 300ms; }
-.stagger-in > :nth-child(6) { animation-delay: 375ms; }
-.stagger-in > :nth-child(n + 7) { animation-delay: 450ms; }

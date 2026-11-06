@@ -2,6 +2,7 @@ import { ImageResponse } from "next/og";
 import { NextRequest, NextResponse } from "next/server";
 import type { components } from "@/lib/api-types";
 import { forwardHeaders } from "@/lib/api-forward-headers";
+import { OG_PALETTE, OG_SIZE } from "@/lib/og-palette";
 
 export const runtime = "edge";
 
@@ -19,10 +20,16 @@ export async function GET(
   }
 
   // Metadata only: this route is hit by link unfurlers and must never read content.
-  const res = await fetch(`${apiUrl}/api/shares/${encodeURIComponent(slug)}`, {
-    headers: forwardHeaders(request.headers.get("cf-connecting-ip"), null),
-    cache: "no-store",
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${apiUrl}/api/shares/${encodeURIComponent(slug)}`, {
+      headers: forwardHeaders(request.headers.get("cf-connecting-ip"), null),
+      cache: "no-store",
+    });
+  } catch (err: unknown) {
+    console.error("OG image: the share metadata request failed", err);
+    return new NextResponse("Upstream unavailable", { status: 502 });
+  }
 
   // Missing, private, expired and rate-limited all look the same to a crawler.
   if (!res.ok) {
@@ -46,33 +53,26 @@ export async function GET(
           height: "100%",
           display: "flex",
           flexDirection: "column",
-          justifyContent: "center",
-          padding: "60px",
-          backgroundColor: "#f7eee6",
-          color: "#2b211c",
+          justifyContent: "space-between",
+          padding: "64px 72px",
+          backgroundColor: OG_PALETTE.background,
+          color: OG_PALETTE.ink,
           fontFamily: "sans-serif",
         }}
       >
-        <div style={{ fontSize: 36, fontWeight: 700, lineHeight: 1.3 }}>
-          {title}
+        <div style={{ display: "flex", alignItems: "center", gap: 14, fontSize: 30, letterSpacing: "-0.04em" }}>
+          <div style={{ display: "flex", position: "relative", width: 34, height: 34, borderRadius: 8, backgroundColor: OG_PALETTE.ink }}>
+            <div style={{ position: "absolute", left: 9, right: 9, bottom: 9, height: 5, borderRadius: 3, backgroundColor: OG_PALETTE.accent }} />
+          </div>
+          DropItX
         </div>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            marginTop: 40,
-            fontSize: 20,
-            color: "#766860",
-          }}
-        >
+        <div style={{ display: "flex", fontSize: 60, lineHeight: 1.12, letterSpacing: "-0.03em" }}>{title}</div>
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 24, color: OG_PALETTE.muted }}>
           <span>{share.view_count} views</span>
-          <span style={{ color: "#9a5b3c" }}>DropItX</span>
+          <span>Shared with DropItX</span>
         </div>
       </div>
     ),
-    {
-      width: 1200,
-      height: 630,
-    },
+    OG_SIZE,
   );
 }

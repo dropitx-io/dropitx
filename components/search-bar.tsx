@@ -80,7 +80,7 @@ export function SearchBar({ initialValue = "", compact = false }: SearchBarProps
         onKeyDown={handleKeyDown}
         placeholder="Search by title or words in the page"
         aria-label="Search shared pages"
-        className={cn(field, "min-h-[56px] pl-12 pr-14")}
+        className={cn(field, "h-12 min-h-12 pl-12 pr-14 font-body text-base md:text-base")}
       />
 
       {value.length > 0 && (

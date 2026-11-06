@@ -40,7 +40,7 @@ export default async function EditorPage() {
 
   // Signed out (or the shell could not load): anyone can write; publishing asks them to sign in.
   return (
-    <div className="min-h-svh bg-frame text-foreground">
+    <div className="min-h-svh bg-frame font-sans text-foreground">
       <header className="flex h-12 items-center justify-between px-5 max-md:px-4">
         <Wordmark withMark href="/" className="[&_svg]:text-primary" />
         <a href="/auth/login?next=/editor" className="text-sm font-medium text-foreground underline-offset-3 hover:underline">

@@ -1,7 +1,8 @@
 // Run: node --test components/landing/markdown-line.test.mjs
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { parseLine, slugify, byteCount, blocksToMarkdown } from "./markdown-line.ts";
+import { parseLine, slugify, byteCount, blocksToMarkdown, documentTitle, parseDocument, formatBytes } from "./markdown-line.ts";
+import { SAMPLES } from "./showcase-samples.ts";
 
 test("slugify drops heading marks, accents and punctuation", () => {
   assert.equal(slugify("## Café menu, **spring**"), "cafe-menu-spring");
@@ -59,4 +60,57 @@ test("blocksToMarkdown writes the body back as Markdown source", () => {
 test("byteCount counts UTF-8 bytes of the line and the body", () => {
   assert.equal(byteCount("# é", "ab"), new TextEncoder().encode("# é\n\nab").length);
   assert.equal(byteCount("# é", "ab"), 8);
+});
+
+// --- the redesign's studio: chip samples and whole documents (FR4.2) ---
+
+test("each design chip sample derives a non-empty slug of at most 32 characters", () => {
+  const expected = {
+    "release-notes.md": "release-notes-v1-4",
+    "q3-incident-review.md": "q3-incident-review",
+    "reading-list.md": "reading-list-for-friday",
+  };
+  assert.equal(SAMPLES.length, 3);
+  for (const sample of SAMPLES) {
+    const slug = slugify(documentTitle(sample.text, sample.file));
+    assert.ok(slug.length > 0 && slug.length <= 32, `${sample.file}: ${slug}`);
+    assert.match(slug, /^[a-z0-9]+(-[a-z0-9]+)*$/);
+    assert.equal(slug, expected[sample.file]);
+  }
+});
+
+test("a 40-character heading still derives a slug of at most 32 characters", () => {
+  const heading = "# " + "Quarterly planning notes for the team 26";
+  assert.equal(heading.length - 2, 40);
+  assert.ok(slugify(documentTitle(heading, "x.md")).length <= 32);
+});
+
+test("documentTitle falls back to the first line, then the file name", () => {
+  assert.equal(documentTitle("Just a line\n\nmore", "notes.md"), "Just a line");
+  assert.equal(documentTitle("", "notes.md"), "notes");
+  assert.equal(documentTitle("## Café menu, **spring**", "x.md"), "Café menu, spring");
+  assert.equal(slugify(documentTitle("", "a.md")), "untitled");
+});
+
+test("parseDocument reads headings, lists, quotes, code and paragraphs", () => {
+  const blocks = parseDocument("# Title\n\nOne\ntwo\n\n- a\n- **b**\n\n1. x\n\n> quote\n\n```\n<b>raw</b>\n```");
+  assert.deepEqual(blocks.map((b) => b.type), ["heading", "p", "list", "list", "quote", "code"]);
+  assert.equal(blocks[0].level, 1);
+  assert.deepEqual(blocks[1].runs, [{ kind: "text", text: "One two" }]);
+  assert.equal(blocks[2].ordered, false);
+  assert.deepEqual(blocks[2].items[1], [{ kind: "strong", text: "b" }]);
+  assert.equal(blocks[3].ordered, true);
+  // Code is kept as text, never as markup.
+  assert.equal(blocks[5].text, "<b>raw</b>");
+});
+
+test("parseDocument returns no blocks for empty text and closes an unterminated fence", () => {
+  assert.deepEqual(parseDocument(""), []);
+  assert.deepEqual(parseDocument("```\nlet a"), [{ type: "code", text: "let a" }]);
+});
+
+test("formatBytes switches to KB and MB", () => {
+  assert.equal(formatBytes(287), "287 bytes");
+  assert.equal(formatBytes(2048), "2.0 KB");
+  assert.equal(formatBytes(5 * 1048576), "5.0 MB");
 });

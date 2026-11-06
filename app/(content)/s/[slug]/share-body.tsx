@@ -19,11 +19,11 @@ interface ShareBodyProps {
 
 export function ShareBodySkeleton() {
   return (
-    <div role="status" aria-label="Loading the shared page" className="grid max-w-[720px] gap-4">
-      <Skeleton className="h-6 w-3/4 rounded-none" />
-      <Skeleton className="h-6 w-full rounded-none" />
-      <Skeleton className="h-6 w-5/6 rounded-none" />
-      <Skeleton className="h-[40vh] w-full rounded-none" />
+    <div role="status" aria-label="Loading the shared page" className="grid max-w-[680px] gap-4">
+      <Skeleton className="h-6 w-3/4 rounded-sm" />
+      <Skeleton className="h-6 w-full rounded-sm" />
+      <Skeleton className="h-6 w-5/6 rounded-sm" />
+      <Skeleton className="h-[40vh] w-full rounded-sm" />
     </div>
   );
 }

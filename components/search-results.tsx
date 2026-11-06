@@ -40,9 +40,9 @@ function fileKind(filename: string): string {
 function SkeletonRow() {
   return (
     <div className="grid gap-3">
-      <Skeleton className="h-8 w-1/2 rounded-none" />
-      <Skeleton className="h-5 w-full rounded-none" />
-      <Skeleton className="h-4 w-1/3 rounded-none" />
+      <Skeleton className="h-8 w-1/2 rounded-sm" />
+      <Skeleton className="h-5 w-full rounded-sm" />
+      <Skeleton className="h-4 w-1/3 rounded-sm" />
     </div>
   );
 }
@@ -85,8 +85,8 @@ export function SearchResults({ results, isLoading, searched }: SearchResultsPro
     <ul className="grid max-w-[46em] gap-[clamp(32px,4vw,48px)]">
       {results.map((r) => (
         <li key={r.slug}>
-          <Link href={`/s/${r.slug}`} className="group block">
-            <span className={cn(head, "break-words underline-offset-[0.18em] group-hover:underline")}>{r.filename}</span>
+          <Link href={`/s/${r.slug}`} className="group block no-underline hover:text-inherit">
+            <span className={cn(head, "break-words decoration-[var(--meta)] underline-offset-[0.2em] group-hover:underline group-hover:decoration-current")}>{r.filename}</span>
             {r.snippet && (
               <span className={cn(body, "mt-2 block text-muted-foreground")}>{truncate(r.snippet, 200)}</span>
             )}

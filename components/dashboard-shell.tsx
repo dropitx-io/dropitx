@@ -22,7 +22,7 @@ interface DashboardShellProps {
  */
 export function DashboardShell({ user, teams, storageUsedBytes, sheetClassName, children }: DashboardShellProps) {
   return (
-    <div className="min-h-svh bg-frame text-foreground md:grid md:grid-cols-[228px_minmax(0,1fr)] md:grid-rows-[48px_minmax(0,1fr)]">
+    <div className="min-h-svh bg-frame font-sans text-foreground md:grid md:grid-cols-[228px_minmax(0,1fr)] md:grid-rows-[48px_minmax(0,1fr)]">
       <aside
         aria-label="Main navigation"
         className="sticky top-0 hidden h-svh flex-col overflow-y-auto px-3 pb-3 md:row-span-2 md:flex"
